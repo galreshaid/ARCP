@@ -3,6 +3,7 @@ Production Settings
 """
 from .base import *
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 DEBUG = False
 
@@ -38,25 +39,22 @@ if DATABASE_URL:
     }
 else:
     db_name = config('DB_NAME', default='').strip()
-    if db_name:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': db_name,
-                'USER': config('DB_USER', default=''),
-                'PASSWORD': config('DB_PASSWORD', default=''),
-                'HOST': config('DB_HOST', default=''),
-                'PORT': config('DB_PORT', default='5432'),
-            }
+    if not db_name:
+        raise ImproperlyConfigured(
+            'Production database is not configured. Set DATABASE_URL (recommended on Render) '
+            'or DB_NAME/DB_USER/DB_PASSWORD/DB_HOST/DB_PORT.'
+        )
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_name,
+            'USER': config('DB_USER', default=''),
+            'PASSWORD': config('DB_PASSWORD', default=''),
+            'HOST': config('DB_HOST', default=''),
+            'PORT': config('DB_PORT', default='5432'),
         }
-    else:
-        # Fallback keeps build/check commands runnable when DATABASE_URL is absent.
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
-        }
+    }
 
 # Static files
 STATIC_ROOT = BASE_DIR / 'staticfiles'
