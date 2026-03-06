@@ -11,7 +11,18 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+
+def _default_settings_module() -> str:
+    if os.getenv('DJANGO_SETTINGS_MODULE'):
+        return os.getenv('DJANGO_SETTINGS_MODULE')
+
+    if os.getenv('RENDER') or os.getenv('RENDER_EXTERNAL_HOSTNAME'):
+        return 'config.settings.prod'
+
+    return 'config.settings.dev'
+
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', _default_settings_module())
 
 application = get_wsgi_application()
 

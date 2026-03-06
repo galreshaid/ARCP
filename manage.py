@@ -4,9 +4,19 @@ import os
 import sys
 
 
+def _default_settings_module() -> str:
+    if os.getenv('DJANGO_SETTINGS_MODULE'):
+        return os.getenv('DJANGO_SETTINGS_MODULE')
+
+    if os.getenv('RENDER') or os.getenv('RENDER_EXTERNAL_HOSTNAME'):
+        return 'config.settings.prod'
+
+    return 'config.settings.dev'
+
+
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', _default_settings_module())
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
