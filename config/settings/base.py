@@ -184,6 +184,16 @@ AUTHENTICATION_BACKENDS = [
     'apps.users.auth_backends.LocalEmailOrUsernameBackend',
 ]
 
+# Permission model configuration:
+# - False: enforce explicit Django permissions from groups/user assignments.
+# - True: additionally allow legacy role-based fallback from ROLE_PERMISSIONS.
+USE_ROLE_PERMISSION_FALLBACK = env_bool('USE_ROLE_PERMISSION_FALLBACK', default=False)
+
+# Default group bootstrap behavior after migrations:
+# - False: only set permissions when creating missing default groups.
+# - True: force-reset default group permissions on every migrate/post_migrate event.
+SYNC_DEFAULT_GROUP_PERMISSIONS = env_bool('SYNC_DEFAULT_GROUP_PERMISSIONS', default=False)
+
 # REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

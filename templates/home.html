@@ -429,30 +429,38 @@
                             </div>
                         </div>
                         <div class="grid">
-                            <article class="feature">
-                                <p class="feature-eyebrow">Queue Operations</p>
-                                <h3>Protocol Worklist</h3>
-                                <p>Review the live exam queue, assign protocols, and route studies through radiologist and technologist review.</p>
-                                <a href="/protocoling/">Open queue</a>
-                            </article>
-                            <article class="feature">
-                                <p class="feature-eyebrow">Readiness</p>
-                                <h3>Quality Control (QC)</h3>
-                                <p>Inspect QC readiness, maintain checklist-driven modality settings, and track operational QC dependencies.</p>
-                                <a href="/quality-control/">Open QC overview</a>
-                            </article>
-                            <article class="feature">
-                                <p class="feature-eyebrow">Materials</p>
-                                <h3>Contrast &amp; Materials</h3>
-                                <p>Review contrast-capable protocols, surface material notes, and prepare contrast-aware exam workflows.</p>
-                                <a href="/contrast-materials/">Open contrast overview</a>
-                            </article>
-                            <article class="feature">
-                                <p class="feature-eyebrow">Administration</p>
-                                <h3>Internal Admin</h3>
-                                <p>Manage users, permissions, procedures, protocols, and HL7 message visibility without exposing Django admin to staff.</p>
-                                <a href="{{ admin_url }}">Open internal admin</a>
-                            </article>
+                            {% if perms.users.protocol_view %}
+                                <article class="feature">
+                                    <p class="feature-eyebrow">Queue Operations</p>
+                                    <h3>Protocol Worklist</h3>
+                                    <p>Review the live exam queue, assign protocols, and route studies through radiologist and technologist review.</p>
+                                    <a href="/protocoling/">Open queue</a>
+                                </article>
+                            {% endif %}
+                            {% if perms.users.qc_view %}
+                                <article class="feature">
+                                    <p class="feature-eyebrow">Readiness</p>
+                                    <h3>Quality Control (QC)</h3>
+                                    <p>Inspect QC readiness, maintain checklist-driven modality settings, and track operational QC dependencies.</p>
+                                    <a href="/quality-control/">Open QC overview</a>
+                                </article>
+                            {% endif %}
+                            {% if perms.users.contrast_view %}
+                                <article class="feature">
+                                    <p class="feature-eyebrow">Materials</p>
+                                    <h3>Contrast &amp; Materials</h3>
+                                    <p>Review contrast-capable protocols, surface material notes, and prepare contrast-aware exam workflows.</p>
+                                    <a href="/contrast-materials/">Open contrast overview</a>
+                                </article>
+                            {% endif %}
+                            {% if perms.users.admin_access %}
+                                <article class="feature">
+                                    <p class="feature-eyebrow">Administration</p>
+                                    <h3>Internal Admin</h3>
+                                    <p>Manage users, permissions, procedures, protocols, and HL7 message visibility without exposing Django admin to staff.</p>
+                                    <a href="{{ admin_url }}">Open internal admin</a>
+                                </article>
+                            {% endif %}
                         </div>
                         <div class="governance-grid">
                             <article class="governance-card">

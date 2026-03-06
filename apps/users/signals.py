@@ -1,4 +1,5 @@
 from django.apps import apps
+from django.conf import settings
 from django.db.models.signals import m2m_changed, post_migrate
 from django.dispatch import receiver
 
@@ -18,7 +19,7 @@ def ensure_default_groups(sender, app_config, **kwargs):
     permission_model = apps.get_model('auth', 'Permission')
 
     for group_name, domain_permissions in DEFAULT_GROUP_PERMISSIONS.items():
-        group, _ = group_model.objects.get_or_create(name=group_name)
+        group, created = group_model.objects.get_or_create(name=group_name)
         permission_codenames = [
             DOMAIN_PERMISSION_TO_DJANGO_PERMISSION[permission].split('.', 1)[1]
             for permission in domain_permissions
@@ -27,8 +28,11 @@ def ensure_default_groups(sender, app_config, **kwargs):
             content_type__app_label='users',
             codename__in=permission_codenames,
         )
-        if permissions:
-            group.permissions.add(*permissions)
+        if not permissions:
+            continue
+
+        if created or getattr(settings, 'SYNC_DEFAULT_GROUP_PERMISSIONS', False):
+            group.permissions.set(permissions)
 
 
 @receiver(m2m_changed, sender=User.groups.through)

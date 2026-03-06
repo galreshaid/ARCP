@@ -206,6 +206,8 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
         Check if user has a permission via direct assignment, group membership,
         or the legacy role mapping.
         """
+        from django.conf import settings
+
         if self.is_superuser:
             return True
 
@@ -216,6 +218,9 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
 
         if '.' in django_permission and self.has_perm(django_permission):
             return True
+
+        if not getattr(settings, 'USE_ROLE_PERMISSION_FALLBACK', False):
+            return False
 
         role_permissions = ROLE_PERMISSIONS.get(self.role, [])
         return permission in role_permissions

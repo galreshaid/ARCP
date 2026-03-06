@@ -14,53 +14,65 @@
                         <small>Operational overview, queue metrics, and secure launch points.</small>
                     </span>
                 </a>
-                <a href="/protocoling/" class="{% if current_nav == 'worklist' %}active{% endif %}">
-                    <span class="app-nav-icon" aria-hidden="true">&#9776;</span>
-                    <span class="app-nav-copy">
-                        <strong>Protocol Worklist</strong>
-                        <small>Operational queue, review flow, and technologist handoff.</small>
-                    </span>
-                </a>
-                <a href="/quality-control/" class="{% if current_nav == 'qc' %}active{% endif %}">
-                    <span class="app-nav-icon" aria-hidden="true">&#10003;</span>
-                    <span class="app-nav-copy">
-                        <strong>Quality Control (QC)</strong>
-                        <small>QC overview, modality checklist settings, and exam readiness.</small>
-                    </span>
-                </a>
-                <a href="/quality-control/analytics/" class="{% if current_nav == 'qc-analytics' %}active{% endif %}">
-                    <span class="app-nav-icon" aria-hidden="true">&#128200;</span>
-                    <span class="app-nav-copy">
-                        <strong>QC Analytics</strong>
-                        <small>QC quality metrics, evidence counts, reviewer activity, and checklist trends.</small>
-                    </span>
-                </a>
-                <a href="/contrast-materials/" class="{% if current_nav == 'contrast' %}active{% endif %}">
-                    <span class="app-nav-icon" aria-hidden="true">&#10010;</span>
-                    <span class="app-nav-copy">
-                        <strong>Contrast &amp; Materials</strong>
-                        <small>Contrast-enabled protocol coverage and material planning.</small>
-                    </span>
-                </a>
-                <a href="/contrast-materials/analytics/" class="{% if current_nav == 'contrast-analytics' %}active{% endif %}">
-                    <span class="app-nav-icon" aria-hidden="true">&#128202;</span>
-                    <span class="app-nav-copy">
-                        <strong>Contrast Analytics</strong>
-                        <small>Finance/store usage, counts per patient, and modality-level summaries.</small>
-                    </span>
-                </a>
+                {% if perms.users.protocol_view %}
+                    <a href="/protocoling/" class="{% if current_nav == 'worklist' %}active{% endif %}">
+                        <span class="app-nav-icon" aria-hidden="true">&#9776;</span>
+                        <span class="app-nav-copy">
+                            <strong>Protocol Worklist</strong>
+                            <small>Operational queue, review flow, and technologist handoff.</small>
+                        </span>
+                    </a>
+                {% endif %}
+                {% if perms.users.qc_view %}
+                    <a href="/quality-control/" class="{% if current_nav == 'qc' %}active{% endif %}">
+                        <span class="app-nav-icon" aria-hidden="true">&#10003;</span>
+                        <span class="app-nav-copy">
+                            <strong>Quality Control (QC)</strong>
+                            <small>QC overview, modality checklist settings, and exam readiness.</small>
+                        </span>
+                    </a>
+                {% endif %}
+                {% if perms.users.report_view %}
+                    <a href="/quality-control/analytics/" class="{% if current_nav == 'qc-analytics' %}active{% endif %}">
+                        <span class="app-nav-icon" aria-hidden="true">&#128200;</span>
+                        <span class="app-nav-copy">
+                            <strong>QC Analytics</strong>
+                            <small>QC quality metrics, evidence counts, reviewer activity, and checklist trends.</small>
+                        </span>
+                    </a>
+                {% endif %}
+                {% if perms.users.contrast_view %}
+                    <a href="/contrast-materials/" class="{% if current_nav == 'contrast' %}active{% endif %}">
+                        <span class="app-nav-icon" aria-hidden="true">&#10010;</span>
+                        <span class="app-nav-copy">
+                            <strong>Contrast &amp; Materials</strong>
+                            <small>Contrast-enabled protocol coverage and material planning.</small>
+                        </span>
+                    </a>
+                {% endif %}
+                {% if perms.users.report_view %}
+                    <a href="/contrast-materials/analytics/" class="{% if current_nav == 'contrast-analytics' %}active{% endif %}">
+                        <span class="app-nav-icon" aria-hidden="true">&#128202;</span>
+                        <span class="app-nav-copy">
+                            <strong>Contrast Analytics</strong>
+                            <small>Finance/store usage, counts per patient, and modality-level summaries.</small>
+                        </span>
+                    </a>
+                {% endif %}
             </nav>
         </section>
         <section class="app-side-group" aria-label="Administration">
             <p class="app-side-group-label">Administration</p>
             <nav class="app-nav">
-                <a href="/system-admin/" class="{% if current_nav == 'admin' %}active{% endif %}">
-                    <span class="app-nav-icon" aria-hidden="true">&#9881;</span>
-                    <span class="app-nav-copy">
-                        <strong>Internal Admin</strong>
-                        <small>Users, permissions, procedures, protocols, and HL7 visibility.</small>
-                    </span>
-                </a>
+                {% if perms.users.admin_access %}
+                    <a href="/system-admin/" class="{% if current_nav == 'admin' %}active{% endif %}">
+                        <span class="app-nav-icon" aria-hidden="true">&#9881;</span>
+                        <span class="app-nav-copy">
+                            <strong>Internal Admin</strong>
+                            <small>Users, permissions, procedures, protocols, and HL7 visibility.</small>
+                        </span>
+                    </a>
+                {% endif %}
             </nav>
         </section>
     </div>
