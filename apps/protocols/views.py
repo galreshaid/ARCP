@@ -27,7 +27,7 @@ from apps.core.deeplinks.validator import deeplink_validator, DeepLinkValidation
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.generics import GenericAPIView
 
@@ -223,12 +223,48 @@ def _build_assignment_timeline(assignment: ProtocolAssignment | None):
     return events
 
 
+class CanViewProtocolWorkflow(BasePermission):
+    message = "Protocol view permission is required."
+
+    def has_permission(self, request, view):
+        user = getattr(request, "user", None)
+        return bool(
+            user
+            and user.is_authenticated
+            and user.has_permission(Permission.PROTOCOL_VIEW)
+        )
+
+
+class CanAssignProtocolWorkflow(BasePermission):
+    message = "Protocol assignment permission is required."
+
+    def has_permission(self, request, view):
+        user = getattr(request, "user", None)
+        return bool(
+            user
+            and user.is_authenticated
+            and _can_access_radiologist_review(user)
+        )
+
+
+class CanAcknowledgeProtocolWorkflow(BasePermission):
+    message = "Technologist protocol review permission is required."
+
+    def has_permission(self, request, view):
+        user = getattr(request, "user", None)
+        return bool(
+            user
+            and user.is_authenticated
+            and _can_access_technologist_review(user)
+        )
+
+
 # ============================================================
 # API – Protocol Templates
 # ============================================================
 
 class ProtocolTemplateViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, CanViewProtocolWorkflow]
     queryset = ProtocolTemplate.objects.all()
 
     def get_queryset(self):
@@ -282,6 +318,13 @@ class ProtocolAssignmentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = ProtocolAssignment.objects.all()
     serializer_class = ProtocolAssignmentSerializer
+
+    def get_permissions(self):
+        if self.action in ("create", "update", "partial_update", "destroy"):
+            return [IsAuthenticated(), CanAssignProtocolWorkflow()]
+        if self.action == "acknowledge":
+            return [IsAuthenticated(), CanAcknowledgeProtocolWorkflow()]
+        return [IsAuthenticated(), CanViewProtocolWorkflow()]
 
     def get_queryset(self):
         qs = ProtocolAssignment.objects.select_related(
@@ -339,7 +382,7 @@ class ProtocolAssignmentViewSet(viewsets.ModelViewSet):
 # ============================================================
 
 class ProtocolSuggestionViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, CanAssignProtocolWorkflow]
     serializer_class = ProtocolSuggestionSerializer
 
     def list(self, request):
@@ -392,7 +435,7 @@ class ProtocolSuggestionViewSet(viewsets.ViewSet):
 # ============================================================
 
 class ProtocolDeepLinkView(GenericAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, CanViewProtocolWorkflow]
     serializer_class = ProtocolDeepLinkResponseSerializer
 
     def get(self, request):

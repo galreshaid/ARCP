@@ -9,7 +9,6 @@ from django.utils.translation import gettext_lazy as _
 from apps.core.models import BaseModel, TimeStampedModel
 from apps.core.constants import (
     Permission as AppPermission,
-    ROLE_PERMISSIONS,
     UserRole,
 )
 
@@ -203,11 +202,9 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
 
     def has_permission(self, permission: str) -> bool:
         """
-        Check if user has a permission via direct assignment, group membership,
-        or the legacy role mapping.
+        Check if user has a permission via Django's explicit permission model
+        (direct user permission or group permission).
         """
-        from django.conf import settings
-
         if self.is_superuser:
             return True
 
@@ -216,14 +213,10 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
             permission,
         )
 
-        if '.' in django_permission and self.has_perm(django_permission):
-            return True
+        if '.' in django_permission:
+            return self.has_perm(django_permission)
 
-        if not getattr(settings, 'USE_ROLE_PERMISSION_FALLBACK', False):
-            return False
-
-        role_permissions = ROLE_PERMISSIONS.get(self.role, [])
-        return permission in role_permissions
+        return False
 
     def has_facility_access(self, facility) -> bool:
         """

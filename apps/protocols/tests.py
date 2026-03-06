@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 
+from django.contrib.auth.models import Group
 from django.template import Context, Template
 from django.core import mail
 from django.test import SimpleTestCase, TestCase
@@ -290,6 +291,136 @@ class ProtocolSuggestionApiTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn('already has a protocol assigned', response.json()['non_field_errors'][0])
+
+
+class ProtocolApiPermissionEnforcementTests(TestCase):
+    def setUp(self):
+        self.facility = Facility.objects.create(
+            code='PERM',
+            name='Permission Facility',
+            is_active=True,
+        )
+        self.modality = Modality.objects.create(
+            code='CT',
+            name='Computed Tomography',
+            is_active=True,
+        )
+        self.procedure = Procedure.objects.create(
+            code='CTPERM',
+            name='CT Permission Study',
+            modality=self.modality,
+            body_region='Chest',
+            is_active=True,
+        )
+        self.exam = Exam.objects.create(
+            accession_number='PERM-001',
+            order_id='PERM-001',
+            mrn='40001',
+            facility=self.facility,
+            modality=self.modality,
+            procedure_code='CTPERM',
+            procedure_name='CT PERMISSION STUDY',
+            patient_name='Permission Test Patient',
+            status='SCHEDULED',
+        )
+        self.protocol = ProtocolTemplate.objects.create(
+            code='CT_PERMISSION_PROTOCOL',
+            name='CT Permission Protocol',
+            modality=self.modality,
+            facility=self.facility,
+            procedure=self.procedure,
+            body_region='Chest',
+            is_active=True,
+        )
+
+        self.finance_user = User.objects.create_user(
+            email='finance-perm@example.com',
+            password='password123',
+            username='financeperm',
+            first_name='Finance',
+            last_name='Perm',
+            role=UserRole.FINANCE,
+        )
+        self.finance_user.groups.add(Group.objects.get(name='Finance'))
+        self.finance_user.facilities.add(self.facility)
+
+        self.technologist_user = User.objects.create_user(
+            email='tech-perm@example.com',
+            password='password123',
+            username='techperm',
+            first_name='Tech',
+            last_name='Perm',
+            role=UserRole.TECHNOLOGIST,
+        )
+        self.technologist_user.groups.add(Group.objects.get(name='Technologist'))
+        self.technologist_user.facilities.add(self.facility)
+
+        self.radiologist_user = User.objects.create_user(
+            email='rad-perm@example.com',
+            password='password123',
+            username='radperm',
+            first_name='Rad',
+            last_name='Perm',
+            role=UserRole.RADIOLOGIST,
+        )
+        self.radiologist_user.groups.add(Group.objects.get(name='Radiologist'))
+        self.radiologist_user.facilities.add(self.facility)
+
+    def test_finance_cannot_access_protocol_template_api(self):
+        self.client.force_login(self.finance_user)
+
+        response = self.client.get(reverse('protocols:template-list'))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_finance_cannot_access_protocol_suggestion_api(self):
+        self.client.force_login(self.finance_user)
+
+        response = self.client.get(
+            reverse('protocols:suggestion-list'),
+            {'exam_id': str(self.exam.id)},
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_technologist_can_view_templates_but_cannot_create_assignment(self):
+        self.client.force_login(self.technologist_user)
+
+        templates_response = self.client.get(reverse('protocols:template-list'))
+        self.assertEqual(templates_response.status_code, 200)
+
+        create_response = self.client.post(
+            reverse('protocols:assignment-list'),
+            {
+                'exam_id': str(self.exam.id),
+                'protocol_id': str(self.protocol.id),
+                'assignment_method': 'MANUAL',
+            },
+        )
+
+        self.assertEqual(create_response.status_code, 403)
+
+    def test_radiologist_can_create_assignment_via_api(self):
+        self.client.force_login(self.radiologist_user)
+
+        response = self.client.post(
+            reverse('protocols:assignment-list'),
+            {
+                'exam_id': str(self.exam.id),
+                'protocol_id': str(self.protocol.id),
+                'assignment_method': 'MANUAL',
+                'radiologist_note': 'Permission test assignment',
+            },
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(
+            ProtocolAssignment.objects.filter(
+                exam=self.exam,
+                protocol=self.protocol,
+                assigned_by=self.radiologist_user,
+            ).exists()
+        )
 
 
 class TechnologistProtocolViewTests(TestCase):
