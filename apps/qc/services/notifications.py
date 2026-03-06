@@ -15,6 +15,12 @@ from apps.users.models import User, UserNotification
 
 
 logger = logging.getLogger(__name__)
+QUALITY_DEPARTMENT_GROUP_NAMES = (
+    "Quality Department",
+    "Quality Department Representative",
+    "Quality Officer",
+    "Quality Representative",
+)
 
 
 def _display_name(user) -> str:
@@ -126,6 +132,27 @@ def _supervisor_recipients_for_exam(exam) -> list[User]:
     return recipients
 
 
+def _quality_representative_recipients_for_exam(exam) -> list[User]:
+    qs = User.objects.filter(
+        is_active=True,
+    ).filter(
+        models.Q(is_superuser=True)
+        | models.Q(role=UserRole.ADMIN)
+        | models.Q(groups__name__in=QUALITY_DEPARTMENT_GROUP_NAMES)
+        | models.Q(department__icontains="quality")
+    )
+
+    if getattr(exam, "facility_id", None):
+        qs = qs.filter(
+            models.Q(is_superuser=True)
+            | models.Q(role=UserRole.ADMIN)
+            | models.Q(facilities__id=exam.facility_id)
+            | models.Q(primary_facility_id=exam.facility_id)
+        )
+
+    return list(qs.distinct())
+
+
 def notify_supervisors_of_qc_concern(*, session, raised_by):
     exam = session.exam
     sender_name = _display_name(raised_by)
@@ -153,6 +180,37 @@ def notify_supervisors_of_qc_concern(*, session, raised_by):
             message=message,
             target_url=target_url,
             category="QC_CONCERN",
+        )
+
+
+def notify_quality_department_of_qc_escalation(*, session, escalated_by, escalation_note: str = ""):
+    exam = session.exam
+    sender_name = _display_name(escalated_by)
+    target_url = reverse("qc:review", args=[exam.id])
+    escalation_text = str(escalation_note or "").strip() or "Escalation raised without additional note."
+
+    message = "\n".join(
+        [
+            f"{sender_name} escalated a QC concern to Quality Department.",
+            f"Accession: {exam.accession_number}",
+            f"MRN: {exam.mrn}",
+            f"Modality: {exam.modality.code}",
+            f"Study: {exam.procedure_name}",
+            f"Escalation note: {escalation_text}",
+        ]
+    )
+
+    for recipient in _quality_representative_recipients_for_exam(exam):
+        if recipient.pk == getattr(escalated_by, "pk", None):
+            continue
+
+        _create_notification(
+            recipient=recipient,
+            sender=escalated_by,
+            title=f"QC escalation: {exam.accession_number}",
+            message=message,
+            target_url=target_url,
+            category="QC_ESCALATION",
         )
 
 

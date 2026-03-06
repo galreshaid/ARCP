@@ -33,6 +33,7 @@ from apps.qc.models import (
 )
 from apps.qc.services.access import qc_scope_label, role_of, supervisor_modality_scope
 from apps.qc.services.notifications import (
+    notify_quality_department_of_qc_escalation,
     notify_supervisors_of_qc_concern,
 )
 from apps.users.decorators import app_permission_required
@@ -350,15 +351,39 @@ def _can_access_exam(user, exam) -> bool:
 
 
 def _can_save_session(user) -> bool:
-    return user.is_superuser or user.has_permission(Permission.QC_CREATE) or user.has_permission(Permission.QC_EDIT)
+    if user.is_superuser:
+        return True
+
+    user_role = role_of(user)
+    if user_role not in {UserRole.RADIOLOGIST, UserRole.ADMIN}:
+        return False
+
+    return user.has_permission(Permission.QC_CREATE) or user.has_permission(Permission.QC_EDIT)
 
 
 def _can_capture_evidence(user) -> bool:
-    return user.is_superuser or user.has_permission(Permission.QC_EVIDENCE_CAPTURE)
+    if user.is_superuser:
+        return True
+
+    user_role = role_of(user)
+    if user_role not in {UserRole.RADIOLOGIST, UserRole.ADMIN}:
+        return False
+
+    return user.has_permission(Permission.QC_EVIDENCE_CAPTURE)
 
 
 def _can_acknowledge_or_reply(user) -> bool:
-    return user.is_superuser or user.has_permission(Permission.QC_APPROVE)
+    if user.is_superuser:
+        return True
+
+    user_role = role_of(user)
+    if user_role not in {UserRole.TECHNOLOGIST, UserRole.SUPERVISOR, UserRole.ADMIN}:
+        return False
+
+    if user_role == UserRole.TECHNOLOGIST:
+        return user.has_permission(Permission.QC_VIEW)
+
+    return user.has_permission(Permission.QC_APPROVE) or user.has_permission(Permission.QC_VIEW)
 
 
 def _latest_issue_owner_for_exam(exam):
@@ -911,6 +936,9 @@ def qc_review(request, exam_id):
     has_existing_annotated_evidence = QCAnnotation.objects.filter(image__session__exam=exam).exists()
     user_role = role_of(request.user)
     is_supervisor_user = user_role == UserRole.SUPERVISOR
+    is_technologist_user = user_role == UserRole.TECHNOLOGIST
+    is_qc_editor_user = request.user.is_superuser or user_role in {UserRole.RADIOLOGIST, UserRole.ADMIN}
+    is_acknowledgement_user = is_supervisor_user or is_technologist_user
     issue_owner = _latest_issue_owner_for_exam(exam)
     launch_base_url = request.build_absolute_uri(reverse("qc:launch"))
     pacs_exam_link = _build_pacs_exam_link(exam.accession_number)
@@ -926,6 +954,9 @@ def qc_review(request, exam_id):
         "has_existing_annotated_evidence": has_existing_annotated_evidence,
         "user_role": user_role,
         "is_supervisor_user": is_supervisor_user,
+        "is_technologist_user": is_technologist_user,
+        "is_qc_editor_user": is_qc_editor_user,
+        "is_acknowledgement_user": is_acknowledgement_user,
         "issue_owner": issue_owner,
         "issue_owner_id": str(issue_owner.id) if issue_owner else "",
         "pacs_study_link": pacs_exam_link or _build_pacs_link(exam.accession_number),
@@ -934,9 +965,13 @@ def qc_review(request, exam_id):
         "launch_by_accession_url": f"{launch_base_url}?accession={quote(exam.accession_number)}",
         "launch_by_order_url": f"{launch_base_url}?order_id={quote(exam.order_id)}",
         "session_api_url": reverse("qc:session-api", args=[exam.id]),
-        "can_save_session": _can_save_session(request.user) and not is_supervisor_user,
-        "can_acknowledge_or_reply": _can_acknowledge_or_reply(request.user) and is_supervisor_user,
-        "can_capture_evidence": _can_capture_evidence(request.user) and not is_supervisor_user,
+        "can_save_session": _can_save_session(request.user) and is_qc_editor_user,
+        "can_acknowledge_or_reply": _can_acknowledge_or_reply(request.user) and is_acknowledgement_user,
+        "can_escalate_to_quality": (
+            _can_acknowledge_or_reply(request.user)
+            and is_supervisor_user
+        ),
+        "can_capture_evidence": _can_capture_evidence(request.user) and is_qc_editor_user,
     }
     return render(request, "qc/review.html", context)
 
@@ -1061,27 +1096,35 @@ def qc_session_api(request, exam_id):
         "reject": "reply",
     }
     action = legacy_action_map.get(action, action)
-    if action not in {"save", "acknowledge", "reply"}:
+    if action not in {"save", "acknowledge", "reply", "escalate_quality"}:
         return _json_error("Invalid QC action.", status=400)
 
     user_role = role_of(request.user)
     if action == "save":
-        if user_role == UserRole.SUPERVISOR:
-            return _json_error("Supervisors can only acknowledge or reply to QC issues.", status=403)
         if not _can_save_session(request.user):
-            return _json_error("Missing permission: qc.create/qc.edit", status=403)
-    if action in {"acknowledge", "reply"}:
-        if user_role == UserRole.RADIOLOGIST:
+            return _json_error(
+                "Only radiologists/admin can save QC fields. Technologist and supervisor are acknowledgment-only.",
+                status=403,
+            )
+    if action in {"acknowledge", "reply", "escalate_quality"}:
+        if user_role == UserRole.RADIOLOGIST and not request.user.is_superuser:
             return _json_error("Radiologists can only save QC issues.", status=403)
         if not _can_acknowledge_or_reply(request.user):
-            return _json_error("Missing permission: qc.approve", status=403)
+            return _json_error("Missing permission: qc.view/qc.approve", status=403)
+        if action == "reply" and user_role != UserRole.SUPERVISOR and not request.user.is_superuser:
+            return _json_error("Only supervisors can send QC reply notes.", status=403)
+        if action == "escalate_quality" and user_role != UserRole.SUPERVISOR and not request.user.is_superuser:
+            return _json_error("Only supervisors can escalate QC concern to Quality Department.", status=403)
 
     images_payload = payload.get("images") or []
     if not isinstance(images_payload, list):
         return _json_error("Images must be an array.", status=400)
 
-    if user_role == UserRole.SUPERVISOR and images_payload:
-        return _json_error("Supervisors can only acknowledge/reply and cannot upload new QC evidence.", status=403)
+    if action in {"acknowledge", "reply", "escalate_quality"} and images_payload:
+        return _json_error(
+            "Acknowledgement/escalation mode is read-only for QC fields and cannot upload new evidence.",
+            status=403,
+        )
 
     if images_payload and not _can_capture_evidence(request.user):
         return _json_error("Missing permission: qc.evidence_capture", status=403)
@@ -1093,8 +1136,30 @@ def qc_session_api(request, exam_id):
     notes = str(payload.get("notes") or "").strip()
     concern_raised = bool(payload.get("concern_raised"))
     supervisor_reply = str(payload.get("supervisor_reply") or "").strip()
+    quality_escalation_note = str(payload.get("quality_escalation_note") or "").strip()
     if action == "reply" and not supervisor_reply:
         return _json_error("Reply message is required for supervisor reply.", status=400)
+    if action == "escalate_quality" and not quality_escalation_note:
+        return _json_error("Escalation note is required for quality escalation.", status=400)
+
+    if action in {"acknowledge", "reply", "escalate_quality"}:
+        source_session = (
+            QCSession.objects.filter(
+                exam=exam,
+                reviewer__role=UserRole.RADIOLOGIST,
+                concern_raised=True,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        if source_session is None:
+            return _json_error(
+                "No radiologist-raised QC concern is available for acknowledgement/escalation.",
+                status=409,
+            )
+
+        checklist_state = dict(source_session.checklist_state or {})
+        concern_raised = bool(source_session.concern_raised)
 
     direct_message_payload = payload.get("direct_message") or {}
     if direct_message_payload and not isinstance(direct_message_payload, dict):
@@ -1108,8 +1173,14 @@ def qc_session_api(request, exam_id):
     session_status = QCSessionStatus.SAVED
     if action == "acknowledge":
         session_status = QCSessionStatus.ACKNOWLEDGED
-    elif action == "reply":
+    elif action in {"reply", "escalate_quality"}:
         session_status = QCSessionStatus.REPLIED
+
+    session_note = notes
+    if action == "reply":
+        session_note = supervisor_reply
+    elif action == "escalate_quality":
+        session_note = quality_escalation_note
 
     session = QCSession.objects.create(
         exam=exam,
@@ -1119,10 +1190,10 @@ def qc_session_api(request, exam_id):
         modality_code=exam.modality.code,
         study_name=exam.procedure_name,
         checklist_state=checklist_state,
-        notes=supervisor_reply or notes,
+        notes=session_note,
         concern_raised=concern_raised,
         status=session_status,
-        submitted_at=timezone.now() if action in {"acknowledge", "reply"} else None,
+        submitted_at=timezone.now() if action in {"acknowledge", "reply", "escalate_quality"} else None,
     )
 
     try:
@@ -1142,18 +1213,29 @@ def qc_session_api(request, exam_id):
             raised_by=request.user,
         )
 
+    if action == "escalate_quality":
+        notify_quality_department_of_qc_escalation(
+            session=session,
+            escalated_by=request.user,
+            escalation_note=quality_escalation_note,
+        )
+
     review_url = reverse("qc:review", args=[exam.id])
     issue_owner = _latest_issue_owner_for_exam(exam)
-    if action in {"acknowledge", "reply"} and issue_owner and issue_owner.pk != request.user.pk:
-        automated_message = (
-            f"Supervisor acknowledged QC issue for accession {exam.accession_number}."
-            if action == "acknowledge"
-            else f"Supervisor reply for accession {exam.accession_number}:\n{supervisor_reply}"
-        )
+    if action in {"acknowledge", "reply", "escalate_quality"} and issue_owner and issue_owner.pk != request.user.pk:
+        if action == "acknowledge":
+            automated_message = f"QC concern acknowledged for accession {exam.accession_number}."
+        elif action == "reply":
+            automated_message = f"Supervisor reply for accession {exam.accession_number}:\n{supervisor_reply}"
+        else:
+            automated_message = (
+                f"Supervisor escalated QC concern for accession {exam.accession_number} "
+                f"to Quality Department:\n{quality_escalation_note}"
+            )
         send_direct_user_message(
             sender=request.user,
             recipient=issue_owner,
-            title=f"QC {action.title()}: {exam.accession_number}",
+            title=f"QC {action.replace('_', ' ').title()}: {exam.accession_number}",
             message=automated_message,
             target_url=review_url,
         )
@@ -1191,6 +1273,8 @@ def qc_session_api(request, exam_id):
     metadata["qc_latest_at"] = timezone.now().isoformat()
     if supervisor_reply:
         metadata["qc_latest_supervisor_reply"] = supervisor_reply
+    if quality_escalation_note:
+        metadata["qc_latest_quality_escalation_note"] = quality_escalation_note
     exam.metadata = metadata
     exam.save(update_fields=["metadata"])
 

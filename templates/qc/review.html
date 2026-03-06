@@ -634,7 +634,7 @@
             <section class="hero">
                 <div>
                     <h1>QC Review: {{ exam.accession_number }}</h1>
-                    <p>Complete the QC checklist and notes, capture annotated evidence when needed, then save the issue. Supervisor workflow is acknowledge and reply only.</p>
+                    <p>Radiologist records QC checklist and notes. Technologist/Supervisor use acknowledgement workflow only, with supervisor escalation to Quality Department when required.</p>
                 </div>
                 <div class="hero-actions">
                     <a class="btn btn-secondary" href="{% url 'quality-control' %}">Back to QC Worklist</a>
@@ -672,7 +672,7 @@
                     <div class="permissions">
                         Save QC: {% if can_save_session %}Yes{% else %}No{% endif %} |
                         Capture evidence: {% if can_capture_evidence %}Yes{% else %}No{% endif %} |
-                        Supervisor acknowledge/reply: {% if can_acknowledge_or_reply %}Yes{% else %}No{% endif %}
+                        Acknowledge workflow: {% if can_acknowledge_or_reply %}Yes{% else %}No{% endif %}
                     </div>
 
                     <div class="launch-links">
@@ -713,7 +713,7 @@
                             <button class="btn btn-secondary" type="button" id="undo-btn">Undo</button>
                             <button class="btn btn-secondary" type="button" id="clear-btn">Clear</button>
                         {% else %}
-                            <small class="muted">Evidence capture is disabled in supervisor acknowledge/reply mode.</small>
+                            <small class="muted">Evidence capture is disabled in acknowledgement/escalation mode.</small>
                         {% endif %}
                     </div>
 
@@ -736,7 +736,7 @@
                         <div class="checklist">
                             {% for item in checklist_items %}
                                 <label class="check-item">
-                                    <input type="checkbox" data-check-key="{{ item.key }}" {% if is_supervisor_user %}disabled{% endif %}>
+                                    <input type="checkbox" data-check-key="{{ item.key }}" {% if not is_qc_editor_user %}disabled{% endif %}>
                                     <span>
                                         <strong>{{ item.label }}</strong>
                                         {% if item.help_text %}
@@ -757,8 +757,8 @@
 
                     <div class="notes">
                         <label for="qc-notes">QC Notes</label>
-                        <textarea id="qc-notes" placeholder="Optional notes for the QC session..." {% if is_supervisor_user %}disabled{% endif %}>{{ latest_session.notes|default_if_none:"" }}</textarea>
-                        {% if not is_supervisor_user %}
+                        <textarea id="qc-notes" placeholder="Optional notes for the QC session..." {% if not is_qc_editor_user %}disabled{% endif %}>{{ latest_session.notes|default_if_none:"" }}</textarea>
+                        {% if is_qc_editor_user %}
                             <label class="concern-box">
                                 <input id="concern-raised" type="checkbox" {% if latest_session and latest_session.concern_raised %}checked{% endif %}>
                                 <span>
@@ -774,8 +774,13 @@
                             <label for="supervisor-reply">Supervisor Reply</label>
                             <textarea id="supervisor-reply" placeholder="Reply back to the raised QC issue..."></textarea>
                         </div>
+                        <div class="reply-box">
+                            <label for="quality-escalation-note">Escalation Note (Quality Department)</label>
+                            <textarea id="quality-escalation-note" placeholder="Document why this QC concern is escalated to Quality Department representative."></textarea>
+                        </div>
                     {% endif %}
 
+                    {% if is_qc_editor_user or is_supervisor_user %}
                     <section class="direct-message">
                         <h3>Direct User Message</h3>
                         <p>Optional: send a direct message from this QC case to any active user.</p>
@@ -800,12 +805,16 @@
                             <label for="dm-body">Message Body</label>
                             <textarea id="dm-body" placeholder="Type the direct user message (optional)..."></textarea>
                         </div>
-                    </div>
+                    </section>
+                    {% endif %}
 
                     <div class="action-row">
-                        {% if is_supervisor_user %}
-                            <button class="btn btn-ack" id="acknowledge-btn" type="button" {% if not can_acknowledge_or_reply %}disabled{% endif %}>Acknowledge</button>
-                            <button class="btn btn-reply" id="reply-btn" type="button" {% if not can_acknowledge_or_reply %}disabled{% endif %}>Reply</button>
+                        {% if is_acknowledgement_user %}
+                            <button class="btn btn-ack" id="acknowledge-btn" type="button" {% if not can_acknowledge_or_reply %}disabled{% endif %}>Acknowledge Concern</button>
+                            {% if is_supervisor_user %}
+                                <button class="btn btn-reply" id="reply-btn" type="button" {% if not can_acknowledge_or_reply %}disabled{% endif %}>Reply</button>
+                                <button class="btn btn-primary" id="escalate-quality-btn" type="button" {% if not can_escalate_to_quality %}disabled{% endif %}>Escalate to Quality</button>
+                            {% endif %}
                         {% else %}
                             <button class="btn btn-primary" id="save-btn" type="button" {% if not can_save_session %}disabled{% endif %}>Save</button>
                         {% endif %}
@@ -890,8 +899,11 @@
 const SESSION_API_URL = "{{ session_api_url }}";
 const CAN_CAPTURE_EVIDENCE = {{ can_capture_evidence|yesno:"true,false" }};
 const IS_SUPERVISOR_USER = {{ is_supervisor_user|yesno:"true,false" }};
+const IS_QC_EDITOR_USER = {{ is_qc_editor_user|yesno:"true,false" }};
+const IS_ACKNOWLEDGEMENT_USER = {{ is_acknowledgement_user|yesno:"true,false" }};
 const CAN_SAVE_SESSION = {{ can_save_session|yesno:"true,false" }};
 const CAN_ACKNOWLEDGE_OR_REPLY = {{ can_acknowledge_or_reply|yesno:"true,false" }};
+const CAN_ESCALATE_TO_QUALITY = {{ can_escalate_to_quality|yesno:"true,false" }};
 
 const state = {
     images: [],
@@ -1406,6 +1418,7 @@ function toggleActionButtons(disabled){
     const saveButton = document.getElementById("save-btn");
     const acknowledgeButton = document.getElementById("acknowledge-btn");
     const replyButton = document.getElementById("reply-btn");
+    const escalateButton = document.getElementById("escalate-quality-btn");
     if (saveButton) {
         saveButton.disabled = disabled || !CAN_SAVE_SESSION;
     }
@@ -1415,10 +1428,13 @@ function toggleActionButtons(disabled){
     if (replyButton) {
         replyButton.disabled = disabled || !CAN_ACKNOWLEDGE_OR_REPLY;
     }
+    if (escalateButton) {
+        escalateButton.disabled = disabled || !CAN_ESCALATE_TO_QUALITY;
+    }
 }
 
 async function submitQc(action){
-    if (!CAN_CAPTURE_EVIDENCE && state.images.length) {
+    if (!IS_QC_EDITOR_USER && state.images.length) {
         setSaveStatus("You do not have permission to capture evidence.", true);
         return;
     }
@@ -1426,6 +1442,7 @@ async function submitQc(action){
     const notesNode = document.getElementById("qc-notes");
     const concernNode = document.getElementById("concern-raised");
     const supervisorReplyNode = document.getElementById("supervisor-reply");
+    const qualityEscalationNoteNode = document.getElementById("quality-escalation-note");
     const dmRecipientNode = document.getElementById("dm-recipient");
     const dmTitleNode = document.getElementById("dm-title");
     const dmBodyNode = document.getElementById("dm-body");
@@ -1434,12 +1451,17 @@ async function submitQc(action){
     const checklist = checklistState();
     const concernRaised = Boolean(concernNode && concernNode.checked);
     const supervisorReply = supervisorReplyNode ? supervisorReplyNode.value.trim() : "";
+    const qualityEscalationNote = qualityEscalationNoteNode ? qualityEscalationNoteNode.value.trim() : "";
     const dmRecipient = dmRecipientNode ? String(dmRecipientNode.value || "").trim() : "";
     const dmTitle = dmTitleNode ? dmTitleNode.value.trim() : "";
     const dmBody = dmBodyNode ? dmBodyNode.value.trim() : "";
 
     if (action === "reply" && !supervisorReply) {
         setSaveStatus("Supervisor reply text is required.", true);
+        return;
+    }
+    if (action === "escalate_quality" && !qualityEscalationNote) {
+        setSaveStatus("Escalation note is required before escalating to Quality Department.", true);
         return;
     }
     if (dmRecipient && !dmBody) {
@@ -1466,6 +1488,7 @@ async function submitQc(action){
             notes,
             concern_raised: concernRaised,
             supervisor_reply: supervisorReply,
+            quality_escalation_note: qualityEscalationNote,
             direct_message: {
                 recipient_id: dmRecipient,
                 title: dmTitle,
@@ -1498,7 +1521,9 @@ async function submitQc(action){
         const actionLabel = (
             action === "acknowledge"
                 ? "Issue acknowledged"
-                : (action === "reply" ? "Reply sent" : "QC saved")
+                : (action === "reply"
+                    ? "Reply sent"
+                    : (action === "escalate_quality" ? "Escalated to Quality Department" : "QC saved"))
         );
         setSaveStatus(`${actionLabel}.`, false);
         window.setTimeout(() => {
@@ -1563,6 +1588,10 @@ if (acknowledgeButton) {
 const replyButton = document.getElementById("reply-btn");
 if (replyButton) {
     replyButton.addEventListener("click", () => submitQc("reply"));
+}
+const escalateQualityButton = document.getElementById("escalate-quality-btn");
+if (escalateQualityButton) {
+    escalateQualityButton.addEventListener("click", () => submitQc("escalate_quality"));
 }
 
 document.querySelectorAll("[data-copy-target]").forEach((button) => {

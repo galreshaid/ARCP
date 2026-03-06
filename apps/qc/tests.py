@@ -1,6 +1,7 @@
 import json
 from tempfile import TemporaryDirectory
 
+from django.contrib.auth.models import Permission
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -17,6 +18,14 @@ ONE_PIXEL_PNG_DATA_URL = (
 
 
 class QCWorkflowTests(TestCase):
+    @staticmethod
+    def _grant_user_permissions(user, codenames):
+        permissions = Permission.objects.filter(
+            content_type__app_label="users",
+            codename__in=codenames,
+        )
+        user.user_permissions.add(*permissions)
+
     def setUp(self):
         self.media_dir = TemporaryDirectory()
         self.override = override_settings(
@@ -78,6 +87,21 @@ class QCWorkflowTests(TestCase):
             last_name="Radiologist",
             role=UserRole.RADIOLOGIST,
         )
+        self.radiologist.facilities.add(self.facility)
+        self._grant_user_permissions(
+            self.radiologist,
+            ["qc_view", "qc_create", "qc_edit", "qc_evidence_capture", "qc_evidence_view"],
+        )
+        self.technologist = User.objects.create_user(
+            email="qc-technologist@example.com",
+            password="password123",
+            username="qctech",
+            first_name="QC",
+            last_name="Technologist",
+            role=UserRole.TECHNOLOGIST,
+        )
+        self.technologist.facilities.add(self.facility)
+        self._grant_user_permissions(self.technologist, ["qc_view"])
         self.xr_supervisor = User.objects.create_user(
             email="qc-supervisor@example.com",
             password="password123",
@@ -90,6 +114,7 @@ class QCWorkflowTests(TestCase):
             },
         )
         self.xr_supervisor.facilities.add(self.facility)
+        self._grant_user_permissions(self.xr_supervisor, ["qc_view", "qc_approve"])
         self.ct_supervisor = User.objects.create_user(
             email="qc-ct-supervisor@example.com",
             password="password123",
@@ -102,6 +127,18 @@ class QCWorkflowTests(TestCase):
             },
         )
         self.ct_supervisor.facilities.add(self.facility)
+        self._grant_user_permissions(self.ct_supervisor, ["qc_view", "qc_approve"])
+        self.quality_officer = User.objects.create_user(
+            email="qc-quality@example.com",
+            password="password123",
+            username="qcquality",
+            first_name="Quality",
+            last_name="Officer",
+            role=UserRole.VIEWER,
+            department="Quality Department",
+        )
+        self.quality_officer.facilities.add(self.facility)
+        self._grant_user_permissions(self.quality_officer, ["qc_view"])
         self.report_viewer = User.objects.create_user(
             email="qc-report@example.com",
             password="password123",
@@ -111,6 +148,7 @@ class QCWorkflowTests(TestCase):
             role=UserRole.VIEWER,
         )
         self.report_viewer.facilities.add(self.facility)
+        self._grant_user_permissions(self.report_viewer, ["qc_view", "report_view"])
 
     def tearDown(self):
         self.override.disable()
@@ -250,6 +288,60 @@ class QCWorkflowTests(TestCase):
             ).exists()
         )
 
+    def test_technologist_cannot_save_qc_fields_even_with_edit_permission(self):
+        self._grant_user_permissions(self.technologist, ["qc_edit", "qc_evidence_capture"])
+        self.client.force_login(self.technologist)
+        payload = {
+            "action": "save",
+            "checklist": {"positioning": True},
+            "notes": "Technologist attempted edit",
+            "images": [],
+        }
+
+        response = self.client.post(
+            reverse("qc:session-api", args=[self.exam.id]),
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("radiologists/admin", response.json().get("error", "").lower())
+
+    def test_technologist_acknowledge_is_read_only_and_uses_radiologist_snapshot(self):
+        source_session = QCSession.objects.create(
+            exam=self.exam,
+            reviewer=self.radiologist,
+            accession_number=self.exam.accession_number,
+            mrn=self.exam.mrn,
+            modality_code=self.exam.modality.code,
+            study_name=self.exam.procedure_name,
+            checklist_state={"positioning": False, "motion": True},
+            notes="Radiologist concern",
+            concern_raised=True,
+            status=QCSessionStatus.SAVED,
+        )
+
+        self.client.force_login(self.technologist)
+        payload = {
+            "action": "acknowledge",
+            "checklist": {"positioning": True},  # should be ignored in acknowledge mode
+            "notes": "Technologist note",
+            "images": [],
+        }
+
+        response = self.client.post(
+            reverse("qc:session-api", args=[self.exam.id]),
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        latest = QCSession.objects.filter(exam=self.exam).order_by("-created_at").first()
+        self.assertIsNotNone(latest)
+        self.assertEqual(latest.status, QCSessionStatus.ACKNOWLEDGED)
+        self.assertEqual(latest.checklist_state, source_session.checklist_state)
+        self.assertTrue(latest.concern_raised)
+
     def test_supervisor_reply_requires_reply_message(self):
         self.client.force_login(self.ct_supervisor)
         payload = {
@@ -307,6 +399,43 @@ class QCWorkflowTests(TestCase):
                 recipient=self.radiologist,
                 category="DIRECT_MESSAGE",
                 message__icontains="Please repeat positioning check.",
+            ).exists()
+        )
+
+    def test_supervisor_can_escalate_to_quality_department_representative(self):
+        QCSession.objects.create(
+            exam=self.exam,
+            reviewer=self.radiologist,
+            accession_number=self.exam.accession_number,
+            mrn=self.exam.mrn,
+            modality_code=self.exam.modality.code,
+            study_name=self.exam.procedure_name,
+            notes="Escalate to quality team",
+            concern_raised=True,
+            status=QCSessionStatus.SAVED,
+        )
+
+        self.client.force_login(self.ct_supervisor)
+        payload = {
+            "action": "escalate_quality",
+            "checklist": {"positioning": True},
+            "notes": "",
+            "quality_escalation_note": "Dedicated escalation to quality representative officer.",
+            "images": [],
+        }
+
+        response = self.client.post(
+            reverse("qc:session-api", args=[self.exam.id]),
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            UserNotification.objects.filter(
+                recipient=self.quality_officer,
+                category="QC_ESCALATION",
+                message__icontains="Dedicated escalation to quality representative officer.",
             ).exists()
         )
 
