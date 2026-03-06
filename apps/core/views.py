@@ -1248,6 +1248,7 @@ def _json_payload(request):
     return payload
 
 
+@login_required
 def home(request):
     """Home page"""
     total_exams = Exam.objects.count()
