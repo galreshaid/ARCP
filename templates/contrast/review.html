@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Contrast Review - {{ exam.accession_number }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% include "partials/app_shell_styles.html" %}
+    <style>
+        :root{
+            --page:#edf3f7;
+            --panel:#ffffff;
+            --line:#d7e2ea;
+            --line-strong:#bfd0dd;
+            --ink:#18324d;
+            --muted:#6c8194;
+            --brand:#145d8d;
+            --brand-dark:#0f476b;
+            --ok:#166534;
+            --ok-bg:#ecfdf5;
+            --warn:#92400e;
+            --warn-bg:#fef3c7;
+            --shadow:0 24px 48px rgba(15,49,77,.08);
+            --radius-xl:22px;
+            --radius-lg:16px;
+            --radius-md:12px;
+        }
+
+        *{box-sizing:border-box}
+        body{
+            margin:0;
+            font-family:"Trebuchet MS","Segoe UI",sans-serif;
+            color:var(--ink);
+            background:
+                radial-gradient(circle at top right, rgba(20,93,141,.12), transparent 30%),
+                radial-gradient(circle at bottom left, rgba(22,101,52,.08), transparent 24%),
+                linear-gradient(140deg, #f7fafc, var(--page));
+        }
+
+        .page{ display:grid; gap:16px; }
+        .hero{
+            background:var(--panel);
+            border:1px solid var(--line);
+            border-radius:var(--radius-xl);
+            box-shadow:var(--shadow);
+            padding:20px;
+            display:flex;
+            justify-content:space-between;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+        .hero h1{ margin:0; font-size:28px; line-height:1.1; }
+        .hero p{ margin:8px 0 0; color:var(--muted); max-width:880px; line-height:1.5; }
+        .hero-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+        .workspace-kpis{
+            display:grid;
+            gap:10px;
+            grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+        }
+        .kpi-card{
+            background:var(--panel);
+            border:1px solid #d8e3ec;
+            border-radius:14px;
+            box-shadow:var(--shadow);
+            padding:12px;
+        }
+        .kpi-card small{
+            display:block;
+            text-transform:uppercase;
+            letter-spacing:.05em;
+            color:var(--muted);
+            font-weight:800;
+            font-size:10px;
+        }
+        .kpi-card strong{
+            display:block;
+            font-size:24px;
+            line-height:1.1;
+            margin-top:6px;
+            color:var(--brand-dark);
+        }
+        .kpi-card span{
+            display:block;
+            margin-top:4px;
+            color:#4f6d86;
+            font-size:12px;
+            line-height:1.45;
+        }
+
+        .btn{
+            min-height:38px;
+            padding:0 14px;
+            border-radius:999px;
+            border:1px solid transparent;
+            cursor:pointer;
+            font:inherit;
+            font-size:12px;
+            font-weight:800;
+            text-decoration:none;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            white-space:nowrap;
+        }
+        .btn-primary{
+            background:linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color:#fff;
+            box-shadow:0 12px 24px rgba(20,93,141,.16);
+        }
+        .btn-secondary{
+            background:linear-gradient(180deg, #fff, #f8fbfd);
+            border-color:var(--line-strong);
+            color:var(--brand-dark);
+            box-shadow:0 8px 18px rgba(15,49,77,.08);
+        }
+
+        .grid{
+            display:grid;
+            gap:16px;
+            grid-template-columns:minmax(260px, 360px) minmax(540px, 1fr);
+        }
+        .panel{
+            background:var(--panel);
+            border:1px solid var(--line);
+            border-radius:var(--radius-xl);
+            box-shadow:var(--shadow);
+            padding:16px;
+        }
+        .panel h2{
+            margin:0 0 10px;
+            font-size:19px;
+        }
+        .panel-lead{
+            margin:0 0 12px;
+            color:#4f6d86;
+            font-size:13px;
+            line-height:1.5;
+        }
+        .meta-grid{ display:grid; gap:8px; }
+        .meta-item{
+            border:1px solid #e2ebf2;
+            border-radius:var(--radius-md);
+            background:#fbfdff;
+            padding:10px;
+        }
+        .meta-item small{
+            display:block;
+            font-size:11px;
+            text-transform:uppercase;
+            letter-spacing:.05em;
+            color:var(--muted);
+            font-weight:700;
+        }
+        .meta-item strong{
+            display:block;
+            margin-top:3px;
+            font-size:14px;
+        }
+        .status-chip{
+            display:inline-flex;
+            align-items:center;
+            min-height:24px;
+            padding:0 10px;
+            border-radius:999px;
+            background:var(--ok-bg);
+            color:var(--ok);
+            font-size:10px;
+            font-weight:800;
+            letter-spacing:.02em;
+            text-transform:uppercase;
+        }
+
+        .form-grid{
+            display:grid;
+            gap:10px 12px;
+            grid-template-columns:repeat(2, minmax(0, 1fr));
+            margin-top:10px;
+        }
+        .field{
+            display:grid;
+            gap:6px;
+            min-width:0;
+        }
+        .field label{
+            color:var(--muted);
+            font-size:11px;
+            text-transform:uppercase;
+            letter-spacing:.05em;
+            font-weight:800;
+        }
+        .field input,
+        .field select{
+            min-height:38px;
+            width:100%;
+            max-width:100%;
+            min-width:0;
+            border-radius:10px;
+            border:1px solid var(--line-strong);
+            padding:0 10px;
+            font:inherit;
+            background:#fbfdff;
+            color:var(--ink);
+        }
+        .field input[readonly]{
+            background:#f1f7fb;
+            color:#274866;
+            font-weight:700;
+        }
+        .required-mark{
+            color:#b91c1c;
+            font-weight:800;
+        }
+
+        .entry-list{
+            margin-top:10px;
+            border:1px solid #e2ebf2;
+            border-radius:12px;
+            background:#fbfdff;
+            overflow:auto;
+        }
+        table{
+            width:100%;
+            border-collapse:collapse;
+            min-width:700px;
+        }
+        th,td{
+            padding:9px;
+            border-bottom:1px solid #edf2f7;
+            text-align:left;
+            font-size:12px;
+            vertical-align:top;
+        }
+        th{
+            text-transform:uppercase;
+            letter-spacing:.04em;
+            color:var(--muted);
+            font-size:10px;
+            background:#f8fbfd;
+        }
+        .muted{ color:var(--muted); font-size:12px; }
+        .btn-inline{
+            min-height:30px;
+            padding:0 10px;
+            font-size:11px;
+        }
+        .inline-input,
+        .inline-select{
+            min-height:30px;
+            width:100%;
+            border-radius:8px;
+            border:1px solid var(--line-strong);
+            padding:0 8px;
+            font:inherit;
+            font-size:12px;
+            background:#fff;
+            color:var(--ink);
+        }
+        .inline-actions{
+            display:flex;
+            gap:6px;
+            flex-wrap:wrap;
+        }
+
+        .pending-box{
+            margin-top:10px;
+            border:1px dashed #bfd0dd;
+            border-radius:12px;
+            padding:10px;
+            background:#f7fbff;
+        }
+        .pending-box h3{
+            margin:0 0 8px;
+            font-size:13px;
+        }
+        .entry-input-grid{
+            display:grid;
+            gap:12px;
+            grid-template-columns:repeat(2, minmax(260px, 1fr));
+            align-items:start;
+        }
+        .entry-block{
+            border:1px solid #dbe8f3;
+            border-radius:14px;
+            background:#fafdff;
+            padding:12px;
+            box-shadow:0 10px 20px rgba(20,93,141,.05);
+        }
+        .entry-block h3{
+            margin:0;
+            font-size:16px;
+            color:#173c5c;
+        }
+        .entry-subtitle{
+            margin:6px 0 0;
+            color:#56758d;
+            font-size:12px;
+        }
+        .pending-grid{
+            margin-top:12px;
+            display:grid;
+            gap:10px;
+            grid-template-columns:repeat(2, minmax(260px, 1fr));
+            align-items:start;
+        }
+
+        .action-row{
+            margin-top:12px;
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+            align-items:center;
+        }
+        .status-note{
+            font-size:12px;
+            color:var(--muted);
+        }
+        .field-helper{
+            color:var(--muted);
+            font-size:11px;
+            line-height:1.4;
+        }
+        .quick-picks{
+            margin-top:8px;
+            display:flex;
+            gap:6px;
+            flex-wrap:wrap;
+            align-items:center;
+        }
+        .quick-picks .btn{
+            min-height:30px;
+            padding:0 10px;
+            font-size:11px;
+        }
+        .reference-card{
+            margin-top:10px;
+            padding:10px;
+            border:1px solid #d9e8f3;
+            border-radius:12px;
+            background:#f8fbff;
+            color:#234d73;
+            font-size:12px;
+            line-height:1.45;
+        }
+        .reference-card strong{
+            color:#163b5b;
+        }
+        .reference-grid{
+            margin-top:6px;
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+            gap:6px 10px;
+        }
+        .reference-grid div{
+            min-height:20px;
+        }
+        .assistant-box{
+            margin-top:10px;
+            border:1px solid #dbe8f3;
+            background:#f7fbff;
+            border-radius:12px;
+            padding:10px;
+        }
+        .assistant-head{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+        .assistant-head strong{
+            color:#153b5c;
+            font-size:13px;
+        }
+        .assistant-grid{
+            margin-top:8px;
+            display:grid;
+            gap:10px;
+            grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+        }
+        .assistant-note{
+            font-size:11px;
+            color:#3e6688;
+            line-height:1.45;
+        }
+        .material-toolbar{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            flex-wrap:wrap;
+        }
+        .material-toolbar .status-note{
+            color:#3e6688;
+        }
+        .save-dock{
+            position:sticky;
+            bottom:12px;
+            z-index:9;
+            margin-top:14px;
+            padding:10px 12px;
+            border:1px solid #c8d8e6;
+            border-radius:14px;
+            background:rgba(248, 252, 255, .95);
+            backdrop-filter: blur(6px);
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:8px;
+            flex-wrap:wrap;
+        }
+        .save-dock-metrics{
+            display:flex;
+            align-items:center;
+            gap:14px;
+            flex-wrap:wrap;
+        }
+        .save-dock-metrics span{
+            font-size:12px;
+            color:#355d7f;
+        }
+        .save-dock-actions{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            flex-wrap:wrap;
+        }
+        .bundle-hint{
+            margin-top:10px;
+            padding:10px;
+            border:1px solid #d9e8f3;
+            border-radius:12px;
+            background:#f4f9ff;
+            color:#234d73;
+            font-size:12px;
+            line-height:1.5;
+        }
+        .bundle-hint strong{
+            display:block;
+            font-size:13px;
+            margin-bottom:4px;
+            color:#163b5b;
+        }
+        .notice{
+            margin-top:10px;
+            padding:10px 12px;
+            border:1px solid #f6d8be;
+            border-radius:12px;
+            background:#fff7ed;
+            color:#9a3412;
+            font-size:12px;
+            line-height:1.45;
+            font-weight:700;
+        }
+        .timeline{
+            display:grid;
+            gap:12px;
+        }
+        .timeline-item{
+            display:grid;
+            grid-template-columns:18px minmax(0, 1fr);
+            gap:12px;
+            align-items:start;
+        }
+        .timeline-rail{
+            position:relative;
+            display:flex;
+            justify-content:center;
+            min-height:100%;
+        }
+        .timeline-rail::before{
+            content:"";
+            position:absolute;
+            top:8px;
+            bottom:-14px;
+            width:2px;
+            background:#dbe7f2;
+        }
+        .timeline-item:last-child .timeline-rail::before{
+            display:none;
+        }
+        .timeline-dot{
+            position:relative;
+            z-index:1;
+            width:12px;
+            height:12px;
+            margin-top:4px;
+            border-radius:999px;
+            background:#8eb6d3;
+            border:2px solid #fff;
+            box-shadow:0 0 0 2px #dbe7f2;
+        }
+        .timeline-dot.assignment{ background:#145d8d; }
+        .timeline-dot.acknowledged{ background:#166534; }
+        .timeline-dot.contrast{ background:#0f766e; }
+        .timeline-dot.material{ background:#9a3412; }
+        .timeline-dot.notification{ background:#475569; }
+        .timeline-content{
+            border:1px solid #dde7ef;
+            border-radius:14px;
+            background:#fbfdff;
+            padding:10px 12px;
+        }
+        .timeline-head{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            flex-wrap:wrap;
+            margin-bottom:6px;
+        }
+        .timeline-title{
+            font-size:14px;
+            font-weight:800;
+            line-height:1.4;
+            color:#163b5b;
+        }
+        .timeline-meta{
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+            color:#5a7287;
+            font-size:12px;
+            line-height:1.45;
+        }
+        .timeline-body{
+            font-size:12px;
+            line-height:1.5;
+            color:#2f4d67;
+        }
+
+        @media (max-width: 1120px){
+            .grid{ grid-template-columns:1fr; }
+            .entry-input-grid,
+            .pending-grid{ grid-template-columns:1fr; }
+        }
+        @media (max-width: 1420px){
+            .entry-block .form-grid{ grid-template-columns:1fr; }
+        }
+    </style>
+</head>
+<body>
+{% include "partials/app_header.html" %}
+<div class="app-frame">
+    {% include "partials/app_sidebar.html" with current_nav="contrast" %}
+    <main class="app-main">
+        <div class="page">
+            <section class="hero">
+                <div>
+                    <h1>Contrast & Materials: {{ exam.accession_number }}</h1>
+                    <p>This exam came from ORM/ORR flow. Add contrast and disposable material usage below.</p>
+                </div>
+                <div class="hero-actions">
+                    <a class="btn btn-secondary" href="{% url 'contrast-materials' %}">Back to Worklist</a>
+                    {% if pacs_exam_link %}
+                        <a class="btn btn-secondary" href="{{ pacs_exam_link }}" target="_blank" rel="noopener noreferrer">PACS Exam</a>
+                    {% endif %}
+                    {% if pacs_patient_link %}
+                        <a class="btn btn-secondary" href="{{ pacs_patient_link }}" target="_blank" rel="noopener noreferrer">PACS Patient</a>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="workspace-kpis">
+                <article class="kpi-card">
+                    <small>Saved Contrast</small>
+                    <strong>{{ contrast_entries|length }}</strong>
+                    <span>Historically documented contrast rows for this exam.</span>
+                </article>
+                <article class="kpi-card">
+                    <small>Saved Materials</small>
+                    <strong>{{ material_entries|length }}</strong>
+                    <span>Historically documented consumables for this exam.</span>
+                </article>
+                <article class="kpi-card">
+                    <small>Pending Queue</small>
+                    <strong><span id="pending-contrast-count">0</span> / <span id="pending-material-count">0</span></strong>
+                    <span>Contrast rows / Material rows waiting to be saved.</span>
+                </article>
+                <article class="kpi-card">
+                    <small>Workflow Tips</small>
+                    <strong>Fast Entry</strong>
+                    <span>Press <strong>Enter</strong> inside contrast/material fields to add the row quickly.</span>
+                </article>
+            </section>
+
+            <div class="grid">
+                <section class="panel">
+                    <h2>Exam Context</h2>
+                    <div class="meta-grid">
+                        <article class="meta-item">
+                            <small>Order / PEC</small>
+                            <strong>{{ exam.order_id|default:"-" }}</strong>
+                        </article>
+                        <article class="meta-item">
+                            <small>MRN</small>
+                            <strong>{{ exam.mrn|default:"-" }}</strong>
+                        </article>
+                        <article class="meta-item">
+                            <small>Patient</small>
+                            <strong>{{ exam.patient_name|default:"-" }}</strong>
+                        </article>
+                        <article class="meta-item">
+                            <small>Procedure</small>
+                            <strong>{{ exam.procedure_name|default:"-" }}</strong>
+                        </article>
+                        <article class="meta-item">
+                            <small>Modality / Facility</small>
+                            <strong>{{ exam.modality.code }} / {{ exam.facility.name }}</strong>
+                        </article>
+                        <article class="meta-item">
+                            <small>HL7 Status</small>
+                            <strong><span class="status-chip">{{ exam.metadata.hl7_order_status|default:"-" }}</span></strong>
+                        </article>
+                    </div>
+                    <div class="action-row">
+                        {% if pacs_exam_link %}
+                            <a class="btn btn-secondary" href="{{ pacs_exam_link }}" target="_blank" rel="noopener noreferrer">Open PACS Exam</a>
+                        {% endif %}
+                        {% if pacs_patient_link %}
+                            <a class="btn btn-secondary" href="{{ pacs_patient_link }}" target="_blank" rel="noopener noreferrer">Open PACS Patient</a>
+                        {% endif %}
+                    </div>
+                    {% if not can_edit %}
+                        <div class="notice">
+                            {% if can_edit_saved_entries %}
+                                Read-only for new entry creation. You can edit already saved contrast and material entries.
+                            {% else %}
+                                Read-only view: only technologists can add new entries, and only supervisor/admin can edit saved entries.
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </section>
+
+                <section class="panel">
+                    <h2>Add Contrast and Material Entry</h2>
+                    <p class="panel-lead">Use one workspace to capture contrast and consumables, then save all pending rows together.</p>
+                    <div class="entry-input-grid">
+                        <article class="entry-block">
+                            <h3>Contrast Entry</h3>
+                            <p class="entry-subtitle">Select from catalog, apply dose defaults, and queue the row.</p>
+                            <div class="form-grid">
+                        <div class="field">
+                            <label for="contrast-item">Contrast (Catalog)</label>
+                            <select id="contrast-item">
+                                <option value="">Choose contrast</option>
+                                {% if contrast_catalog %}
+                                    {% for item in contrast_catalog_options %}
+                                        <option
+                                            value="{{ item.option_value }}"
+                                            data-name="{{ item.name }}"
+                                            data-code="{{ item.code|default:'' }}"
+                                            data-concentration="{{ item.concentration_mg_ml|default:'' }}"
+                                            data-route="{{ item.route|default:'IV' }}"
+                                            data-rate="{{ item.injection_rate_ml_s|default:'' }}"
+                                            data-brand="{{ item.brand_name|default:'' }}"
+                                            data-generic="{{ item.generic_name|default:'' }}"
+                                            data-strength="{{ item.form_strength|default:'' }}"
+                                            data-dose-adult="{{ item.typical_adult_dose|default:'' }}"
+                                            data-dose-peds="{{ item.typical_peds_dose|default:'' }}"
+                                            data-indications="{{ item.indications|default:'' }}"
+                                            data-contraindications="{{ item.contraindications|default:'' }}"
+                                            data-storage="{{ item.storage|default:'' }}"
+                                            data-manufacturer="{{ item.manufacturer|default:'' }}"
+                                            data-osmolality="{{ item.osmolality|default:'' }}"
+                                            data-notes="{{ item.notes|default:'' }}"
+                                        >
+                                            {{ item.label }}
+                                        </option>
+                                    {% endfor %}
+                                {% else %}
+                                    {% for item in contrast_catalog_fallback %}
+                                        <option
+                                            value="{{ item.option_value }}"
+                                            data-name="{{ item.name }}"
+                                            data-code="{{ item.code|default:'' }}"
+                                            data-concentration="{{ item.concentration_mg_ml|default:'' }}"
+                                            data-route="{{ item.route|default:'IV' }}"
+                                            data-rate="{{ item.injection_rate_ml_s|default:'' }}"
+                                            data-brand=""
+                                            data-generic=""
+                                            data-strength=""
+                                            data-dose-adult=""
+                                            data-dose-peds=""
+                                            data-indications=""
+                                            data-contraindications=""
+                                            data-storage=""
+                                            data-manufacturer=""
+                                            data-osmolality=""
+                                            data-notes=""
+                                        >
+                                            {{ item.label }}
+                                        </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                            {% if contrast_catalog %}
+                                <div class="field-helper">Pick from catalog to auto-fill name and defaults.</div>
+                            {% elif contrast_catalog_fallback %}
+                                <div class="field-helper">Catalog has no contrast rows. Showing recent contrast choices.</div>
+                            {% else %}
+                                <div class="field-helper">No contrast catalog or recent rows found yet.</div>
+                            {% endif %}
+                        </div>
+                        <div class="field">
+                            <label for="contrast-name">Contrast Name <span class="required-mark">*</span></label>
+                            <input id="contrast-name" type="text" list="contrast-name-options" placeholder="Iohexol 350">
+                        </div>
+                        <div class="field">
+                            <label for="contrast-concentration">Concentration (mg/mL) <span class="required-mark">*</span></label>
+                            <input id="contrast-concentration" type="number" step="0.1" min="0">
+                        </div>
+                        <div class="field">
+                            <label for="contrast-volume">Volume (mL) <span class="required-mark">*</span></label>
+                            <input id="contrast-volume" type="number" step="0.1" min="0">
+                        </div>
+                        <div class="field">
+                            <label for="contrast-rate">Injection Rate (mL/s)</label>
+                            <input id="contrast-rate" type="number" step="0.1" min="0">
+                        </div>
+                        <div class="field">
+                            <label for="contrast-route">Route</label>
+                            <select id="contrast-route">
+                                <option value="IV">IV</option>
+                                <option value="ORAL">Oral</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="contrast-lot">Lot Number</label>
+                            <input id="contrast-lot" type="text">
+                        </div>
+                        <div class="field">
+                            <label for="contrast-expiry">Expiry Date</label>
+                            <input id="contrast-expiry" type="date">
+                        </div>
+                        <div class="field">
+                            <label for="contrast-weight">Patient Weight (kg)</label>
+                            <input id="contrast-weight" type="number" step="0.1" min="0">
+                        </div>
+                    </div>
+                    <div class="assistant-box">
+                        <div class="assistant-head">
+                            <strong>Dose Assistant</strong>
+                            <span class="assistant-note">Uses the patient weight and template defaults to prefill volume/rate.</span>
+                        </div>
+                        <div class="assistant-grid">
+                            <div class="field">
+                                <label for="dose-template">Template</label>
+                                <select id="dose-template">
+                                    <option value="routine_ct">Routine CT (1.5 mL/kg, 2-3 mL/s)</option>
+                                    <option value="cta">CT Angiography (2.0 mL/kg, 4-6 mL/s)</option>
+                                    <option value="cardiac_ct">Cardiac CT (1.5 mL/kg, 5-7 mL/s)</option>
+                                    <option value="mri_gbca">MRI GBCA (0.1 mmol/kg @ 0.5 mmol/mL)</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="contrast-total-preview">Estimated Total Dose (mg)</label>
+                                <input id="contrast-total-preview" type="text" readonly value="-">
+                            </div>
+                            <div class="field">
+                                <label>&nbsp;</label>
+                                <button class="btn btn-secondary" type="button" id="apply-dose-template-btn">Apply Suggested Dose</button>
+                            </div>
+                        </div>
+                        <div class="assistant-note" id="dose-template-note">Select a template and click “Apply Suggested Dose”.</div>
+                    </div>
+                    <datalist id="contrast-name-options">
+                        {% for name in contrast_name_options %}
+                            <option value="{{ name }}"></option>
+                        {% endfor %}
+                    </datalist>
+                    {% if contrast_quick_presets %}
+                        <div class="quick-picks">
+                            <span class="status-note">Quick pick:</span>
+                            {% for preset in contrast_quick_presets %}
+                                <button
+                                    class="btn btn-secondary"
+                                    type="button"
+                                    data-name="{{ preset.name }}"
+                                    data-concentration="{{ preset.concentration_mg_ml|default:'' }}"
+                                    data-route="{{ preset.route|default:'IV' }}"
+                                    data-rate="{{ preset.injection_rate_ml_s|default:'' }}"
+                                    onclick="applyContrastPresetFromButton(this)"
+                                >
+                                    {{ preset.name }}{% if preset.concentration_mg_ml %} {{ preset.concentration_mg_ml }}{% endif %}
+                                </button>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="reference-card" id="contrast-reference-card" style="display:none;">
+                        <strong id="contrast-reference-title"></strong>
+                        <div class="reference-grid" id="contrast-reference-grid"></div>
+                    </div>
+                    {% if can_edit %}
+                        <div class="action-row">
+                            <button class="btn btn-secondary" type="button" id="add-contrast-btn">Add Contrast Row</button>
+                        </div>
+                    {% endif %}
+
+                    <div class="pending-box">
+                        <h3>Pending Contrast Rows</h3>
+                        <div class="entry-list">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Conc</th>
+                                        <th>Vol</th>
+                                        <th>Route</th>
+                                        <th>Lot</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pending-contrast-body">
+                                    <tr><td colspan="6" class="muted">No pending contrast rows.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                        </article>
+                        <article class="entry-block">
+                            <h3>Material Entry</h3>
+                            <p class="entry-subtitle">Search by code or name, load bundle when needed, and queue rows.</p>
+                            <div class="form-grid">
+                        <div class="field">
+                            <label for="material-search">Material Search</label>
+                            <input id="material-search" type="text" placeholder="Type code or name to filter list">
+                        </div>
+                        <div class="field">
+                            <label for="material-item">Material (Catalog)</label>
+                            <select id="material-item">
+                                <option value="">Choose material</option>
+                                {% if material_catalog %}
+                                    {% for item in material_catalog %}
+                                        <option
+                                            value="{{ item.id }}"
+                                            data-name="{{ item.name }}"
+                                            data-code="{{ item.material_code|default:'' }}"
+                                            data-measurement-id="{% if item.default_measurement_id %}{{ item.default_measurement_id }}{% endif %}"
+                                            data-measurement-code="{% if item.default_measurement %}{{ item.default_measurement.code }}{% endif %}"
+                                            data-unit="{{ item.unit|default:'' }}"
+                                        >
+                                            {% if item.material_code %}{{ item.material_code }} - {% endif %}{{ item.name }} ({{ item.category }})
+                                        </option>
+                                    {% endfor %}
+                                {% else %}
+                                    {% for item in material_catalog_fallback %}
+                                        <option
+                                            value="{{ item.option_value }}"
+                                            data-name="{{ item.name }}"
+                                            data-code="{{ item.code|default:'' }}"
+                                            data-measurement-id="{{ item.measurement_id|default:'' }}"
+                                            data-measurement-code="{{ item.measurement_code|default:'' }}"
+                                            data-unit="{{ item.unit|default:'' }}"
+                                        >
+                                            {{ item.label }}
+                                        </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                            {% if material_catalog %}
+                                <div class="field-helper">Choose from catalog or search by code/name.</div>
+                            {% elif material_catalog_fallback %}
+                                <div class="field-helper">Catalog is empty. Showing bundle/recent material options.</div>
+                            {% else %}
+                                <div class="field-helper">No material catalog or recent rows found yet.</div>
+                            {% endif %}
+                        </div>
+                        <div class="field">
+                            <label for="material-name">Material Name <span class="required-mark">*</span></label>
+                            <input id="material-name" type="text" placeholder="Syringe / Catheter / Gloves">
+                        </div>
+                        <div class="field">
+                            <label for="material-measurement">Measurement</label>
+                            <select id="material-measurement">
+                                <option value="">Choose measurement</option>
+                                {% for unit in measurement_options %}
+                                    <option value="{{ unit.id }}" data-code="{{ unit.code }}">{{ unit.code }} - {{ unit.label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="material-unit">Unit Text</label>
+                            <input id="material-unit" type="text" placeholder="ml / mg / cc / pcs">
+                        </div>
+                        <div class="field">
+                            <label for="material-quantity">Quantity <span class="required-mark">*</span></label>
+                            <input id="material-quantity" type="number" step="0.1" min="0">
+                        </div>
+                    </div>
+                    <div class="material-toolbar">
+                        <span class="status-note">Visible catalog options: <strong id="material-visible-count">0</strong></span>
+                        <button class="btn btn-secondary" type="button" id="clear-material-search-btn">Clear Search</button>
+                    </div>
+                    {% if can_edit %}
+                        <div class="action-row">
+                            <button class="btn btn-secondary" type="button" id="load-bundle-btn">Load Procedure Bundle</button>
+                            <button class="btn btn-secondary" type="button" id="add-material-btn">Add Material Row</button>
+                        </div>
+                    {% endif %}
+                    {% if recommended_bundle %}
+                        <div class="bundle-hint">
+                            <strong>Suggested Bundle: {{ recommended_bundle.procedure_code }} - {{ recommended_bundle.procedure_name|default:exam.procedure_name }}</strong>
+                            {% if recommended_bundle.rules_notes %}
+                                {{ recommended_bundle.rules_notes }}
+                            {% else %}
+                                Preconfigured consumables are available for this procedure.
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    <div class="pending-box">
+                        <h3>Pending Material Rows</h3>
+                        <div class="entry-list">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Material</th>
+                                        <th>Measurement</th>
+                                        <th>Unit</th>
+                                        <th>Qty</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pending-material-body">
+                                    <tr><td colspan="5" class="muted">No pending material rows.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                        </article>
+                    </div>
+
+                    <div class="save-dock">
+                        <div class="save-dock-metrics">
+                            <span>Pending Contrast: <strong id="save-dock-contrast-count">0</strong></span>
+                            <span>Pending Materials: <strong id="save-dock-material-count">0</strong></span>
+                        </div>
+                        <div class="save-dock-actions">
+                            {% if can_edit %}
+                                <button class="btn btn-primary" type="button" id="save-session-btn">Save Entries</button>
+                            {% endif %}
+                            <a class="btn btn-secondary" href="{% url 'contrast-materials' %}">Cancel</a>
+                            <span class="status-note" id="save-status"></span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <section class="panel">
+                <h2>Saved Contrast Entries</h2>
+                <div class="entry-list">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Name</th>
+                                <th>Concentration</th>
+                                <th>Volume</th>
+                                <th>Total mg</th>
+                                <th>Route</th>
+                                <th>Lot</th>
+                                {% if can_edit_saved_entries %}
+                                    <th>Action</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in contrast_entries %}
+                                <tr
+                                    data-contrast-row="1"
+                                    data-entry-id="{{ row.id }}"
+                                    data-created-at="{{ row.created_at|date:'Y-m-d H:i' }}"
+                                    data-contrast-name="{{ row.contrast_name|default_if_none:'' }}"
+                                    data-concentration="{{ row.concentration_mg_ml }}"
+                                    data-volume="{{ row.volume_ml }}"
+                                    data-total-mg="{{ row.total_mg }}"
+                                    data-route="{{ row.route|default:'IV' }}"
+                                    data-lot-number="{{ row.lot_number|default_if_none:'' }}"
+                                >
+                                    <td>{{ row.created_at|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ row.contrast_name }}</td>
+                                    <td>{{ row.concentration_mg_ml }}</td>
+                                    <td>{{ row.volume_ml }}</td>
+                                    <td>{{ row.total_mg }}</td>
+                                    <td>{{ row.route }}</td>
+                                    <td>{{ row.lot_number|default:"-" }}</td>
+                                    {% if can_edit_saved_entries %}
+                                        <td>
+                                            <button class="btn btn-secondary btn-inline" type="button" data-saved-entry-edit="contrast" onclick="startContrastRowEdit(this)">Edit</button>
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="{% if can_edit_saved_entries %}8{% else %}7{% endif %}" class="muted">No contrast entries yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Saved Material Entries</h2>
+                <div class="entry-list">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Material</th>
+                                <th>Measurement</th>
+                                <th>Unit</th>
+                                <th>Quantity</th>
+                                {% if can_edit_saved_entries %}
+                                    <th>Action</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in material_entries %}
+                                <tr
+                                    data-material-row="1"
+                                    data-entry-id="{{ row.id }}"
+                                    data-created-at="{{ row.created_at|date:'Y-m-d H:i' }}"
+                                    data-material-name="{% if row.material_name %}{{ row.material_name }}{% elif row.material_item %}{{ row.material_item.name }}{% endif %}"
+                                    data-measurement-id="{{ row.measurement_id|default:'' }}"
+                                    data-measurement-code="{% if row.measurement %}{{ row.measurement.code }}{% endif %}"
+                                    data-unit="{{ row.unit|default_if_none:'' }}"
+                                    data-quantity="{{ row.quantity }}"
+                                >
+                                    <td>{{ row.created_at|date:"Y-m-d H:i" }}</td>
+                                    <td>
+                                        {% if row.material_name %}
+                                            {{ row.material_name }}
+                                        {% elif row.material_item %}
+                                            {{ row.material_item.name }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{% if row.measurement %}{{ row.measurement.code }}{% else %}-{% endif %}</td>
+                                    <td>{{ row.unit|default:"-" }}</td>
+                                    <td>{{ row.quantity }}</td>
+                                    {% if can_edit_saved_entries %}
+                                        <td>
+                                            <button class="btn btn-secondary btn-inline" type="button" data-saved-entry-edit="material" onclick="startMaterialRowEdit(this)">Edit</button>
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="{% if can_edit_saved_entries %}6{% else %}5{% endif %}" class="muted">No material entries yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Workflow Timeline</h2>
+                <p class="panel-lead">Exam, protocol, and contrast/material documentation events for this case.</p>
+                {% if timeline_events %}
+                    <div class="timeline">
+                        {% for event in timeline_events %}
+                            <div class="timeline-item">
+                                <div class="timeline-rail">
+                                    <span class="timeline-dot {{ event.event_type }}"></span>
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="timeline-head">
+                                        <div class="timeline-title">{{ event.title }}</div>
+                                        <div class="timeline-meta">
+                                            <span>{{ event.actor|default:"System" }}</span>
+                                            <span>{{ event.occurred_at|date:"Y-m-d H:i" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-body">{{ event.body }}</div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="muted">No workflow activity recorded yet.</div>
+                {% endif %}
+            </section>
+        </div>
+    </main>
+</div>
+{{ recommended_bundle|json_script:"recommended-bundle-data" }}
+<script>
+const SESSION_API_URL = "{{ session_api_url }}";
+const CAN_EDIT = {{ can_edit|yesno:"true,false" }};
+const CAN_EDIT_SAVED_ENTRIES = {{ can_edit_saved_entries|yesno:"true,false" }};
+const SAVED_ENTRY_API_URL = "{{ saved_entry_api_url }}";
+const RECOMMENDED_BUNDLE = JSON.parse(document.getElementById("recommended-bundle-data").textContent || "{}");
+const MEASUREMENT_OPTIONS = [
+    {% for measurement in measurement_options %}
+        { id: "{{ measurement.id }}", code: "{{ measurement.code|escapejs }}" },
+    {% endfor %}
+];
+
+const pendingContrast = [];
+const pendingMaterial = [];
+
+const DOSE_TEMPLATES = {
+    routine_ct: { volumePerKgMl: 1.5, defaultVolumeMl: 100, defaultRateMlS: 2.5, concentrationFallback: 300 },
+    cta: { volumePerKgMl: 2.0, defaultVolumeMl: 110, defaultRateMlS: 5.0, concentrationFallback: 350 },
+    cardiac_ct: { volumePerKgMl: 1.5, defaultVolumeMl: 90, defaultRateMlS: 6.0, concentrationFallback: 320 },
+    mri_gbca: { volumePerKgMl: 0.2, defaultVolumeMl: 10, defaultRateMlS: 2.0, concentrationFallback: 0.5 },
+};
+
+function toNumber(value){
+    const parsed = Number(String(value || "").trim());
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isUuid(value){
+    const text = String(value || "").trim();
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text);
+}
+
+function parseConcentrationFromName(value){
+    const text = String(value || "").trim();
+    if (!text) {
+        return "";
+    }
+    const match = text.match(/(?:^|\s)(\d{2,4}(?:\.\d+)?)\s*(?:mg\s*\/?\s*ml)?$/i);
+    return match ? match[1] : "";
+}
+
+function applyContrastPreset(preset, preferExisting = true){
+    const nameNode = document.getElementById("contrast-name");
+    const concentrationNode = document.getElementById("contrast-concentration");
+    const routeNode = document.getElementById("contrast-route");
+    const rateNode = document.getElementById("contrast-rate");
+    const name = String((preset && preset.name) || "").trim();
+    const concentration = String((preset && preset.concentration_mg_ml) || "").trim();
+    const route = String((preset && preset.route) || "").trim();
+    const injectionRate = String((preset && preset.injection_rate_ml_s) || "").trim();
+
+    if (name && (!preferExisting || !nameNode.value.trim())) {
+        nameNode.value = name;
+    }
+    if (concentration && (!preferExisting || !concentrationNode.value.trim())) {
+        concentrationNode.value = concentration;
+    } else if ((!preferExisting || !concentrationNode.value.trim()) && name) {
+        const parsed = parseConcentrationFromName(name);
+        if (parsed) {
+            concentrationNode.value = parsed;
+        }
+    }
+    if (route && (!preferExisting || !routeNode.value.trim())) {
+        routeNode.value = route.toUpperCase();
+    }
+    if (injectionRate && (!preferExisting || !rateNode.value.trim())) {
+        rateNode.value = injectionRate;
+    }
+    updateContrastDosePreview();
+}
+
+function applyContrastPresetFromButton(button){
+    if (!button) {
+        return;
+    }
+    applyContrastPreset({
+        name: button.dataset.name || "",
+        concentration_mg_ml: button.dataset.concentration || "",
+        route: button.dataset.route || "IV",
+        injection_rate_ml_s: button.dataset.rate || "",
+    }, false);
+    setStatus("Contrast preset applied.", false);
+    renderContrastReference({
+        label: button.dataset.name || "",
+        concentration: button.dataset.concentration || "",
+        route: button.dataset.route || "IV",
+        rate: button.dataset.rate || "",
+        brand: "",
+        genericName: "",
+        strength: "",
+        adultDose: "",
+        pedsDose: "",
+        indications: "",
+        contraindications: "",
+        storage: "",
+        manufacturer: "",
+        osmolality: "",
+        notes: "",
+    });
+}
+
+function renderContrastReference(details){
+    const card = document.getElementById("contrast-reference-card");
+    const title = document.getElementById("contrast-reference-title");
+    const grid = document.getElementById("contrast-reference-grid");
+    if (!card || !title || !grid) {
+        return;
+    }
+
+    const rows = [];
+    const pushRow = (label, value) => {
+        const text = String(value || "").trim();
+        if (!text) {
+            return;
+        }
+        rows.push(`<div><strong>${label}:</strong> ${text}</div>`);
+    };
+
+    const itemLabel = String((details && details.label) || "").trim();
+    if (!itemLabel) {
+        card.style.display = "none";
+        title.innerText = "";
+        grid.innerHTML = "";
+        return;
+    }
+
+    title.innerText = `Practitioner Reference: ${itemLabel}`;
+    pushRow("Generic", details.genericName);
+    pushRow("Brand", details.brand);
+    pushRow("Strength", details.strength);
+    pushRow("Concentration", details.concentration ? `${details.concentration} mg/mL` : "");
+    pushRow("Route", details.route);
+    pushRow("Injection Rate", details.rate ? `${details.rate} mL/s` : "");
+    pushRow("Adult Dose", details.adultDose);
+    pushRow("Peds Dose", details.pedsDose);
+    pushRow("Indications", details.indications);
+    pushRow("Contraindications", details.contraindications);
+    pushRow("Storage", details.storage);
+    pushRow("Manufacturer", details.manufacturer);
+    pushRow("Osmolality", details.osmolality);
+    pushRow("Notes", details.notes);
+
+    if (!rows.length) {
+        card.style.display = "none";
+        title.innerText = "";
+        grid.innerHTML = "";
+        return;
+    }
+
+    grid.innerHTML = rows.join("");
+    card.style.display = "block";
+}
+
+function clearContrastInputsAfterAdd(){
+    document.getElementById("contrast-volume").value = "";
+    document.getElementById("contrast-lot").value = "";
+    document.getElementById("contrast-expiry").value = "";
+    updateContrastDosePreview();
+}
+
+function clearMaterialInputsAfterAdd(){
+    document.getElementById("material-quantity").value = "";
+}
+
+function getCsrfToken(){
+    const cookie = document.cookie.split("; ").find((row) => row.startsWith("csrftoken="));
+    return cookie ? decodeURIComponent(cookie.split("=")[1]) : "";
+}
+
+function setStatus(message, isError){
+    const node = document.getElementById("save-status");
+    node.innerText = message || "";
+    node.style.color = isError ? "#b91c1c" : "#6c8194";
+}
+
+function escapeHtml(value){
+    const text = String(value || "");
+    return text
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+}
+
+async function postSavedEntryUpdate(entryType, entryId, data){
+    const response = await fetch(SAVED_ENTRY_API_URL, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCsrfToken(),
+        },
+        body: JSON.stringify({
+            entry_type: entryType,
+            entry_id: entryId,
+            data,
+        }),
+    });
+    const body = await response.json();
+    if (!response.ok) {
+        if (typeof body.error === "string") {
+            throw new Error(body.error);
+        }
+        throw new Error("Unable to update saved entry.");
+    }
+    return body;
+}
+
+function cancelSavedRowEdit(button){
+    const row = button.closest("tr");
+    if (!row || !row.dataset.originalHtml) {
+        return;
+    }
+    row.innerHTML = row.dataset.originalHtml;
+    delete row.dataset.originalHtml;
+    delete row.dataset.editing;
+}
+
+function startContrastRowEdit(button){
+    if (!CAN_EDIT_SAVED_ENTRIES) {
+        return;
+    }
+    const row = button.closest("tr");
+    if (!row || row.dataset.editing === "1") {
+        return;
+    }
+    row.dataset.originalHtml = row.innerHTML;
+    row.dataset.editing = "1";
+
+    const selectedRoute = String(row.dataset.route || "IV").trim().toUpperCase() || "IV";
+    const routeOptions = ["IV", "ORAL", "RECTAL", "INTRATHECAL", "INTRA_ARTICULAR"]
+        .map((optionValue) => {
+            const selected = optionValue === selectedRoute ? " selected" : "";
+            return `<option value="${optionValue}"${selected}>${optionValue}</option>`;
+        })
+        .join("");
+
+    row.innerHTML = `
+        <td>${escapeHtml(row.dataset.createdAt || "-")}</td>
+        <td><input class="inline-input" data-edit-field="contrast_name" value="${escapeHtml(row.dataset.contrastName || "")}"></td>
+        <td><input class="inline-input" data-edit-field="concentration_mg_ml" type="number" min="0" step="0.001" value="${escapeHtml(row.dataset.concentration || "")}"></td>
+        <td><input class="inline-input" data-edit-field="volume_ml" type="number" min="0" step="0.001" value="${escapeHtml(row.dataset.volume || "")}"></td>
+        <td>${escapeHtml(row.dataset.totalMg || "-")}</td>
+        <td><select class="inline-select" data-edit-field="route">${routeOptions}</select></td>
+        <td><input class="inline-input" data-edit-field="lot_number" value="${escapeHtml(row.dataset.lotNumber || "")}"></td>
+        <td class="inline-actions">
+            <button class="btn btn-primary btn-inline" type="button" onclick="saveContrastRowEdit(this)">Save</button>
+            <button class="btn btn-secondary btn-inline" type="button" onclick="cancelSavedRowEdit(this)">Cancel</button>
+        </td>
+    `;
+}
+
+async function saveContrastRowEdit(button){
+    const row = button.closest("tr");
+    if (!row) {
+        return;
+    }
+    const data = {
+        contrast_name: String((row.querySelector('[data-edit-field="contrast_name"]') || {}).value || "").trim(),
+        concentration_mg_ml: String((row.querySelector('[data-edit-field="concentration_mg_ml"]') || {}).value || "").trim(),
+        volume_ml: String((row.querySelector('[data-edit-field="volume_ml"]') || {}).value || "").trim(),
+        route: String((row.querySelector('[data-edit-field="route"]') || {}).value || "IV").trim().toUpperCase() || "IV",
+        lot_number: String((row.querySelector('[data-edit-field="lot_number"]') || {}).value || "").trim(),
+    };
+
+    if (!data.contrast_name || !data.concentration_mg_ml || !data.volume_ml) {
+        setStatus("Contrast name, concentration, and volume are required.", true);
+        return;
+    }
+
+    button.disabled = true;
+    try {
+        await postSavedEntryUpdate("contrast", row.dataset.entryId, data);
+        setStatus("Saved contrast entry updated.", false);
+        window.setTimeout(() => window.location.reload(), 220);
+    } catch (error) {
+        setStatus(error.message || "Unable to update contrast entry.", true);
+        button.disabled = false;
+    }
+}
+
+function measurementSelectOptionsHtml(selectedId){
+    const current = String(selectedId || "").trim();
+    const options = ['<option value="">-</option>'];
+    MEASUREMENT_OPTIONS.forEach((measurement) => {
+        const id = String(measurement.id || "").trim();
+        const code = String(measurement.code || "").trim();
+        const selected = id && id === current ? " selected" : "";
+        options.push(`<option value="${escapeHtml(id)}"${selected}>${escapeHtml(code || id)}</option>`);
+    });
+    return options.join("");
+}
+
+function startMaterialRowEdit(button){
+    if (!CAN_EDIT_SAVED_ENTRIES) {
+        return;
+    }
+    const row = button.closest("tr");
+    if (!row || row.dataset.editing === "1") {
+        return;
+    }
+    row.dataset.originalHtml = row.innerHTML;
+    row.dataset.editing = "1";
+
+    row.innerHTML = `
+        <td>${escapeHtml(row.dataset.createdAt || "-")}</td>
+        <td><input class="inline-input" data-edit-field="material_name" value="${escapeHtml(row.dataset.materialName || "")}"></td>
+        <td><select class="inline-select" data-edit-field="measurement_id">${measurementSelectOptionsHtml(row.dataset.measurementId || "")}</select></td>
+        <td><input class="inline-input" data-edit-field="unit" value="${escapeHtml(row.dataset.unit || "")}"></td>
+        <td><input class="inline-input" data-edit-field="quantity" type="number" min="0" step="0.001" value="${escapeHtml(row.dataset.quantity || "")}"></td>
+        <td class="inline-actions">
+            <button class="btn btn-primary btn-inline" type="button" onclick="saveMaterialRowEdit(this)">Save</button>
+            <button class="btn btn-secondary btn-inline" type="button" onclick="cancelSavedRowEdit(this)">Cancel</button>
+        </td>
+    `;
+}
+
+async function saveMaterialRowEdit(button){
+    const row = button.closest("tr");
+    if (!row) {
+        return;
+    }
+    const data = {
+        material_name: String((row.querySelector('[data-edit-field="material_name"]') || {}).value || "").trim(),
+        measurement_id: String((row.querySelector('[data-edit-field="measurement_id"]') || {}).value || "").trim(),
+        unit: String((row.querySelector('[data-edit-field="unit"]') || {}).value || "").trim(),
+        quantity: String((row.querySelector('[data-edit-field="quantity"]') || {}).value || "").trim(),
+    };
+
+    if (!data.material_name || !data.quantity) {
+        setStatus("Material name and quantity are required.", true);
+        return;
+    }
+
+    button.disabled = true;
+    try {
+        await postSavedEntryUpdate("material", row.dataset.entryId, data);
+        setStatus("Saved material entry updated.", false);
+        window.setTimeout(() => window.location.reload(), 220);
+    } catch (error) {
+        setStatus(error.message || "Unable to update material entry.", true);
+        button.disabled = false;
+    }
+}
+
+function updateQueueSummary(){
+    const contrastCount = pendingContrast.length;
+    const materialCount = pendingMaterial.length;
+    const pendingContrastNode = document.getElementById("pending-contrast-count");
+    const pendingMaterialNode = document.getElementById("pending-material-count");
+    const dockContrastNode = document.getElementById("save-dock-contrast-count");
+    const dockMaterialNode = document.getElementById("save-dock-material-count");
+    if (pendingContrastNode) {
+        pendingContrastNode.innerText = String(contrastCount);
+    }
+    if (pendingMaterialNode) {
+        pendingMaterialNode.innerText = String(materialCount);
+    }
+    if (dockContrastNode) {
+        dockContrastNode.innerText = String(contrastCount);
+    }
+    if (dockMaterialNode) {
+        dockMaterialNode.innerText = String(materialCount);
+    }
+}
+
+function updateContrastDosePreview(){
+    const concentration = toNumber(document.getElementById("contrast-concentration").value);
+    const volume = toNumber(document.getElementById("contrast-volume").value);
+    const previewNode = document.getElementById("contrast-total-preview");
+    if (!previewNode) {
+        return;
+    }
+    if (concentration <= 0 || volume <= 0) {
+        previewNode.value = "-";
+        return;
+    }
+    const total = concentration * volume;
+    previewNode.value = `${total.toFixed(1)} mg`;
+}
+
+function applyDoseTemplate(){
+    const templateKey = String(document.getElementById("dose-template").value || "routine_ct");
+    const template = DOSE_TEMPLATES[templateKey] || DOSE_TEMPLATES.routine_ct;
+    const weight = toNumber(document.getElementById("contrast-weight").value);
+    const noteNode = document.getElementById("dose-template-note");
+    const concentrationNode = document.getElementById("contrast-concentration");
+    const volumeNode = document.getElementById("contrast-volume");
+    const rateNode = document.getElementById("contrast-rate");
+    const routeNode = document.getElementById("contrast-route");
+
+    const suggestedVolume = weight > 0
+        ? (weight * template.volumePerKgMl)
+        : template.defaultVolumeMl;
+    volumeNode.value = suggestedVolume.toFixed(1);
+    if (!concentrationNode.value.trim() && template.concentrationFallback > 0) {
+        concentrationNode.value = String(template.concentrationFallback);
+    }
+    if (!rateNode.value.trim() && template.defaultRateMlS > 0) {
+        rateNode.value = String(template.defaultRateMlS);
+    }
+    routeNode.value = "IV";
+    updateContrastDosePreview();
+
+    if (noteNode) {
+        noteNode.innerText = weight > 0
+            ? `Applied ${templateKey.replaceAll("_", " ")} template using ${weight.toFixed(1)} kg.`
+            : `Weight is empty. Applied default volume for ${templateKey.replaceAll("_", " ")}.`;
+    }
+}
+
+function renderPendingContrast(){
+    const body = document.getElementById("pending-contrast-body");
+    if (!pendingContrast.length) {
+        body.innerHTML = `<tr><td colspan="6" class="muted">No pending contrast rows.</td></tr>`;
+        updateQueueSummary();
+        return;
+    }
+    body.innerHTML = pendingContrast.map((item, index) => `
+        <tr>
+            <td>${item.contrast_name}</td>
+            <td>${item.concentration_mg_ml}</td>
+            <td>${item.volume_ml}</td>
+            <td>${item.route}</td>
+            <td>${item.lot_number || "-"}</td>
+            <td><button class="btn btn-secondary" type="button" onclick="removePendingContrast(${index})">Remove</button></td>
+        </tr>
+    `).join("");
+    updateQueueSummary();
+}
+
+function renderPendingMaterial(){
+    const body = document.getElementById("pending-material-body");
+    if (!pendingMaterial.length) {
+        body.innerHTML = `<tr><td colspan="5" class="muted">No pending material rows.</td></tr>`;
+        updateQueueSummary();
+        return;
+    }
+    body.innerHTML = pendingMaterial.map((item, index) => `
+        <tr>
+            <td>${item.material_name}</td>
+            <td>${item.measurement_code || "-"}</td>
+            <td>${item.unit || "-"}</td>
+            <td>${item.quantity}</td>
+            <td><button class="btn btn-secondary" type="button" onclick="removePendingMaterial(${index})">Remove</button></td>
+        </tr>
+    `).join("");
+    updateQueueSummary();
+}
+
+function removePendingContrast(index){
+    pendingContrast.splice(index, 1);
+    renderPendingContrast();
+}
+
+function removePendingMaterial(index){
+    pendingMaterial.splice(index, 1);
+    renderPendingMaterial();
+}
+
+function addContrastRow(){
+    const entry = {
+        contrast_name: document.getElementById("contrast-name").value.trim(),
+        concentration_mg_ml: document.getElementById("contrast-concentration").value.trim(),
+        volume_ml: document.getElementById("contrast-volume").value.trim(),
+        injection_rate_ml_s: document.getElementById("contrast-rate").value.trim(),
+        route: document.getElementById("contrast-route").value.trim() || "IV",
+        lot_number: document.getElementById("contrast-lot").value.trim(),
+        expiry_date: document.getElementById("contrast-expiry").value.trim(),
+        patient_weight_kg: document.getElementById("contrast-weight").value.trim(),
+    };
+    if (!entry.contrast_name || !entry.concentration_mg_ml || !entry.volume_ml) {
+        setStatus("Contrast name, concentration, and volume are required.", true);
+        return;
+    }
+    pendingContrast.push(entry);
+    renderPendingContrast();
+    clearContrastInputsAfterAdd();
+    setStatus("Contrast row added.", false);
+}
+
+function addMaterialRow(){
+    const materialSelect = document.getElementById("material-item");
+    const measurementSelect = document.getElementById("material-measurement");
+    const measurementOption = measurementSelect.options[measurementSelect.selectedIndex];
+    const selectedOption = materialSelect.options[materialSelect.selectedIndex];
+    const selectedValue = String(materialSelect.value || "").trim();
+    const entry = {
+        material_item_id: isUuid(selectedValue) ? selectedValue : "",
+        material_code: selectedOption ? (selectedOption.dataset.code || "") : "",
+        material_name: document.getElementById("material-name").value.trim(),
+        measurement_id: measurementSelect.value.trim(),
+        measurement_code: measurementOption ? (measurementOption.dataset.code || "") : "",
+        unit: document.getElementById("material-unit").value.trim(),
+        quantity: document.getElementById("material-quantity").value.trim(),
+    };
+    if (!entry.material_name || !entry.quantity) {
+        setStatus("Material name and quantity are required.", true);
+        return;
+    }
+    if (!entry.unit && entry.measurement_code) {
+        entry.unit = entry.measurement_code;
+    }
+    if (!entry.measurement_code && entry.unit) {
+        entry.measurement_code = entry.unit;
+    }
+    pendingMaterial.push(entry);
+    renderPendingMaterial();
+    clearMaterialInputsAfterAdd();
+    setStatus("Material row added.", false);
+}
+
+function addMaterialEntry(entry){
+    if (!entry || !entry.material_name || !entry.quantity) {
+        return;
+    }
+    pendingMaterial.push({
+        material_item_id: String(entry.material_item_id || "").trim(),
+        material_code: String(entry.material_code || "").trim(),
+        material_name: String(entry.material_name || "").trim(),
+        measurement_id: String(entry.measurement_id || "").trim(),
+        measurement_code: String(entry.measurement_code || "").trim(),
+        unit: String(entry.unit || entry.measurement_code || "").trim(),
+        quantity: String(entry.quantity || "").trim(),
+    });
+}
+
+function loadRecommendedBundle(){
+    const items = Array.isArray(RECOMMENDED_BUNDLE.items) ? RECOMMENDED_BUNDLE.items : [];
+    if (!items.length) {
+        setStatus("No configured material bundle for this procedure.", true);
+        return;
+    }
+
+    let added = 0;
+    items.forEach((item) => {
+        if (!String(item.material_name || "").trim()) {
+            return;
+        }
+        if (!String(item.quantity || "").trim()) {
+            return;
+        }
+        addMaterialEntry(item);
+        added += 1;
+    });
+
+    renderPendingMaterial();
+    if (added > 0) {
+        setStatus(`Loaded ${added} material rows from procedure bundle.`, false);
+        return;
+    }
+    setStatus("Procedure bundle has no valid rows.", true);
+}
+
+async function submitEntries(){
+    if (!pendingContrast.length && !pendingMaterial.length) {
+        setStatus("Add at least one contrast or material row before saving.", true);
+        return;
+    }
+    setStatus("Saving...", false);
+    document.getElementById("save-session-btn").disabled = true;
+    try {
+        const response = await fetch(SESSION_API_URL, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCsrfToken(),
+            },
+            body: JSON.stringify({
+                contrast_entries: pendingContrast,
+                material_entries: pendingMaterial,
+            }),
+        });
+        const body = await response.json();
+        if (!response.ok) {
+            throw new Error(body.error || "Unable to save entries.");
+        }
+        setStatus(`Saved: ${body.created_contrast} contrast and ${body.created_material} material entries.`, false);
+        window.setTimeout(() => {
+            location.href = body.review_url || location.href;
+        }, 550);
+    } catch (error) {
+        setStatus(error.message || "Unable to save entries.", true);
+        document.getElementById("save-session-btn").disabled = false;
+    }
+}
+
+const contrastItem = document.getElementById("contrast-item");
+if (contrastItem) {
+    contrastItem.addEventListener("change", () => {
+        const option = contrastItem.options[contrastItem.selectedIndex];
+        if (!option || !String(option.value || "").trim()) {
+            renderContrastReference({});
+            return;
+        }
+        applyContrastPreset({
+            name: option.dataset.name || "",
+            concentration_mg_ml: option.dataset.concentration || "",
+            route: option.dataset.route || "IV",
+            injection_rate_ml_s: option.dataset.rate || "",
+        }, true);
+        renderContrastReference({
+            label: option.dataset.name || "",
+            concentration: option.dataset.concentration || "",
+            route: option.dataset.route || "IV",
+            rate: option.dataset.rate || "",
+            brand: option.dataset.brand || "",
+            genericName: option.dataset.generic || "",
+            strength: option.dataset.strength || "",
+            adultDose: option.dataset.doseAdult || "",
+            pedsDose: option.dataset.dosePeds || "",
+            indications: option.dataset.indications || "",
+            contraindications: option.dataset.contraindications || "",
+            storage: option.dataset.storage || "",
+            manufacturer: option.dataset.manufacturer || "",
+            osmolality: option.dataset.osmolality || "",
+            notes: option.dataset.notes || "",
+        });
+    });
+}
+
+const contrastNameNode = document.getElementById("contrast-name");
+const contrastConcentrationNode = document.getElementById("contrast-concentration");
+if (contrastNameNode && contrastConcentrationNode) {
+    const fillConcentrationIfEmpty = () => {
+        if (contrastConcentrationNode.value.trim()) {
+            return;
+        }
+        const parsed = parseConcentrationFromName(contrastNameNode.value);
+        if (parsed) {
+            contrastConcentrationNode.value = parsed;
+        }
+    };
+    contrastNameNode.addEventListener("change", fillConcentrationIfEmpty);
+    contrastNameNode.addEventListener("blur", fillConcentrationIfEmpty);
+}
+
+function filterMaterialCatalogOptions(){
+    const materialSearch = document.getElementById("material-search");
+    const materialItem = document.getElementById("material-item");
+    if (!materialSearch || !materialItem) {
+        return;
+    }
+
+    const query = String(materialSearch.value || "").trim().toLowerCase();
+    const selectedValue = String(materialItem.value || "").trim();
+    let visibleCount = 0;
+    Array.from(materialItem.options).forEach((option, index) => {
+        if (index === 0) {
+            option.hidden = false;
+            return;
+        }
+        const haystack = [
+            option.textContent || "",
+            option.dataset.name || "",
+            option.dataset.code || "",
+        ].join(" ").toLowerCase();
+        const visible = !query || haystack.includes(query);
+        option.hidden = !visible;
+        if (visible) {
+            visibleCount += 1;
+        }
+    });
+
+    if (selectedValue) {
+        const selectedOption = Array.from(materialItem.options).find((item) => item.value === selectedValue);
+        if (selectedOption && selectedOption.hidden) {
+            materialItem.value = "";
+        }
+    }
+
+    if (!selectedValue && visibleCount === 1) {
+        const onlyVisible = Array.from(materialItem.options).find((option, index) => index > 0 && !option.hidden);
+        if (onlyVisible) {
+            materialItem.value = onlyVisible.value;
+            materialItem.dispatchEvent(new Event("change"));
+        }
+    }
+
+    const visibleCountNode = document.getElementById("material-visible-count");
+    if (visibleCountNode) {
+        visibleCountNode.innerText = String(visibleCount);
+    }
+}
+
+const materialItem = document.getElementById("material-item");
+if (materialItem) {
+    materialItem.addEventListener("change", () => {
+        const option = materialItem.options[materialItem.selectedIndex];
+        if (!option) {
+            return;
+        }
+        const name = option.dataset.name || "";
+        if (name && !document.getElementById("material-name").value.trim()) {
+            document.getElementById("material-name").value = name;
+        }
+        const measurementId = option.dataset.measurementId || "";
+        const measurementCode = option.dataset.measurementCode || "";
+        const unit = option.dataset.unit || "";
+        if (measurementId) {
+            document.getElementById("material-measurement").value = measurementId;
+        }
+        if (measurementCode && !document.getElementById("material-unit").value.trim()) {
+            document.getElementById("material-unit").value = measurementCode;
+        } else if (unit && !document.getElementById("material-unit").value.trim()) {
+            document.getElementById("material-unit").value = unit;
+        }
+    });
+}
+
+const materialSearch = document.getElementById("material-search");
+if (materialSearch) {
+    materialSearch.addEventListener("input", filterMaterialCatalogOptions);
+}
+
+const clearMaterialSearchButton = document.getElementById("clear-material-search-btn");
+if (clearMaterialSearchButton && materialSearch) {
+    clearMaterialSearchButton.addEventListener("click", () => {
+        materialSearch.value = "";
+        filterMaterialCatalogOptions();
+        materialSearch.focus();
+    });
+}
+
+const materialMeasurement = document.getElementById("material-measurement");
+if (materialMeasurement) {
+    materialMeasurement.addEventListener("change", () => {
+        const option = materialMeasurement.options[materialMeasurement.selectedIndex];
+        if (!option) {
+            return;
+        }
+        const code = option.dataset.code || "";
+        if (code) {
+            document.getElementById("material-unit").value = code;
+        }
+    });
+}
+
+const applyDoseTemplateButton = document.getElementById("apply-dose-template-btn");
+if (applyDoseTemplateButton) {
+    applyDoseTemplateButton.addEventListener("click", applyDoseTemplate);
+}
+
+["contrast-concentration", "contrast-volume"].forEach((fieldId) => {
+    const node = document.getElementById(fieldId);
+    if (!node) {
+        return;
+    }
+    node.addEventListener("input", updateContrastDosePreview);
+});
+
+if (CAN_EDIT) {
+    document.getElementById("add-contrast-btn").addEventListener("click", addContrastRow);
+    document.getElementById("add-material-btn").addEventListener("click", addMaterialRow);
+    document.getElementById("load-bundle-btn").addEventListener("click", loadRecommendedBundle);
+    document.getElementById("save-session-btn").addEventListener("click", submitEntries);
+
+    [
+        "contrast-item",
+        "contrast-name",
+        "contrast-concentration",
+        "contrast-volume",
+        "contrast-rate",
+        "contrast-route",
+        "contrast-lot",
+        "contrast-expiry",
+        "contrast-weight",
+    ].forEach((fieldId) => {
+        const node = document.getElementById(fieldId);
+        if (!node) {
+            return;
+        }
+        node.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter") {
+                return;
+            }
+            event.preventDefault();
+            addContrastRow();
+        });
+    });
+
+    [
+        "material-search",
+        "material-item",
+        "material-name",
+        "material-measurement",
+        "material-unit",
+        "material-quantity",
+    ].forEach((fieldId) => {
+        const node = document.getElementById(fieldId);
+        if (!node) {
+            return;
+        }
+        node.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter") {
+                return;
+            }
+            event.preventDefault();
+            addMaterialRow();
+        });
+    });
+}
+
+filterMaterialCatalogOptions();
+updateContrastDosePreview();
+renderPendingContrast();
+renderPendingMaterial();
+</script>
+</body>
+</html>

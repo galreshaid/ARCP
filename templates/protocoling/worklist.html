@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Protocol Worklist – AAML RadCore Platform</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% include "partials/app_shell_styles.html" %}
+
+<style>
+:root{
+    --page:#edf3f7;
+    --panel:#ffffff;
+    --panel-tint:#f7fafc;
+    --line:#d7e2ea;
+    --line-strong:#bfd0dd;
+    --ink:#18324d;
+    --muted:#6c8194;
+    --brand:#18324d;
+    --brand-dark:#0f476b;
+    --accent:#de541a;
+    --soft:#f6fafc;
+    --soft-blue:#edf5ff;
+    --ok-bg:#ecfdf5;
+    --ok-text:#166534;
+    --warn-bg:#fef3c7;
+    --warn-text:#92400e;
+    --shadow:0 24px 48px rgba(15,49,77,.08);
+    --shadow-soft:0 12px 24px rgba(15,49,77,.08);
+    --radius-xl:18px;
+    --radius-lg:14px;
+    --radius-md:10px;
+    --row-pad-y:12px;
+    --row-pad-x:12px;
+    --cell-font-size:13px;
+    --meta-font-size:11px;
+    --badge-height:20px;
+    --badge-font-size:8px;
+    --action-btn-height:24px;
+    --action-btn-font-size:8px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+    font-family:"Trebuchet MS","Segoe UI",sans-serif;
+    background:
+        radial-gradient(circle at top right, rgba(20,93,141,.12), transparent 30%),
+        radial-gradient(circle at bottom left, rgba(222,84,26,.08), transparent 26%),
+        linear-gradient(135deg, #f7fafc, var(--page));
+    color:var(--ink);
+}
+
+/* Keep brand icon proportionate on this dense table page */
+.app-sidebar .brand-logo{
+    width:min(205px, 100%);
+}
+
+.page{
+    display:grid;
+    gap:12px;
+    width:100%;
+    max-width:none;
+}
+
+.app-frame{
+    margin-top:0;
+}
+
+.hero{
+    background:var(--panel);
+    color:var(--ink);
+    border:1px solid var(--line);
+    border-radius:var(--radius-xl);
+    padding:16px;
+    box-shadow:var(--shadow);
+    display:grid;
+    gap:10px;
+}
+
+.eyebrow{
+    display:inline-flex;
+    align-items:center;
+    padding:5px 9px;
+    border-radius:999px;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    font-weight:700;
+    background:rgba(255,255,255,.12);
+    color:rgba(255,255,255,.86);
+    margin-bottom:10px;
+}
+
+.hero h1{
+    font-size:26px;
+    line-height:1.08;
+    margin-bottom:4px;
+}
+
+.hero p{
+    max-width:760px;
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.45;
+}
+
+.hero-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:flex-start;
+}
+
+.container{
+    margin-top:12px;
+    display:grid;
+    gap:12px;
+    width:100%;
+    max-width:none;
+}
+
+.panel{
+    background:rgba(255,255,255,.96);
+    border:1px solid var(--line);
+    border-radius:var(--radius-xl);
+    box-shadow:var(--shadow);
+    padding:12px;
+    width:100%;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+    gap:10px;
+}
+
+.stat{
+    background:linear-gradient(180deg, #ffffff, #f8fbfd);
+    border:1px solid #dbe7f2;
+    border-radius:var(--radius-lg);
+    padding:10px 12px;
+    box-shadow:var(--shadow-soft);
+    position:relative;
+}
+
+.stat::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:12px;
+    right:12px;
+    height:2px;
+    border-radius:999px;
+    background:linear-gradient(90deg, rgba(20,93,141,.9), rgba(20,93,141,.15));
+}
+
+.stat-label{
+    font-size:10px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    font-weight:700;
+    margin-bottom:6px;
+}
+
+.stat-value{
+    font-size:24px;
+    line-height:1;
+    font-weight:800;
+    color:var(--brand-dark);
+}
+
+.stat-detail{
+    margin-top:4px;
+    color:var(--muted);
+    font-size:11px;
+}
+
+.toolbar{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+    gap:12px;
+    align-items:end;
+}
+
+.field-actions .btn{
+    width:100%;
+}
+
+.field{
+    display:grid;
+    gap:6px;
+}
+
+.field label{
+    font-size:11px;
+    color:var(--muted);
+    font-weight:800;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+}
+
+.field input,
+.field select{
+    width:100%;
+    min-height:40px;
+    padding:0 12px;
+    border-radius:12px;
+    border:1px solid var(--line-strong);
+    background:#fbfdff;
+    font:inherit;
+    font-size:14px;
+    color:var(--ink);
+}
+
+.field input:focus,
+.field select:focus{
+    outline:none;
+    border-color:#8eb6d3;
+    box-shadow:0 0 0 3px rgba(20,93,141,.08);
+}
+
+.toolbar .field{
+    min-width:0;
+}
+
+.panel-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:12px;
+    flex-wrap:wrap;
+}
+
+.panel-head h2{
+    font-size:18px;
+    line-height:1.2;
+    margin-bottom:2px;
+}
+
+.panel-copy{
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.5;
+}
+
+.record-count{
+    display:inline-flex;
+    align-items:center;
+    min-height:28px;
+    padding:0 10px;
+    border-radius:999px;
+    background:var(--soft-blue);
+    color:var(--brand-dark);
+    font-size:11px;
+    font-weight:800;
+}
+
+.table-wrap{
+    overflow:auto;
+    width:100%;
+    max-width:100%;
+    border:1px solid #dde7ef;
+    border-radius:18px;
+    background:linear-gradient(180deg, #fff, var(--panel-tint));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.65);
+}
+
+table{
+    width:100%;
+    min-width:1280px;
+    border-collapse:collapse;
+    background:#fff;
+}
+
+th,td{
+    padding:var(--row-pad-y) var(--row-pad-x);
+    border-bottom:1px solid #edf2f7;
+    text-align:left;
+    vertical-align:top;
+}
+
+th{
+    background:#f8fbfd;
+    font-size:11px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    position:sticky;
+    top:0;
+    z-index:1;
+}
+
+tbody tr:nth-child(even){
+    background:#fbfdff;
+}
+
+tbody tr:hover{
+    background:#f4f9fc;
+}
+
+td{
+    font-size:var(--cell-font-size);
+    line-height:1.4;
+}
+
+.id-cell{
+    display:grid;
+    gap:4px;
+}
+
+.id-cell strong{
+    font-size:13px;
+    line-height:1.2;
+}
+
+.cell-subtle{
+    font-size:var(--meta-font-size);
+    color:var(--muted);
+    line-height:1.45;
+}
+
+.cell-stack{
+    display:grid;
+    gap:4px;
+}
+
+.data-primary{
+    font-size:13px;
+    font-weight:700;
+    line-height:1.35;
+    color:var(--ink);
+}
+
+.data-meta{
+    font-size:var(--meta-font-size);
+    line-height:1.45;
+    color:var(--muted);
+}
+
+.data-mono{
+    font-variant-numeric:tabular-nums;
+}
+
+.protocol-cell{
+    min-width:190px;
+}
+
+.protocol-cell .data-primary{
+    font-size:12px;
+    letter-spacing:.01em;
+}
+
+.date-cell{
+    min-width:108px;
+}
+
+.date-cell .data-primary{
+    font-size:12px;
+}
+
+.patient-cell{
+    display:grid;
+    gap:4px;
+    min-width:150px;
+}
+
+.patient-name{
+    font-weight:700;
+    font-size:13px;
+    line-height:1.35;
+}
+
+.patient-history{
+    color:var(--muted);
+    font-size:var(--meta-font-size);
+    line-height:1.45;
+    max-width:200px;
+}
+
+.badge{
+    display:inline-flex;
+    align-items:center;
+    min-height:var(--badge-height);
+    padding:0 8px;
+    border-radius:999px;
+    font-size:var(--badge-font-size);
+    font-weight:800;
+    white-space:nowrap;
+}
+
+.modality-chip{
+    min-height:18px;
+    padding:0 6px;
+    font-size:8px;
+}
+
+.status-chip{
+    min-height:18px;
+    padding:0 7px;
+    font-size:8px;
+}
+
+.badge.pending{
+    background:var(--warn-bg);
+    color:var(--warn-text);
+}
+
+.badge.assigned,
+.badge.acknowledged,
+.badge.done{
+    background:var(--ok-bg);
+    color:var(--ok-text);
+}
+
+.badge.closed{
+    background:#e2e8f0;
+    color:#334155;
+}
+
+.badge.cancelled{
+    background:#fef2f2;
+    color:#b91c1c;
+}
+
+.badge.not-required{
+    background:#eef2ff;
+    color:#3730a3;
+}
+
+.badge.ct{background:#dbeafe;color:#1e40af}
+.badge.mr{background:#ede9fe;color:#5b21b6}
+.badge.xr{background:#ecfeff;color:#155e75}
+.badge.us{background:#fef3c7;color:#92400e}
+.badge.exam-order{background:#eff6ff;color:#1d4ed8}
+.badge.exam-scheduled{background:#eff6ff;color:#1d4ed8}
+.badge.exam-in-progress{background:#fff7ed;color:#b45309}
+.badge.exam-completed{background:#ecfdf5;color:#166534}
+.badge.exam-cancelled{background:#fef2f2;color:#b91c1c}
+.badge.exam-unknown{background:#f1f5f9;color:#334155}
+
+.btn{
+    min-height:36px;
+    padding:0 14px;
+    border-radius:999px;
+    border:1px solid transparent;
+    cursor:pointer;
+    font:inherit;
+    font-weight:800;
+    font-size:12px;
+    letter-spacing:.01em;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
+    white-space:nowrap;
+}
+
+.btn:hover{
+    transform:translateY(-1px);
+}
+
+.btn:focus-visible{
+    outline:none;
+    box-shadow:0 0 0 3px rgba(20,93,141,.12);
+}
+
+.btn-primary{
+    background:linear-gradient(135deg, var(--brand), var(--brand-dark));
+    color:#fff;
+    box-shadow:0 12px 24px rgba(20,93,141,.16);
+}
+
+.btn-accent{
+    background:linear-gradient(135deg, var(--accent), #c2410c);
+    color:#fff;
+    box-shadow:0 12px 24px rgba(222,84,26,.16);
+}
+
+.btn-secondary{
+    background:linear-gradient(180deg, #fff, #f8fbfd);
+    border:1px solid var(--line-strong);
+    color:var(--brand);
+    box-shadow:0 8px 18px rgba(15,49,77,.06);
+}
+
+.btn-disabled{
+    background:#eef3f7;
+    border:1px solid #d7e2ea;
+    color:#7e90a0;
+    cursor:not-allowed;
+    box-shadow:none;
+}
+
+.action-group{
+    display:grid;
+    gap:3px;
+    width:104px;
+    margin-left:auto;
+}
+
+.action-group .btn{
+    width:100%;
+    min-height:var(--action-btn-height);
+    padding:0 6px;
+    font-size:var(--action-btn-font-size);
+    justify-content:center;
+}
+
+.hero-actions .btn{
+    min-height:36px;
+    padding:0 14px;
+    font-size:11px;
+}
+
+.queue-panel{
+    padding-bottom:10px;
+    position:sticky;
+    top:68px;
+    z-index:6;
+    backdrop-filter:blur(3px);
+}
+
+.action-cell{
+    width:148px;
+    text-align:right;
+}
+
+.center{
+    text-align:center;
+    padding:60px;
+    color:var(--muted);
+}
+
+@media (max-width:1100px){
+    .hero{
+        padding:16px;
+    }
+
+    .hero-actions{
+        justify-content:flex-start;
+    }
+
+    .toolbar{
+        grid-template-columns:1fr;
+    }
+
+    .queue-panel{
+        position:static;
+        top:auto;
+    }
+
+    th,td{
+        padding:10px;
+    }
+
+    .action-group{
+        width:100%;
+    }
+}
+</style>
+</head>
+
+<body>
+{% include "partials/app_header.html" %}
+<div class="app-frame">
+    {% include "partials/app_sidebar.html" with current_nav="worklist" %}
+    <main class="app-main">
+        <div class="page">
+            <section class="hero">
+                <div>
+                    <div class="eyebrow">Operational Queue</div>
+                    <h1>Protocol Worklist</h1>
+                    <p>Track incoming orders, move unassigned studies into review, and open the radiologist or technologist workflow from a single queue.</p>
+                </div>
+                <div class="hero-actions">
+                    <button class="btn btn-secondary" type="button" onclick="location.href='/system-admin/'">Internal Admin</button>
+                    <button class="btn btn-secondary" type="button" onclick="location.href='/quality-control/'">QC</button>
+                    <button class="btn btn-primary" type="button" onclick="location.reload()">Refresh Queue</button>
+                </div>
+            </section>
+
+            <div class="container">
+                <section class="stats">
+            <article class="stat">
+                <div class="stat-label">Awaiting Assignment</div>
+                <div class="stat-value" id="stat-pending">0</div>
+                <div class="stat-detail">Orders still waiting for the first protocol decision.</div>
+            </article>
+            <article class="stat">
+                <div class="stat-label">Pending Review</div>
+                <div class="stat-value" id="stat-assigned">0</div>
+                <div class="stat-detail">Assigned protocols that are not yet acknowledged.</div>
+            </article>
+            <article class="stat">
+                <div class="stat-label">Acknowledged</div>
+                <div class="stat-value" id="stat-ready">0</div>
+                <div class="stat-detail">Technologist-reviewed protocols ready to proceed.</div>
+            </article>
+            <article class="stat">
+                <div class="stat-label">Visible Queue</div>
+                <div class="stat-value" id="stat-total">0</div>
+                <div class="stat-detail">Current rows after applying the active filters.</div>
+            </article>
+                </section>
+
+                <section class="panel queue-panel">
+            <div class="toolbar">
+                <div class="field">
+                    <label for="filter-modality">Modality</label>
+                    <select id="filter-modality">
+                        <option value="">All modalities</option>
+                        <option value="CT">CT</option>
+                        <option value="MR">MR</option>
+                        <option value="NM">NM</option>
+                        <option value="US">US</option>
+                        <option value="RF">RF</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="filter-status">Workflow Status</label>
+                    <select id="filter-status">
+                        <option value="">All statuses</option>
+                        <option value="unassigned">Unassigned</option>
+                        <option value="closed">Closed</option>
+                        <option value="not_required">Not Required</option>
+                        <option value="pending">Pending</option>
+                        <option value="acknowledged">Acknowledged</option>
+                        <option value="done">Done</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="filter-exam-status">Exam Status</label>
+                    <select id="filter-exam-status">
+                        <option value="">All exam statuses</option>
+                        <option value="order">Order</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Canceled</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="search-input">Search</label>
+                    <input id="search-input" placeholder="Acc#, Order#, MRN, patient, procedure, radiologist, technologist">
+                </div>
+                <div class="field">
+                    <label for="filter-date">Search Date</label>
+                    <input id="filter-date" type="date">
+                </div>
+                <div class="field">
+                    <label for="sort-by">Sort By</label>
+                    <select id="sort-by">
+                        <option value="exam-newest">Newest exam date</option>
+                        <option value="exam-oldest">Oldest exam date</option>
+                        <option value="assigned-newest">Newest assigned date</option>
+                        <option value="assigned-oldest">Oldest assigned date</option>
+                        <option value="ack-newest">Newest acknowledged date</option>
+                        <option value="ack-oldest">Oldest acknowledged date</option>
+                    </select>
+                </div>
+                <div class="field field-actions">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-secondary" type="button" onclick="clearFilters()">Clear Filters</button>
+                </div>
+            </div>
+                </section>
+
+                <section class="panel">
+            <div class="panel-head">
+                <div>
+                    <h2>Active Exam Queue</h2>
+                    <div class="panel-copy">Use filters to narrow the list, then jump directly into the correct workflow for each exam.</div>
+                </div>
+                <div class="record-count" id="record-count">0 records</div>
+            </div>
+
+            <div class="table-wrap">
+                <div id="loading" class="center">Loading exams…</div>
+
+                <table id="table" style="display:none">
+                    <colgroup>
+                        <col style="width:102px">
+                        <col style="width:142px">
+                        <col style="width:84px">
+                        <col style="width:62px">
+                        <col style="width:84px">
+                        <col style="width:112px">
+                        <col style="width:154px">
+                        <col style="width:102px">
+                        <col style="width:90px">
+                        <col style="width:102px">
+                        <col style="width:90px">
+                        <col style="width:90px">
+                        <col style="width:124px">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>Acc# / Order#</th>
+                            <th>Patient</th>
+                            <th>MRN</th>
+                            <th>Modality</th>
+                            <th>Exam Status</th>
+                            <th>Procedure</th>
+                            <th>Protocol</th>
+                            <th>Radiologist</th>
+                            <th>Assigned At</th>
+                            <th>Technologist</th>
+                            <th>Acknowledged At</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+
+                <div id="empty" class="center" style="display:none">
+                    No exams match the current filters.
+                </div>
+            </div>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+let exams = [];
+let viewer = {};
+const PACS_EXAM_URL_TEMPLATE = 'https://192.168.101.67/ZFP?lights=off&mode=proxy#view&un=zfpuser&pw=hEHFlBFUFpMk0x2j7Sdc8DRqJZZVXlI6%2fegPQMaz7szyvaSxcNo7Gy8avdZZv%2bbt&ris_exam_id={exam_id}&authority=RKFMRN';
+const PACS_PATIENT_URL_TEMPLATE = 'https://192.168.101.67/ZFP?lights=off&mode=proxy#view&un=zfpuser&pw=hEHFlBFUFpMk0x2j7Sdc8DRqJZZVXlI6%2fegPQMaz7szyvaSxcNo7Gy8avdZZv%2bbt&ris_pat_id={patient_id}&authority=RKFMRN';
+
+function workflowStatus(exam){
+    if (exam.workflow_status) {
+        return String(exam.workflow_status).toUpperCase();
+    }
+
+    if (exam.protocol_not_required && !exam.has_protocol) {
+        return 'NOT_REQUIRED';
+    }
+
+    if (!exam.has_protocol) {
+        return 'UNASSIGNED';
+    }
+    return (exam.assignment_status || 'ASSIGNED').toUpperCase();
+}
+
+function statusClass(status){
+    return String(status || '').trim().toLowerCase().replace(/_/g, '-');
+}
+
+function statusLabel(status){
+    return String(status || '').trim().replace(/_/g, ' ');
+}
+
+function examStatusClass(status){
+    const normalized = String(status || '').trim().toLowerCase().replace(/_/g, '-');
+    if (!normalized) {
+        return 'exam-unknown';
+    }
+    return `exam-${normalized}`;
+}
+
+function examStatusLabel(exam){
+    if (exam.exam_status_label) {
+        return exam.exam_status_label;
+    }
+    return statusLabel(exam.exam_status || '-');
+}
+
+function normalizeText(value){
+    return String(value || '').trim().toLowerCase();
+}
+
+function formatDateTime(value){
+    if (!value) {
+        return '-';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return '-';
+    }
+
+    return date.toLocaleString();
+}
+
+function formatDateParts(value){
+    if (!value) {
+        return { date: '-', time: '' };
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return { date: '-', time: '' };
+    }
+
+    return {
+        date: date.toLocaleDateString(),
+        time: date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+    };
+}
+
+function dateOnlyValue(value){
+    if (!value) {
+        return '';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+
+    const year = String(date.getFullYear());
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function matchesDateFilter(exam, selectedDate){
+    if (!selectedDate) {
+        return true;
+    }
+
+    return [
+        exam.exam_datetime,
+        exam.assigned_at,
+        exam.acknowledged_at,
+        exam.protocol_not_required_at,
+    ].some((value) => dateOnlyValue(value) === selectedDate);
+}
+
+function sortableTimestamp(value){
+    if (!value) {
+        return null;
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+
+    return date.getTime();
+}
+
+function compareNullableNumbers(left, right, direction){
+    if (left === null && right === null) {
+        return 0;
+    }
+    if (left === null) {
+        return 1;
+    }
+    if (right === null) {
+        return -1;
+    }
+
+    return direction === 'asc' ? left - right : right - left;
+}
+
+function filteredExams(){
+    const modality = normalizeText(document.getElementById('filter-modality').value);
+    const status = normalizeText(document.getElementById('filter-status').value);
+    const examStatusFilter = normalizeText(document.getElementById('filter-exam-status').value);
+    const query = normalizeText(document.getElementById('search-input').value);
+    const selectedDate = document.getElementById('filter-date').value;
+
+    return exams.filter((exam) => {
+        const examStatus = workflowStatus(exam).toLowerCase();
+        const normalizedExamStatus = normalizeText(exam.exam_status);
+        const modalityMatch = !modality || normalizeText(exam.modality.code) === modality;
+        const examStatusMatch = !examStatusFilter || normalizedExamStatus === examStatusFilter;
+
+        let statusMatch = true;
+        if (status === 'unassigned') {
+            statusMatch = workflowStatus(exam) === 'UNASSIGNED';
+        } else if (status) {
+            statusMatch = examStatus === status;
+        }
+
+        const radiologistName = exam.radiologist_name || exam.assigned_by;
+        const technologistName = exam.technologist_name;
+        const searchable = [
+            exam.order_id,
+            exam.accession_number,
+            exam.patient_name,
+            exam.patient_class,
+            exam.mrn,
+            exam.procedure_name,
+            exam.exam_status,
+            exam.exam_status_label,
+            exam.assigned_by,
+            radiologistName,
+            exam.technologist_name,
+            technologistName,
+            exam.protocol_not_required_by,
+            exam.assigned_protocol && exam.assigned_protocol.code,
+            exam.assigned_protocol && exam.assigned_protocol.name,
+            exam.facility && exam.facility.code,
+            exam.protocol_not_required_at,
+            dateOnlyValue(exam.exam_datetime),
+            dateOnlyValue(exam.assigned_at),
+            dateOnlyValue(exam.acknowledged_at),
+            formatDateTime(exam.protocol_not_required_at),
+            formatDateTime(exam.exam_datetime),
+            formatDateTime(exam.assigned_at),
+            formatDateTime(exam.acknowledged_at),
+        ].map(normalizeText).join(' ');
+        const queryMatch = !query || searchable.includes(query);
+        const dateMatch = matchesDateFilter(exam, selectedDate);
+
+        return modalityMatch && statusMatch && examStatusMatch && queryMatch && dateMatch;
+    });
+}
+
+function sortedExams(items){
+    const sortBy = document.getElementById('sort-by').value || 'exam-newest';
+    const sorted = [...items];
+
+    sorted.sort((left, right) => {
+        let comparison = 0;
+
+        if (sortBy === 'exam-oldest') {
+            comparison = compareNullableNumbers(
+                sortableTimestamp(left.exam_datetime),
+                sortableTimestamp(right.exam_datetime),
+                'asc',
+            );
+        } else if (sortBy === 'assigned-newest') {
+            comparison = compareNullableNumbers(
+                sortableTimestamp(left.assigned_at),
+                sortableTimestamp(right.assigned_at),
+                'desc',
+            );
+        } else if (sortBy === 'assigned-oldest') {
+            comparison = compareNullableNumbers(
+                sortableTimestamp(left.assigned_at),
+                sortableTimestamp(right.assigned_at),
+                'asc',
+            );
+        } else if (sortBy === 'ack-newest') {
+            comparison = compareNullableNumbers(
+                sortableTimestamp(left.acknowledged_at),
+                sortableTimestamp(right.acknowledged_at),
+                'desc',
+            );
+        } else if (sortBy === 'ack-oldest') {
+            comparison = compareNullableNumbers(
+                sortableTimestamp(left.acknowledged_at),
+                sortableTimestamp(right.acknowledged_at),
+                'asc',
+            );
+        } else {
+            comparison = compareNullableNumbers(
+                sortableTimestamp(left.exam_datetime),
+                sortableTimestamp(right.exam_datetime),
+                'desc',
+            );
+        }
+
+        if (comparison !== 0) {
+            return comparison;
+        }
+
+        return normalizeText(left.accession_number).localeCompare(normalizeText(right.accession_number));
+    });
+
+    return sorted;
+}
+
+function buildPacsExamUrl(exam){
+    const examId = String(exam.accession_number || '').trim();
+    if (!examId) {
+        return '';
+    }
+
+    return PACS_EXAM_URL_TEMPLATE.replace('{exam_id}', encodeURIComponent(examId));
+}
+
+function buildPacsPatientUrl(exam){
+    const patientId = String(exam.mrn || '').trim();
+    if (!patientId) {
+        return '';
+    }
+
+    return PACS_PATIENT_URL_TEMPLATE.replace('{patient_id}', encodeURIComponent(patientId));
+}
+
+function pacsLaunchUrl(exam){
+    return buildPacsPatientUrl(exam);
+}
+
+function getCsrfToken(){
+    const cookie = document.cookie
+        .split('; ')
+        .find((item) => item.startsWith('csrftoken='));
+
+    return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
+}
+
+function clearFilters(){
+    document.getElementById('filter-modality').value = '';
+    document.getElementById('filter-status').value = '';
+    document.getElementById('filter-exam-status').value = '';
+    document.getElementById('search-input').value = '';
+    document.getElementById('filter-date').value = '';
+    document.getElementById('sort-by').value = 'exam-newest';
+    render();
+}
+
+async function load(){
+    const response = await fetch('/api/core/exams/');
+    const payload = await response.json();
+    exams = payload.results || [];
+    viewer = payload.viewer || {};
+
+    document.getElementById('filter-modality').addEventListener('change', render);
+    document.getElementById('filter-status').addEventListener('change', render);
+    document.getElementById('filter-exam-status').addEventListener('change', render);
+    document.getElementById('search-input').addEventListener('input', render);
+    document.getElementById('filter-date').addEventListener('input', render);
+    document.getElementById('sort-by').addEventListener('change', render);
+
+    render();
+}
+
+function render(){
+    document.getElementById('loading').style.display = 'none';
+
+    const visibleExams = sortedExams(filteredExams());
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = '';
+
+    if (!visibleExams.length) {
+        document.getElementById('table').style.display = 'none';
+        document.getElementById('empty').style.display = 'block';
+    } else {
+        document.getElementById('empty').style.display = 'none';
+        document.getElementById('table').style.display = 'table';
+    }
+
+    visibleExams.forEach((exam) => {
+        const status = workflowStatus(exam);
+        const historyPreview = (exam.clinical_history || '').trim();
+        const protocolCode = exam.assigned_protocol && exam.assigned_protocol.code
+            ? exam.assigned_protocol.code
+            : '-';
+        const protocolName = exam.assigned_protocol && exam.assigned_protocol.name
+            ? exam.assigned_protocol.name
+            : '';
+        const assignedBy = exam.assigned_by || '-';
+        const technologistName = exam.technologist_name || '-';
+        const patientClass = exam.patient_class || '-';
+        const assignedAt = formatDateParts(exam.assigned_at);
+        const acknowledgedAt = formatDateParts(exam.acknowledged_at);
+
+        tbody.innerHTML += `
+        <tr>
+            <td>
+                <div class="id-cell">
+                    <strong>Acc# ${exam.accession_number || '-'}</strong>
+                    <span class="cell-subtle">Order# ${exam.order_id || '-'}</span>
+                </div>
+            </td>
+            <td>
+                <div class="patient-cell">
+                    <div class="patient-name">${exam.patient_name || '-'}</div>
+                    <div class="cell-subtle">${(exam.facility && exam.facility.name) || '-'}</div>
+                    <div class="cell-subtle">Class ${patientClass}</div>
+                    ${historyPreview ? `<div class="patient-history">${historyPreview}</div>` : ''}
+                </div>
+            </td>
+            <td>${exam.mrn || '-'}</td>
+            <td><span class="badge modality-chip ${String((exam.modality && exam.modality.code) || '').toLowerCase()}">${(exam.modality && exam.modality.code) || '-'}</span></td>
+            <td><span class="badge status-chip ${examStatusClass(exam.exam_status)}">${examStatusLabel(exam)}</span></td>
+            <td>${exam.procedure_name || '-'}</td>
+            <td>
+                <div class="cell-stack protocol-cell">
+                    <span class="data-primary">${protocolCode}</span>
+                    <span class="data-meta">${protocolName || '-'}</span>
+                </div>
+            </td>
+            <td>
+                <div class="cell-stack">
+                    <span class="data-primary">${assignedBy}</span>
+                </div>
+            </td>
+            <td>
+                <div class="cell-stack date-cell">
+                    <span class="data-primary data-mono">${assignedAt.date}</span>
+                    <span class="data-meta data-mono">${assignedAt.time || '-'}</span>
+                </div>
+            </td>
+            <td>
+                <div class="cell-stack">
+                    <span class="data-primary">${technologistName}</span>
+                </div>
+            </td>
+            <td>
+                <div class="cell-stack date-cell">
+                    <span class="data-primary data-mono">${acknowledgedAt.date}</span>
+                    <span class="data-meta data-mono">${acknowledgedAt.time || '-'}</span>
+                </div>
+            </td>
+            <td><span class="badge status-chip ${statusClass(status)}">${statusLabel(status)}</span></td>
+            <td class="action-cell">${renderActions(exam)}</td>
+        </tr>`;
+    });
+
+    const pendingCount = visibleExams.filter((exam) => workflowStatus(exam) === 'UNASSIGNED').length;
+    const assignedCount = visibleExams.filter((exam) => exam.has_protocol && workflowStatus(exam) === 'PENDING').length;
+    const acknowledgedCount = visibleExams.filter((exam) => workflowStatus(exam) === 'ACKNOWLEDGED').length;
+
+    document.getElementById('stat-pending').innerText = pendingCount;
+    document.getElementById('stat-assigned').innerText = assignedCount;
+    document.getElementById('stat-ready').innerText = acknowledgedCount;
+    document.getElementById('stat-total').innerText = visibleExams.length;
+    document.getElementById('record-count').innerText = `${visibleExams.length} record${visibleExams.length === 1 ? '' : 's'}`;
+}
+
+function renderActions(exam){
+    const buttons = [];
+    const status = workflowStatus(exam);
+    const pacsUrl = pacsLaunchUrl(exam);
+
+    if (pacsUrl) {
+        buttons.push(`<button class="btn btn-secondary" type="button" onclick="openExternal('${pacsUrl}')">PACS</button>`);
+    }
+
+    if (!exam.has_protocol) {
+        if (status === 'CLOSED') {
+            buttons.push('<button class="btn btn-disabled" type="button" disabled>Closed</button>');
+            return `<div class="action-group">${buttons.join('')}</div>`;
+        }
+
+        if (exam.protocol_not_required) {
+            buttons.push('<button class="btn btn-disabled" type="button" disabled>Not Required</button>');
+            return `<div class="action-group">${buttons.join('')}</div>`;
+        }
+
+        if (viewer.can_assign_protocol) {
+            buttons.push(`<button class="btn btn-accent" type="button" onclick="assign('${exam.id}')">Assign</button>`);
+            buttons.push(`<button class="btn btn-secondary" type="button" onclick="markNotRequired('${exam.id}')">Not Required</button>`);
+        } else {
+            buttons.push('<button class="btn btn-disabled" type="button" disabled>Waiting</button>');
+        }
+        return `<div class="action-group">${buttons.join('')}</div>`;
+    }
+
+    if (viewer.can_review_protocol) {
+        buttons.push(`<button class="btn btn-accent" type="button" onclick="openPage('${exam.review_url}')">Review</button>`);
+    }
+
+    if (viewer.can_confirm_protocol) {
+        buttons.push(`<button class="btn btn-secondary" type="button" onclick="openPage('${exam.technologist_view_url}')">Confirm</button>`);
+    } else if (viewer.can_view_protocol) {
+        buttons.push(`<button class="btn btn-secondary" type="button" onclick="openPage('${exam.technologist_view_url}')">View</button>`);
+    }
+
+    if (!buttons.length) {
+        buttons.push('<button class="btn btn-disabled" type="button" disabled>Assigned</button>');
+    }
+
+    return `<div class="action-group">${buttons.join('')}</div>`;
+}
+
+function openPage(url){
+    if (url) {
+        location.href = url;
+    }
+}
+
+function openExternal(url){
+    if (url) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
+}
+
+function assign(id){
+    location.href = `/protocoling/review/${id}/`;
+}
+
+async function markNotRequired(id){
+    const confirmed = window.confirm('Mark this exam as protocol not required?');
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/core/exams/${id}/mark-not-required/`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+            },
+        });
+
+        if (!response.ok) {
+            let payload = null;
+            try {
+                payload = await response.json();
+            } catch (error) {
+                payload = null;
+            }
+
+            const message = (payload && (payload.error || payload.detail)) || 'Unable to mark this exam as not required.';
+            window.alert(message);
+            return;
+        }
+
+        location.reload();
+    } catch (error) {
+        window.alert('Unable to mark this exam as not required.');
+    }
+}
+
+load();
+</script>
+
+</body>
+</html>

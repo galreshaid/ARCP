@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Protocol – {{ exam.accession_number }}</title>
+
+<style>
+    :root{
+        --line:#d7e2ea;
+        --line-strong:#bfd0dd;
+        --ink:#18324d;
+        --muted:#6c8194;
+        --brand:#18324d;
+        --brand-dark:#0f476b;
+        --panel:#ffffff;
+    }
+
+    body {
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        font-size: 12px;
+        color: var(--ink);
+        background: #f7fafc;
+        margin: 16px;
+    }
+
+    h1, h2, h3 {
+        margin: 0 0 8px 0;
+        color: var(--ink);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 12px;
+        background: var(--panel);
+    }
+
+    th, td {
+        border: 1px solid var(--line);
+        padding: 6px;
+        vertical-align: top;
+    }
+
+    th {
+        background: #f8fbfd;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        font-size: 10px;
+        text-align: left;
+    }
+
+    .header {
+        border-bottom: 2px solid var(--line-strong);
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+    }
+
+    .meta td {
+        border: none;
+        padding: 2px 6px;
+    }
+
+    .note {
+        border: 1px dashed var(--line-strong);
+        background: #fbfdff;
+        padding: 8px;
+        margin-top: 8px;
+    }
+
+    button {
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line-strong);
+        background: linear-gradient(180deg, #fff, #f8fbfd);
+        color: var(--brand);
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    @media print {
+        body {
+            margin: 0;
+            background: #fff;
+        }
+
+        button {
+            display: none;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<button onclick="window.print()">🖨️ Print</button>
+
+<div class="header">
+    <h1>Radiology Protocol</h1>
+    <h3>{{ protocol.name }} ({{ protocol.code }})</h3>
+</div>
+
+<table class="meta">
+<tr>
+    <td><b>Accession:</b> {{ exam.accession_number }}</td>
+    <td><b>MRN:</b> {{ exam.mrn }}</td>
+    <td><b>Modality:</b> {{ protocol.modality.code }}</td>
+</tr>
+<tr>
+    <td><b>Patient:</b> {{ exam.patient_name }}</td>
+    <td><b>Procedure:</b> {{ exam.procedure_name }}</td>
+    <td><b>Date:</b> {{ exam.exam_datetime|date:"Y-m-d H:i" }}</td>
+</tr>
+</table>
+
+{% if assignment.radiologist_note %}
+<div class="note">
+    <b>Radiologist Note:</b><br>
+    {{ assignment.radiologist_note }}
+</div>
+{% endif %}
+
+{% if protocol.indications or protocol.patient_prep or protocol.safety_notes or protocol.general_notes %}
+<div class="note">
+    <b>Protocol Commands:</b><br>
+    {% if protocol.indications %}<b>Indications:</b> {{ protocol.indications }}<br>{% endif %}
+    {% if protocol.patient_prep %}<b>Patient Preparation:</b> {{ protocol.patient_prep }}<br>{% endif %}
+    {% if protocol.safety_notes %}<b>Safety Notes:</b> {{ protocol.safety_notes }}<br>{% endif %}
+    {% if protocol.general_notes %}<b>Operational Notes:</b> {{ protocol.general_notes }}{% endif %}
+</div>
+{% endif %}
+
+<h3>Protocol Sequences</h3>
+
+<table>
+<thead>
+<tr>
+    <th>SER</th>
+    <th>COIL</th>
+    <th>PH. ARRAY</th>
+    <th>SCAN PLANE</th>
+    <th>PULSE SEQ.</th>
+    <th>OPTIONS</th>
+    <th>COMMENTS</th>
+</tr>
+</thead>
+<tbody>
+{% for s in sequences %}
+<tr>
+    <td>{{ s.ser }}</td>
+    <td>{{ s.coil }}</td>
+    <td>{{ s.phase_array }}</td>
+    <td>{{ s.scan_plane }}</td>
+    <td>{{ s.pulse_sequence }}</td>
+    <td>{{ s.options }}</td>
+    <td>{{ s.comments }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+{% if comments %}
+<h3>Comments</h3>
+<table>
+<thead>
+<tr>
+    <th>By</th>
+    <th>Role</th>
+    <th>Message</th>
+    <th>Date</th>
+</tr>
+</thead>
+<tbody>
+{% for c in comments %}
+<tr>
+    <td>{{ c.author }}</td>
+    <td>{{ c.author_role }}</td>
+    <td>{{ c.message }}</td>
+    <td>{{ c.created_at|date:"Y-m-d H:i" }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% endif %}
+
+</body>
+</html>

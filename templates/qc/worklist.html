@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QC Worklist - AAML RadCore Platform</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% include "partials/app_shell_styles.html" %}
+    <style>
+        :root{
+            --page:#edf3f7;
+            --panel:#ffffff;
+            --line:#d7e2ea;
+            --line-strong:#bfd0dd;
+            --ink:#18324d;
+            --muted:#6c8194;
+            --brand:#145d8d;
+            --brand-dark:#0f476b;
+            --accent:#de541a;
+            --ok:#166534;
+            --ok-bg:#ecfdf5;
+            --warn:#92400e;
+            --warn-bg:#fef3c7;
+            --bad:#b91c1c;
+            --bad-bg:#fef2f2;
+            --shadow:0 24px 48px rgba(15,49,77,.08);
+            --radius-xl:22px;
+            --radius-lg:16px;
+        }
+
+        *{box-sizing:border-box}
+
+        body{
+            margin:0;
+            font-family:"Trebuchet MS","Segoe UI",sans-serif;
+            color:var(--ink);
+            background:
+                radial-gradient(circle at top right, rgba(20,93,141,.12), transparent 30%),
+                radial-gradient(circle at bottom left, rgba(222,84,26,.08), transparent 24%),
+                linear-gradient(140deg, #f7fafc, var(--page));
+        }
+
+        .page{
+            display:grid;
+            gap:16px;
+        }
+
+        .hero{
+            background:var(--panel);
+            border:1px solid var(--line);
+            border-radius:var(--radius-xl);
+            box-shadow:var(--shadow);
+            padding:20px;
+            display:flex;
+            justify-content:space-between;
+            gap:16px;
+            flex-wrap:wrap;
+        }
+
+        .hero h1{
+            margin:0;
+            font-size:30px;
+            line-height:1.1;
+        }
+
+        .hero p{
+            margin:8px 0 0;
+            max-width:860px;
+            color:var(--muted);
+            line-height:1.55;
+        }
+
+        .hero-actions{
+            display:flex;
+            align-items:flex-start;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        .btn{
+            min-height:38px;
+            padding:0 14px;
+            border-radius:999px;
+            border:1px solid transparent;
+            cursor:pointer;
+            font:inherit;
+            font-size:12px;
+            font-weight:800;
+            text-decoration:none;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            white-space:nowrap;
+            transition:transform .18s ease, box-shadow .18s ease;
+        }
+
+        .btn:hover{ transform:translateY(-1px); }
+
+        .btn-primary{
+            background:linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color:#fff;
+            box-shadow:0 12px 24px rgba(20,93,141,.16);
+        }
+
+        .btn-secondary{
+            background:linear-gradient(180deg, #fff, #f8fbfd);
+            border-color:var(--line-strong);
+            color:var(--brand-dark);
+            box-shadow:0 8px 18px rgba(15,49,77,.08);
+        }
+
+        .stats{
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));
+            gap:12px;
+        }
+
+        .stat{
+            background:var(--panel);
+            border:1px solid var(--line);
+            border-radius:var(--radius-lg);
+            box-shadow:var(--shadow);
+            padding:14px;
+        }
+
+        .stat small{
+            display:block;
+            color:var(--muted);
+            text-transform:uppercase;
+            letter-spacing:.06em;
+            font-size:11px;
+            font-weight:700;
+        }
+
+        .stat strong{
+            display:block;
+            margin-top:6px;
+            font-size:30px;
+            line-height:1;
+            color:var(--brand-dark);
+        }
+
+        .panel{
+            background:var(--panel);
+            border:1px solid var(--line);
+            border-radius:var(--radius-xl);
+            box-shadow:var(--shadow);
+            padding:14px;
+        }
+
+        .toolbar{
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+            gap:12px;
+        }
+
+        .field{
+            display:grid;
+            gap:6px;
+        }
+
+        .field label{
+            font-size:11px;
+            text-transform:uppercase;
+            letter-spacing:.05em;
+            color:var(--muted);
+            font-weight:800;
+        }
+
+        .field input,
+        .field select{
+            min-height:40px;
+            border-radius:12px;
+            border:1px solid var(--line-strong);
+            padding:0 12px;
+            font:inherit;
+            background:#fbfdff;
+            color:var(--ink);
+        }
+
+        .table-wrap{
+            overflow:auto;
+            border-radius:18px;
+            border:1px solid #dde7ef;
+            background:#fff;
+        }
+
+        table{
+            width:100%;
+            border-collapse:collapse;
+            min-width:1280px;
+        }
+
+        th,td{
+            padding:11px;
+            border-bottom:1px solid #edf2f7;
+            text-align:left;
+            vertical-align:top;
+        }
+
+        th{
+            font-size:11px;
+            text-transform:uppercase;
+            color:var(--muted);
+            letter-spacing:.05em;
+            background:#f8fbfd;
+            position:sticky;
+            top:0;
+        }
+
+        td{
+            font-size:13px;
+        }
+
+        .muted{ color:var(--muted); font-size:12px; }
+
+        .status{
+            display:inline-flex;
+            align-items:center;
+            min-height:24px;
+            padding:0 10px;
+            border-radius:999px;
+            font-size:10px;
+            font-weight:800;
+            letter-spacing:.02em;
+            text-transform:uppercase;
+        }
+
+        .status.pending{ background:#eef2ff; color:#3730a3; }
+        .status.saved{ background:var(--warn-bg); color:var(--warn); }
+        .status.draft{ background:var(--warn-bg); color:var(--warn); }
+        .status.acknowledged{ background:var(--ok-bg); color:var(--ok); }
+        .status.replied{ background:#e0f2fe; color:#0c4a6e; }
+        .status.approved{ background:var(--ok-bg); color:var(--ok); }
+        .status.rejected{ background:var(--bad-bg); color:var(--bad); }
+        .exam-status.order{ background:#eff6ff; color:#1d4ed8; }
+        .exam-status.scheduled{ background:#eff6ff; color:#1d4ed8; }
+        .exam-status.in-progress{ background:#fff7ed; color:#b45309; }
+        .exam-status.completed{ background:#ecfdf5; color:#166534; }
+        .exam-status.cancelled{ background:#fef2f2; color:#b91c1c; }
+        .exam-status.unknown{ background:#f1f5f9; color:#334155; }
+
+        .modality{
+            display:inline-flex;
+            align-items:center;
+            min-height:24px;
+            padding:0 10px;
+            border-radius:999px;
+            background:#ebf5ff;
+            color:#1e3a8a;
+            font-size:10px;
+            font-weight:800;
+        }
+
+        .action-group{
+            display:grid;
+            gap:6px;
+            width:146px;
+            margin-left:auto;
+        }
+
+        .action-group .btn{
+            min-height:32px;
+            padding:0 10px;
+            font-size:11px;
+            width:100%;
+        }
+
+        .empty{
+            padding:48px 16px;
+            text-align:center;
+            color:var(--muted);
+        }
+
+        .scope-note{
+            margin-top:10px;
+            font-size:12px;
+            color:var(--muted);
+        }
+
+        .scope-warning{
+            margin-top:10px;
+            border:1px solid #fecaca;
+            border-radius:12px;
+            background:#fff1f2;
+            color:#991b1b;
+            padding:10px 12px;
+            font-size:12px;
+            line-height:1.5;
+        }
+    </style>
+</head>
+<body>
+{% include "partials/app_header.html" %}
+<div class="app-frame">
+    {% include "partials/app_sidebar.html" with current_nav="qc" %}
+    <main class="app-main">
+        <div class="page">
+            <section class="hero">
+                <div>
+                    <h1>QC Worklist</h1>
+                    <p>Open a study, capture and annotate evidence, and save QC issues. Supervisors review raised issues with acknowledge and reply actions.</p>
+                    <div class="scope-note">Current scope: {{ worklist_scope_label }}</div>
+                    {% if scope_requires_setup %}
+                        <div class="scope-warning">
+                            No modality scope is configured for this supervisor account.
+                            Add modality codes in user profile preferences (for example: <code>XR</code>, <code>CT</code>)
+                            to display QC cases.
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="hero-actions">
+                    <a class="btn btn-secondary" href="{{ analytics_url }}">Open QC Analytics</a>
+                    <a class="btn btn-secondary" href="/protocoling/">Protocol Worklist</a>
+                    <button class="btn btn-primary" type="button" onclick="loadExams()">Refresh</button>
+                </div>
+            </section>
+
+            <section class="stats">
+                <article class="stat">
+                    <small>QC-Ready Studies</small>
+                    <strong>{{ total_qc_exams }}</strong>
+                </article>
+                <article class="stat">
+                    <small>Saved Sessions</small>
+                    <strong>{{ saved_count }}</strong>
+                </article>
+                <article class="stat">
+                    <small>Acknowledged</small>
+                    <strong>{{ acknowledged_count }}</strong>
+                </article>
+                <article class="stat">
+                    <small>Replies</small>
+                    <strong>{{ replied_count }}</strong>
+                </article>
+            </section>
+
+            <section class="panel">
+                <div class="toolbar">
+                    <div class="field">
+                        <label for="filter-modality">Modality</label>
+                        <select id="filter-modality">
+                            <option value="">All modalities</option>
+                            <option value="CT">CT</option>
+                            <option value="MR">MR</option>
+                            <option value="XR">XR</option>
+                            <option value="US">US</option>
+                            <option value="NM">NM</option>
+                            <option value="RF">RF</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="search-input">Search</label>
+                        <input id="search-input" value="{{ initial_search_query }}" placeholder="Acc#, MRN, patient, study or reviewer">
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="table-wrap">
+                    <table id="qc-table" style="display:none">
+                        <thead>
+                            <tr>
+                                <th>Accession / Order</th>
+                                <th>Patient</th>
+                                <th>MRN</th>
+                                <th>Study</th>
+                                <th>Modality</th>
+                                <th>Exam Status</th>
+                                <th>Status</th>
+                                <th>Concern</th>
+                                <th>Reviewer</th>
+                                <th>Updated</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qc-body"></tbody>
+                    </table>
+                    <div class="empty" id="qc-empty">Loading QC studies...</div>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script>
+const WORKLIST_API_URL = "{{ worklist_api_url }}";
+const INITIAL_MODALITY_FILTER = "{{ initial_modality_filter }}";
+let allRows = [];
+
+function normalizeText(value){
+    return String(value || "").trim().toLowerCase();
+}
+
+function formatDate(value){
+    if (!value) {
+        return "-";
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return "-";
+    }
+
+    return date.toLocaleString();
+}
+
+function statusClass(value){
+    return normalizeText(value).replace(/_/g, "-");
+}
+
+function examStatusClass(value){
+    const normalized = normalizeText(value).replace(/_/g, "-");
+    return normalized || "unknown";
+}
+
+function filterRows(){
+    const modality = normalizeText(document.getElementById("filter-modality").value);
+    const query = normalizeText(document.getElementById("search-input").value);
+
+    return allRows.filter((row) => {
+        const modalityMatch = !modality || normalizeText(row.modality.code) === modality;
+        const searchable = [
+            row.accession_number,
+            row.order_id,
+            row.patient_name,
+            row.mrn,
+            row.study,
+            row.exam_status,
+            row.exam_status_label,
+            row.status,
+            row.reviewer,
+        ].map(normalizeText).join(" ");
+        const queryMatch = !query || searchable.includes(query);
+        return modalityMatch && queryMatch;
+    });
+}
+
+function openUrl(url){
+    if (url) {
+        location.href = url;
+    }
+}
+
+function openUrlInNewTab(url){
+    if (url) {
+        window.open(url, "_blank", "noopener,noreferrer");
+    }
+}
+
+function renderPacsButtons(row){
+    const buttons = [];
+    if (row.pacs_exam_link) {
+        buttons.push(`<button class="btn btn-secondary" type="button" onclick="openUrlInNewTab('${row.pacs_exam_link}')">PACS Exam</button>`);
+    }
+    if (row.pacs_patient_link) {
+        buttons.push(`<button class="btn btn-secondary" type="button" onclick="openUrlInNewTab('${row.pacs_patient_link}')">PACS Patient</button>`);
+    }
+    return buttons.join("");
+}
+
+function render(){
+    const filtered = filterRows();
+    const table = document.getElementById("qc-table");
+    const body = document.getElementById("qc-body");
+    const empty = document.getElementById("qc-empty");
+
+    body.innerHTML = "";
+
+    if (!filtered.length) {
+        table.style.display = "none";
+        empty.style.display = "block";
+        empty.innerText = "No QC studies match the current filters.";
+        return;
+    }
+
+    filtered.forEach((row) => {
+        body.innerHTML += `
+            <tr>
+                <td>
+                    <strong>${row.accession_number || "-"}</strong>
+                    <div class="muted">Order# ${row.order_id || "-"}</div>
+                </td>
+                <td>
+                    <strong>${row.patient_name || "-"}</strong>
+                    <div class="muted">${(row.facility && row.facility.name) || "-"}</div>
+                </td>
+                <td>${row.mrn || "-"}</td>
+                <td>${row.study || "-"}</td>
+                <td><span class="modality">${(row.modality && row.modality.code) || "-"}</span></td>
+                <td><span class="status exam-status ${examStatusClass(row.exam_status)}">${row.exam_status_label || "-"}</span></td>
+                <td><span class="status ${statusClass(row.status)}">${row.status || "PENDING"}</span></td>
+                <td>${row.concern_raised ? "Yes" : "-"}</td>
+                <td>${row.reviewer || "-"}</td>
+                <td>${formatDate(row.updated_at)}</td>
+                <td>
+                    <div class="action-group">
+                        <button class="btn btn-primary" type="button" onclick="openUrl('${row.review_url}')">Open QC</button>
+                        ${renderPacsButtons(row)}
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+
+    empty.style.display = "none";
+    table.style.display = "table";
+}
+
+async function loadExams(){
+    const empty = document.getElementById("qc-empty");
+    const table = document.getElementById("qc-table");
+
+    table.style.display = "none";
+    empty.style.display = "block";
+    empty.innerText = "Loading QC studies...";
+
+    try {
+        const response = await fetch(WORKLIST_API_URL, {
+            credentials: "same-origin",
+        });
+
+        if (!response.ok) {
+            throw new Error("Request failed");
+        }
+
+        const payload = await response.json();
+        allRows = payload.results || [];
+        render();
+    } catch (error) {
+        allRows = [];
+        empty.innerText = "Unable to load QC studies right now.";
+    }
+}
+
+document.getElementById("filter-modality").addEventListener("change", render);
+document.getElementById("search-input").addEventListener("input", render);
+if (INITIAL_MODALITY_FILTER) {
+    document.getElementById("filter-modality").value = INITIAL_MODALITY_FILTER;
+}
+
+loadExams();
+</script>
+</body>
+</html>

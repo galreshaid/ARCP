@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Contrast & Materials Analytics</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% include "partials/app_shell_styles.html" %}
+    <style>
+        :root{
+            --page:#edf3f7;
+            --panel:#ffffff;
+            --line:#d7e2ea;
+            --line-strong:#bfd0dd;
+            --ink:#18324d;
+            --muted:#6c8194;
+            --brand:#145d8d;
+            --brand-dark:#0f476b;
+            --ok:#166534;
+            --ok-bg:#ecfdf5;
+            --warn:#9a3412;
+            --warn-bg:#fff7ed;
+            --shadow:0 24px 48px rgba(15,49,77,.08);
+            --radius-xl:22px;
+            --radius-lg:16px;
+        }
+        *{box-sizing:border-box}
+        body{
+            margin:0;
+            font-family:"Trebuchet MS","Segoe UI",sans-serif;
+            color:var(--ink);
+            background:
+                radial-gradient(circle at top right, rgba(20,93,141,.12), transparent 30%),
+                radial-gradient(circle at bottom left, rgba(22,101,52,.08), transparent 24%),
+                linear-gradient(140deg, #f7fafc, var(--page));
+        }
+        .page{display:grid;gap:16px}
+        .hero{
+            background:var(--panel);
+            border:1px solid var(--line);
+            border-radius:var(--radius-xl);
+            box-shadow:var(--shadow);
+            padding:20px;
+            display:flex;
+            justify-content:space-between;
+            gap:12px;
+            flex-wrap:wrap;
+        }
+        .hero h1{margin:0;font-size:30px;line-height:1.1}
+        .hero p{margin:8px 0 0;color:var(--muted);max-width:900px;line-height:1.5}
+        .hero-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+        .btn{
+            min-height:38px;
+            padding:0 14px;
+            border-radius:999px;
+            border:1px solid transparent;
+            cursor:pointer;
+            font:inherit;
+            font-size:12px;
+            font-weight:800;
+            text-decoration:none;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            white-space:nowrap;
+        }
+        .btn-primary{
+            background:linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color:#fff;
+            box-shadow:0 12px 24px rgba(20,93,141,.16);
+        }
+        .btn-secondary{
+            background:linear-gradient(180deg, #fff, #f8fbfd);
+            border-color:var(--line-strong);
+            color:var(--brand-dark);
+            box-shadow:0 8px 18px rgba(15,49,77,.08);
+        }
+        .stats{
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+            gap:12px;
+        }
+        .stat{
+            background:var(--panel);
+            border:1px solid var(--line);
+            border-radius:var(--radius-lg);
+            box-shadow:var(--shadow);
+            padding:14px;
+        }
+        .stat small{
+            display:block;
+            color:var(--muted);
+            text-transform:uppercase;
+            letter-spacing:.06em;
+            font-size:11px;
+            font-weight:700;
+        }
+        .stat strong{
+            display:block;
+            margin-top:6px;
+            font-size:28px;
+            line-height:1;
+            color:var(--brand-dark);
+        }
+        .panel{
+            background:var(--panel);
+            border:1px solid var(--line);
+            border-radius:var(--radius-xl);
+            box-shadow:var(--shadow);
+            padding:14px;
+        }
+        .panel h2{margin:0 0 10px;font-size:20px}
+        .filter-form{
+            display:grid;
+            gap:10px;
+        }
+        .filter-grid{
+            display:grid;
+            gap:10px;
+            grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));
+            align-items:end;
+        }
+        .field{
+            display:grid;
+            gap:6px;
+        }
+        .field label{
+            font-size:11px;
+            text-transform:uppercase;
+            letter-spacing:.05em;
+            color:var(--muted);
+            font-weight:800;
+        }
+        .field input,
+        .field select{
+            min-height:38px;
+            border-radius:10px;
+            border:1px solid var(--line-strong);
+            background:#fbfdff;
+            color:var(--ink);
+            font:inherit;
+            padding:0 10px;
+        }
+        .field-actions{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            flex-wrap:wrap;
+        }
+        .mini-note{
+            color:var(--muted);
+            font-size:12px;
+            line-height:1.45;
+        }
+        .table-wrap{
+            overflow:auto;
+            border-radius:18px;
+            border:1px solid #dde7ef;
+            background:#fff;
+        }
+        table{
+            width:100%;
+            border-collapse:collapse;
+            min-width:900px;
+        }
+        th,td{
+            padding:10px;
+            border-bottom:1px solid #edf2f7;
+            text-align:left;
+            vertical-align:top;
+            font-size:13px;
+        }
+        th{
+            font-size:11px;
+            text-transform:uppercase;
+            color:var(--muted);
+            letter-spacing:.05em;
+            background:#f8fbfd;
+        }
+        .status{
+            display:inline-flex;
+            align-items:center;
+            min-height:24px;
+            padding:0 10px;
+            border-radius:999px;
+            font-size:10px;
+            font-weight:800;
+            letter-spacing:.02em;
+            text-transform:uppercase;
+        }
+        .status-documented{
+            background:var(--ok-bg);
+            color:var(--ok);
+        }
+        .status-pending{
+            background:var(--warn-bg);
+            color:var(--warn);
+        }
+    </style>
+</head>
+<body>
+{% include "partials/app_header.html" %}
+<div class="app-frame">
+    {% include "partials/app_sidebar.html" with current_nav="contrast-analytics" %}
+    <main class="app-main">
+        <div class="page">
+            <section class="hero">
+                <div>
+                    <h1>Contrast & Materials Analytics</h1>
+                    <p>Finance and store reporting view for exam volume, usage documentation, modality activity, patient-level usage, and consumable trends.</p>
+                </div>
+                <div class="hero-actions">
+                    <a class="btn btn-secondary" href="{{ worklist_url }}">Back to Worklist</a>
+                    <a class="btn btn-primary" href="{{ worklist_url }}">Open Case List</a>
+                    {% if can_export %}
+                        <a class="btn btn-secondary" href="{{ export_csv_url }}">Export CSV</a>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="stats">
+                <article class="stat">
+                    <small>Total Exams</small>
+                    <strong>{{ totals.total_exams }}</strong>
+                </article>
+                <article class="stat">
+                    <small>Documented Exams</small>
+                    <strong>{{ totals.documented_exams }}</strong>
+                </article>
+                <article class="stat">
+                    <small>Pending Exams</small>
+                    <strong>{{ totals.pending_exams }}</strong>
+                </article>
+                <article class="stat">
+                    <small>Unique Patients</small>
+                    <strong>{{ totals.total_patients }}</strong>
+                </article>
+                <article class="stat">
+                    <small>Contrast Entries</small>
+                    <strong>{{ totals.contrast_entries }}</strong>
+                </article>
+                <article class="stat">
+                    <small>Material Entries</small>
+                    <strong>{{ totals.material_entries }}</strong>
+                </article>
+                <article class="stat">
+                    <small>Total Contrast mg</small>
+                    <strong>{{ totals.total_contrast_mg|default_if_none:0|floatformat:"-3" }}</strong>
+                </article>
+            </section>
+
+            <section class="panel">
+                <h2>Documented List (Finance View)</h2>
+                <form method="get" class="filter-form">
+                    <div class="filter-grid">
+                        <div class="field">
+                            <label for="date_from">Date From</label>
+                            <input id="date_from" name="date_from" type="date" value="{{ filters.date_from }}">
+                        </div>
+                        <div class="field">
+                            <label for="date_to">Date To</label>
+                            <input id="date_to" name="date_to" type="date" value="{{ filters.date_to }}">
+                        </div>
+                        <div class="field">
+                            <label for="month">Month</label>
+                            <input id="month" name="month" type="month" value="{{ filters.month }}">
+                        </div>
+                        <div class="field">
+                            <label for="modality">Modality</label>
+                            <select id="modality" name="modality">
+                                <option value="">All modalities</option>
+                                {% for row in modality_options %}
+                                    <option value="{{ row.modality__code }}" {% if filters.modality == row.modality__code %}selected{% endif %}>
+                                        {{ row.modality__code }} - {{ row.modality__name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="entry_kind">Entry Type</label>
+                            <select id="entry_kind" name="entry_kind">
+                                <option value="all" {% if filters.entry_kind == "all" %}selected{% endif %}>Contrast + Material</option>
+                                <option value="contrast" {% if filters.entry_kind == "contrast" %}selected{% endif %}>Contrast only</option>
+                                <option value="material" {% if filters.entry_kind == "material" %}selected{% endif %}>Material only</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="item_type">Contrast/Material Type</label>
+                            <input id="item_type" name="item_type" type="text" value="{{ filters.item_type }}" placeholder="Iohexol / Syringe / code">
+                        </div>
+                    </div>
+                    <div class="field-actions">
+                        <button class="btn btn-primary" type="submit">Apply Filters</button>
+                        <a class="btn btn-secondary" href="{% url 'contrast-materials-analytics' %}">Reset</a>
+                        {% if can_export %}
+                            <a class="btn btn-secondary" href="{{ export_csv_url }}">Export CSV</a>
+                        {% endif %}
+                    </div>
+                </form>
+                <p class="mini-note">Filtered by documentation timestamp and entry details. CSV export uses the same active filters.</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Modality</th>
+                                <th>Accession</th>
+                                <th>Order</th>
+                                <th>Patient</th>
+                                <th>Name</th>
+                                <th>Route / Unit</th>
+                                <th>Quantity</th>
+                                <th>Total mg</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in documented_rows %}
+                                <tr>
+                                    <td>{{ row.documented_at|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ row.entry_kind }}</td>
+                                    <td>{{ row.modality_code }}</td>
+                                    <td>{{ row.accession_number }}</td>
+                                    <td>{{ row.order_id }}</td>
+                                    <td>{{ row.patient_name }}</td>
+                                    <td>{{ row.item_name }}</td>
+                                    <td>{{ row.type_value }}</td>
+                                    <td>{{ row.quantity_value }} {{ row.quantity_unit }}</td>
+                                    <td>{% if row.total_mg %}{{ row.total_mg|floatformat:"-3" }}{% else %}-{% endif %}</td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="10">No documented entries match the selected filters.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Per Modality Summary</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Modality</th>
+                                <th>Exam Count</th>
+                                <th>Documented</th>
+                                <th>Pending</th>
+                                <th>Contrast Entries</th>
+                                <th>Material Entries</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in per_modality %}
+                                <tr>
+                                    <td><strong>{{ row.modality__code }}</strong> - {{ row.modality__name }}</td>
+                                    <td>{{ row.exam_count }}</td>
+                                    <td>{{ row.documented_count }}</td>
+                                    <td>{{ row.pending_count }}</td>
+                                    <td>{{ row.contrast_entries }}</td>
+                                    <td>{{ row.material_entries }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="6">No modality data available.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Per Patient Summary</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Patient</th>
+                                <th>MRN</th>
+                                <th>Exams</th>
+                                <th>Modalities</th>
+                                <th>Contrast Entries</th>
+                                <th>Material Entries</th>
+                                <th>Documentation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in per_patient %}
+                                <tr>
+                                    <td>{{ row.patient_label }}</td>
+                                    <td>{{ row.mrn_label }}</td>
+                                    <td>{{ row.exam_count }}</td>
+                                    <td>{{ row.modality_count }}</td>
+                                    <td>{{ row.contrast_entries }}</td>
+                                    <td>{{ row.material_entries }}</td>
+                                    <td>
+                                        <span class="status {% if row.documentation_status == 'Documented' %}status-documented{% else %}status-pending{% endif %}">
+                                            {{ row.documentation_status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="7">No patient data available.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Top Materials</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Material</th>
+                                <th>Category</th>
+                                <th>Charge</th>
+                                <th>NPHIES</th>
+                                <th>Entries</th>
+                                <th>Total Quantity</th>
+                                <th>Typical Cost</th>
+                                <th>Default Price</th>
+                                <th>Patients</th>
+                                <th>Modalities</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in top_materials %}
+                                <tr>
+                                    <td>{{ row.material_code }}</td>
+                                    <td>{{ row.material_label }}</td>
+                                    <td>{{ row.category }}</td>
+                                    <td>{{ row.charge_code }}</td>
+                                    <td>{{ row.nphies_code }}</td>
+                                    <td>{{ row.entries }}</td>
+                                    <td>{{ row.total_quantity|default:0 }}</td>
+                                    <td>{{ row.material_item__typical_cost_sar|default:0 }}</td>
+                                    <td>{{ row.material_item__default_price_sar|default:0 }}</td>
+                                    <td>{{ row.patient_count }}</td>
+                                    <td>{{ row.modality_count }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="11">No material usage data available.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Top Contrast Usage</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Contrast</th>
+                                <th>Route</th>
+                                <th>Entries</th>
+                                <th>Total Volume (mL)</th>
+                                <th>Total mg</th>
+                                <th>Patients</th>
+                                <th>Modalities</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in top_contrasts %}
+                                <tr>
+                                    <td>{{ row.contrast_name|default:"-" }}</td>
+                                    <td>{{ row.route|default:"-" }}</td>
+                                    <td>{{ row.entries }}</td>
+                                    <td>{{ row.total_volume_ml|default_if_none:0|floatformat:"-3" }}</td>
+                                    <td>{{ row.total_mg|default_if_none:0|floatformat:"-3" }}</td>
+                                    <td>{{ row.patient_count }}</td>
+                                    <td>{{ row.modality_count }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="7">No contrast usage data available.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

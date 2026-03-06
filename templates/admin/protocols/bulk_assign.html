@@ -1,0 +1,246 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Bulk Protocol Assignment{% endblock %}
+
+{% block content %}
+<div id="content-main" class="worklist-admin">
+    <h1>Bulk Protocol Assignment</h1>
+    
+    <div class="module" style="background: #f8f9fa; padding: 20px; margin-bottom: 20px; border-radius: 5px;">
+        <h2>Selected Protocol</h2>
+        <table style="width: 100%;">
+            <tr>
+                <th style="text-align: left; width: 150px;">Code:</th>
+                <td><strong>{{ protocol.code }}</strong></td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Name:</th>
+                <td>{{ protocol.name }}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Modality:</th>
+                <td>{{ protocol.modality.code }} - {{ protocol.modality.name }}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Body Part:</th>
+                <td>{{ protocol.body_part }}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Requires Contrast:</th>
+                <td>{% if protocol.requires_contrast %}Yes{% else %}No{% endif %}</td>
+            </tr>
+        </table>
+    </div>
+    
+    <form method="post" id="bulk-assign-form">
+        {% csrf_token %}
+        
+        <div class="module">
+            <h2>Select Exams to Assign</h2>
+            
+            {% if candidate_exams %}
+                <p style="margin-bottom: 15px;">
+                    <strong>{{ candidate_exams|length }} candidate exams</strong> found (same modality, no existing protocol)
+                </p>
+                
+                <div style="margin-bottom: 15px;">
+                    <button type="button" onclick="selectAll()" class="button" style="margin-right: 10px;">
+                        Select All
+                    </button>
+                    <button type="button" onclick="deselectAll()" class="button">
+                        Deselect All
+                    </button>
+                </div>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #417690; color: white;">
+                            <th style="padding: 10px; text-align: left;">
+                                <input type="checkbox" id="select-all-checkbox" onchange="toggleAll(this)">
+                            </th>
+                            <th style="padding: 10px; text-align: left;">Accession</th>
+                            <th style="padding: 10px; text-align: left;">Patient</th>
+                            <th style="padding: 10px; text-align: left;">MRN</th>
+                            <th style="padding: 10px; text-align: left;">Procedure</th>
+                            <th style="padding: 10px; text-align: left;">Exam Date</th>
+                            <th style="padding: 10px; text-align: left;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exam in candidate_exams %}
+                        <tr style="border-bottom: 1px solid #ddd;">
+                            <td style="padding: 8px;">
+                                <input type="checkbox" name="exam_ids" value="{{ exam.id }}" class="exam-checkbox">
+                            </td>
+                            <td style="padding: 8px;">
+                                <a href="{% url 'admin:core_exam_change' exam.id %}" target="_blank">
+                                    {{ exam.accession_number }}
+                                </a>
+                            </td>
+                            <td style="padding: 8px;">{{ exam.patient_name }}</td>
+                            <td style="padding: 8px;">{{ exam.mrn }}</td>
+                            <td style="padding: 8px;">{{ exam.procedure_name }}</td>
+                            <td style="padding: 8px;">{{ exam.exam_datetime|date:"Y-m-d H:i" }}</td>
+                            <td style="padding: 8px;">
+                                <span style="padding: 3px 8px; border-radius: 3px; background: #e3f2fd; color: #1976d2;">
+                                    {{ exam.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 5px;">
+                    <strong>Note:</strong> This will assign the protocol <strong>{{ protocol.code }}</strong> 
+                    to all selected exams. The assignment method will be marked as "MANUAL" with a note 
+                    "Bulk assigned via Admin".
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="button default" style="padding: 10px 20px; font-size: 14px;">
+                        Assign Protocol to Selected Exams
+                    </button>
+                    <a href="{% url 'admin:protocols_protocoltemplate_changelist' %}" class="button" style="margin-left: 10px;">
+                        Cancel
+                    </a>
+                </div>
+                
+            {% else %}
+                <div style="padding: 20px; background: #fff3cd; border-radius: 5px;">
+                    <p><strong>No candidate exams found.</strong></p>
+                    <p>This could be because:</p>
+                    <ul>
+                        <li>All exams with this modality already have protocols assigned</li>
+                        <li>No exams exist for this modality</li>
+                        <li>All matching exams are in CANCELLED or NO_SHOW status</li>
+                    </ul>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <a href="{% url 'admin:protocols_protocoltemplate_changelist' %}" class="button">
+                        Back to Protocols
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.exam-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+}
+
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.exam-checkbox');
+    checkboxes.forEach(cb => cb.checked = true);
+    document.getElementById('select-all-checkbox').checked = true;
+}
+
+function deselectAll() {
+    const checkboxes = document.querySelectorAll('.exam-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+    document.getElementById('select-all-checkbox').checked = false;
+}
+
+// Confirm before submit
+document.getElementById('bulk-assign-form').addEventListener('submit', function(e) {
+    const checkedBoxes = document.querySelectorAll('.exam-checkbox:checked');
+    
+    if (checkedBoxes.length === 0) {
+        alert('Please select at least one exam');
+        e.preventDefault();
+        return false;
+    }
+    
+    const confirmed = confirm(
+        `Are you sure you want to assign protocol "{{ protocol.code }}" to ${checkedBoxes.length} exams?`
+    );
+    
+    if (!confirmed) {
+        e.preventDefault();
+        return false;
+    }
+});
+</script>
+
+<style>
+.worklist-admin {
+    --line: #d7e2ea;
+    --line-strong: #bfd0dd;
+    --ink: #18324d;
+    --muted: #6c8194;
+    --brand: #18324d;
+    --brand-dark: #0f476b;
+    --accent: #de541a;
+    --soft-blue: #edf5ff;
+    --warn-bg: #fef3c7;
+    --warn-text: #92400e;
+    --shadow: 0 24px 48px rgba(15, 49, 77, 0.08);
+    color: var(--ink);
+}
+
+.worklist-admin h1 {
+    font-size: 30px;
+    line-height: 1.08;
+    margin: 0 0 16px;
+    color: var(--ink);
+}
+
+.worklist-admin .module {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 16px !important;
+    box-shadow: var(--shadow) !important;
+    padding: 14px !important;
+}
+
+.worklist-admin .module h2 {
+    background: transparent !important;
+    color: var(--ink) !important;
+    border-bottom: 1px solid #e7eef5;
+    padding: 0 0 10px !important;
+    margin: 0 0 12px !important;
+    font-size: 18px;
+}
+
+.worklist-admin table {
+    border-collapse: collapse;
+}
+
+.worklist-admin th,
+.worklist-admin td {
+    border-color: #edf2f7 !important;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.worklist-admin .button {
+    min-height: 36px !important;
+    padding: 0 14px !important;
+    border-radius: 999px !important;
+    border: 1px solid var(--line-strong) !important;
+    background: linear-gradient(180deg, #fff, #f8fbfd) !important;
+    color: var(--brand) !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.worklist-admin .button.default {
+    background: linear-gradient(135deg, var(--accent), #c2410c) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+}
+
+.worklist-admin .button:hover {
+    transform: translateY(-1px);
+}
+</style>
+{% endblock %}

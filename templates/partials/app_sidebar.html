@@ -1,0 +1,184 @@
+<aside class="app-sidebar">
+    <a href="/" class="app-brand">
+        {% include "partials/app_logo.html" %}
+    </a>
+
+    <div class="app-side-menu">
+        <section class="app-side-group" aria-label="Dashboards">
+            <p class="app-side-group-label">Dashboards</p>
+            <nav class="app-nav">
+                <a href="/" class="{% if current_nav == 'home' %}active{% endif %}">
+                    <span class="app-nav-icon" aria-hidden="true">&#8962;</span>
+                    <span class="app-nav-copy">
+                        <strong>Main Dashboard</strong>
+                        <small>Operational overview, queue metrics, and secure launch points.</small>
+                    </span>
+                </a>
+                <a href="/protocoling/" class="{% if current_nav == 'worklist' %}active{% endif %}">
+                    <span class="app-nav-icon" aria-hidden="true">&#9776;</span>
+                    <span class="app-nav-copy">
+                        <strong>Protocol Worklist</strong>
+                        <small>Operational queue, review flow, and technologist handoff.</small>
+                    </span>
+                </a>
+                <a href="/quality-control/" class="{% if current_nav == 'qc' %}active{% endif %}">
+                    <span class="app-nav-icon" aria-hidden="true">&#10003;</span>
+                    <span class="app-nav-copy">
+                        <strong>Quality Control (QC)</strong>
+                        <small>QC overview, modality checklist settings, and exam readiness.</small>
+                    </span>
+                </a>
+                <a href="/quality-control/analytics/" class="{% if current_nav == 'qc-analytics' %}active{% endif %}">
+                    <span class="app-nav-icon" aria-hidden="true">&#128200;</span>
+                    <span class="app-nav-copy">
+                        <strong>QC Analytics</strong>
+                        <small>QC quality metrics, evidence counts, reviewer activity, and checklist trends.</small>
+                    </span>
+                </a>
+                <a href="/contrast-materials/" class="{% if current_nav == 'contrast' %}active{% endif %}">
+                    <span class="app-nav-icon" aria-hidden="true">&#10010;</span>
+                    <span class="app-nav-copy">
+                        <strong>Contrast &amp; Materials</strong>
+                        <small>Contrast-enabled protocol coverage and material planning.</small>
+                    </span>
+                </a>
+                <a href="/contrast-materials/analytics/" class="{% if current_nav == 'contrast-analytics' %}active{% endif %}">
+                    <span class="app-nav-icon" aria-hidden="true">&#128202;</span>
+                    <span class="app-nav-copy">
+                        <strong>Contrast Analytics</strong>
+                        <small>Finance/store usage, counts per patient, and modality-level summaries.</small>
+                    </span>
+                </a>
+            </nav>
+        </section>
+        <section class="app-side-group" aria-label="Administration">
+            <p class="app-side-group-label">Administration</p>
+            <nav class="app-nav">
+                <a href="/system-admin/" class="{% if current_nav == 'admin' %}active{% endif %}">
+                    <span class="app-nav-icon" aria-hidden="true">&#9881;</span>
+                    <span class="app-nav-copy">
+                        <strong>Internal Admin</strong>
+                        <small>Users, permissions, procedures, protocols, and HL7 visibility.</small>
+                    </span>
+                </a>
+            </nav>
+        </section>
+    </div>
+
+    <div class="app-side-meta">
+        {% if not request.user.is_authenticated %}
+            <a href="{% url 'login' %}" class="app-side-action">Sign In</a>
+        {% endif %}
+        {% if request.user.is_authenticated %}
+            <p class="app-side-note">Role-based access and idle session protection are active. Use the top bar for inbox and logout actions.</p>
+        {% else %}
+            <p class="app-side-note">Unified navigation for the operational workflow surfaces.</p>
+        {% endif %}
+    </div>
+</aside>
+{% if request.user.is_authenticated %}
+    <form id="idleLogoutForm" method="post" action="{% url 'logout' %}" hidden>
+        {% csrf_token %}
+    </form>
+    <div class="session-popup" id="sessionPopup" hidden>
+        <div class="session-popup-card" role="dialog" aria-modal="true" aria-labelledby="sessionPopupTitle">
+            <h2 id="sessionPopupTitle">Session Expiring</h2>
+            <p>You will be signed out in 1 minute due to inactivity.</p>
+            <div class="session-popup-actions">
+                <button type="button" class="session-continue" id="sessionContinueButton">Continue</button>
+                <button type="button" class="session-logout" id="sessionLogoutButton">Logout</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            const warningDelayMs = 14 * 60 * 1000;
+            const logoutDelayMs = 1 * 60 * 1000;
+            const popup = document.getElementById("sessionPopup");
+            const logoutForm = document.getElementById("idleLogoutForm");
+            const continueButton = document.getElementById("sessionContinueButton");
+            const logoutButton = document.getElementById("sessionLogoutButton");
+            let warningTimer = null;
+            let logoutTimer = null;
+            let lastHeartbeatAt = 0;
+
+            function submitLogout() {
+                if (!logoutForm) {
+                    return;
+                }
+
+                if (logoutForm.requestSubmit) {
+                    logoutForm.requestSubmit();
+                    return;
+                }
+
+                logoutForm.submit();
+            }
+
+            function hideWarning() {
+                if (popup) {
+                    popup.hidden = true;
+                }
+            }
+
+            function showWarning() {
+                hideWarning();
+
+                if (popup) {
+                    popup.hidden = false;
+                }
+
+                window.clearTimeout(logoutTimer);
+                logoutTimer = window.setTimeout(submitLogout, logoutDelayMs);
+            }
+
+            function sendHeartbeat() {
+                const now = Date.now();
+
+                if ((now - lastHeartbeatAt) < (4 * 60 * 1000)) {
+                    return;
+                }
+
+                lastHeartbeatAt = now;
+                window.fetch("/health/", {
+                    method: "GET",
+                    credentials: "same-origin",
+                    cache: "no-store",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                }).catch(function () {
+                    return null;
+                });
+            }
+
+            function resetSessionTimer() {
+                window.clearTimeout(warningTimer);
+                window.clearTimeout(logoutTimer);
+                hideWarning();
+                warningTimer = window.setTimeout(showWarning, warningDelayMs);
+                sendHeartbeat();
+            }
+
+            if (continueButton) {
+                continueButton.addEventListener("click", resetSessionTimer);
+            }
+
+            if (logoutButton) {
+                logoutButton.addEventListener("click", submitLogout);
+            }
+
+            ["click", "keydown", "mousemove", "scroll", "touchstart"].forEach(function (eventName) {
+                window.addEventListener(eventName, resetSessionTimer);
+            });
+
+            document.addEventListener("visibilitychange", function () {
+                if (!document.hidden) {
+                    resetSessionTimer();
+                }
+            });
+
+            resetSessionTimer();
+        })();
+    </script>
+{% endif %}

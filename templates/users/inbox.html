@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Message Center | AAML RadCore Platform</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% include "partials/app_shell_styles.html" %}
+    <style>
+        :root {
+            --ink: #18324d;
+            --muted: #6c8194;
+            --line: #d7e2ea;
+            --line-strong: #bfd0dd;
+            --panel: rgba(255, 255, 255, 0.96);
+            --panel-tint: #f8fbfd;
+            --soft-blue: #edf5ff;
+            --shadow: 0 24px 48px rgba(15, 49, 77, 0.08);
+            --radius-xl: 22px;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(20, 93, 141, 0.12), transparent 30%),
+                radial-gradient(circle at bottom left, rgba(222, 84, 26, 0.08), transparent 26%),
+                linear-gradient(135deg, #f7fafc, #edf3f7);
+            color: var(--ink);
+        }
+
+        .page {
+            display: grid;
+            gap: 16px;
+        }
+
+        .hero,
+        .panel,
+        .stat,
+        .message-card,
+        .detail-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            padding: 20px;
+            display: grid;
+            gap: 14px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: #edf5ff;
+            color: #0f476b;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: 30px;
+            line-height: 1.08;
+        }
+
+        .hero-copy {
+            margin: 0;
+            max-width: 860px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .hero-actions,
+        .stats,
+        .compose-actions,
+        .detail-actions,
+        .list-item-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+
+        .stat {
+            padding: 14px 16px;
+            border-radius: var(--radius-lg);
+        }
+
+        .stat-label {
+            margin: 0 0 8px;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            margin: 0;
+            font-size: 28px;
+            line-height: 1;
+            font-weight: 800;
+            color: #0f476b;
+        }
+
+        .stat-detail {
+            margin: 6px 0 0;
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--muted);
+        }
+
+        .panel {
+            padding: 16px;
+        }
+
+        .panel-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .panel-head h2 {
+            margin: 0 0 4px;
+            font-size: 18px;
+            line-height: 1.2;
+        }
+
+        .panel-copy {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .record-count {
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+            padding: 0 10px;
+            border-radius: 999px;
+            background: var(--soft-blue);
+            color: #0f476b;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .compose-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .field {
+            display: grid;
+            gap: 6px;
+        }
+
+        .field.span-2 {
+            grid-column: span 2;
+        }
+
+        .field label {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .field input,
+        .field select,
+        .field textarea {
+            width: 100%;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--line-strong);
+            background: #ffffff;
+            color: var(--ink);
+            font: inherit;
+            font-size: 13px;
+        }
+
+        .field input,
+        .field select {
+            min-height: 40px;
+            padding: 0 12px;
+        }
+
+        .field textarea {
+            min-height: 140px;
+            padding: 10px 12px;
+            resize: vertical;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: minmax(320px, 0.95fr) minmax(420px, 1.05fr);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .message-list,
+        .sent-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .message-card {
+            padding: 12px;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, #ffffff, var(--panel-tint));
+        }
+
+        .message-card.active,
+        .message-card.unread {
+            border-color: var(--line-strong);
+            background: linear-gradient(180deg, #ffffff, #f4f9fc);
+        }
+
+        .message-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .message-title {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .message-meta,
+        .message-preview,
+        .detail-meta,
+        .detail-url,
+        .empty {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .message-meta,
+        .message-preview {
+            margin-top: 6px;
+        }
+
+        .message-preview {
+            color: #38556f;
+        }
+
+        .detail-layout {
+            display: grid;
+            gap: 14px;
+        }
+
+        .detail-card {
+            padding: 16px;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, #ffffff, var(--panel-tint));
+        }
+
+        .detail-title {
+            margin: 0;
+            font-size: 20px;
+            line-height: 1.3;
+        }
+
+        .detail-body {
+            margin-top: 12px;
+            padding: 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid #dde7ef;
+            background: #ffffff;
+            font-size: 13px;
+            line-height: 1.65;
+            white-space: pre-line;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            padding: 0 9px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .badge.unread {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.read {
+            background: #ecfdf5;
+            color: #166534;
+        }
+
+        .badge.email {
+            background: #eef2ff;
+            color: #3730a3;
+        }
+
+        .btn {
+            min-height: 36px;
+            padding: 0 14px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #18324d, #0f476b);
+            border-color: #18324d;
+            color: #ffffff;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(180deg, #ffffff, #f8fbfd);
+            border-color: var(--line-strong);
+            color: var(--ink);
+        }
+
+        .btn-accent {
+            background: linear-gradient(135deg, #de541a, #c2410c);
+            border-color: #de541a;
+            color: #ffffff;
+        }
+
+        .btn-danger {
+            background: linear-gradient(180deg, #fff5f5, #fee2e2);
+            border-color: #fecaca;
+            color: #b91c1c;
+        }
+
+        .inline-form {
+            margin: 0;
+        }
+
+        .detail-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        @media (min-width: 1200px) {
+            .detail-grid {
+                grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .compose-grid,
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .field.span-2 {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include "partials/app_header.html" with header_title="Internal Communication" header_subtitle="Message Center / Workflow Alerts / Direct User Messaging" %}
+    <div class="app-frame">
+        {% include "partials/app_sidebar.html" with current_nav="inbox" %}
+        <main class="app-main">
+            <div class="page">
+                <section class="hero">
+                    <div class="eyebrow">Internal Messaging</div>
+                    <h1>Message Center</h1>
+                    <p class="hero-copy">Send direct staff messages, review workflow notifications, open related pages, reply, forward, share links, and delete inbox items from one screen.</p>
+                    <div class="hero-actions">
+                        <a href="{% url 'user-inbox' %}" class="btn btn-secondary">New Message</a>
+                        <a href="/protocoling/" class="btn btn-secondary">Open Worklist</a>
+                        {% if user_inbox_available and user_inbox_unread_count %}
+                            <form method="post" action="{% url 'user-inbox-read-all' %}" class="inline-form">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary">Mark All Read</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </section>
+
+                <section class="stats">
+                    <article class="stat">
+                        <p class="stat-label">Unread</p>
+                        <p class="stat-value">{{ unread_count }}</p>
+                        <p class="stat-detail">Inbox messages still waiting for review.</p>
+                    </article>
+                    <article class="stat">
+                        <p class="stat-label">Read</p>
+                        <p class="stat-value">{{ read_count }}</p>
+                        <p class="stat-detail">Messages already opened or marked read.</p>
+                    </article>
+                    <article class="stat">
+                        <p class="stat-label">Received</p>
+                        <p class="stat-value">{{ notifications|length }}</p>
+                        <p class="stat-detail">Most recent inbox items available on this page.</p>
+                    </article>
+                    <article class="stat">
+                        <p class="stat-label">Sent</p>
+                        <p class="stat-value">{{ sent_notifications|length }}</p>
+                        <p class="stat-detail">Recent direct messages you already sent.</p>
+                    </article>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2>{{ compose_heading }}</h2>
+                            <p class="panel-copy">{{ compose_help }}</p>
+                        </div>
+                        <div class="record-count">Email delivery included</div>
+                    </div>
+
+                    <form method="post" action="{% url 'user-notification-send' %}" class="compose-grid">
+                        {% csrf_token %}
+                        <div class="field">
+                            <label for="message_recipient_id">Recipient</label>
+                            <select id="message_recipient_id" name="message_recipient_id" required>
+                                <option value="">Select user...</option>
+                                {% for recipient in user_message_recipients %}
+                                    <option value="{{ recipient.id }}" {% if compose_recipient_id == recipient.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ recipient.get_full_name|default:recipient.username }}{% if recipient.role %} ({{ recipient.role }}){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="message_title">Title</label>
+                            <input id="message_title" type="text" name="message_title" value="{{ compose_title }}" placeholder="Direct message title">
+                        </div>
+                        <div class="field span-2">
+                            <label for="target_url">Shared Link / Workflow Page</label>
+                            <input id="target_url" type="text" name="target_url" value="{{ compose_target_url }}" placeholder="/protocoling/review/... or leave blank">
+                        </div>
+                        <div class="field span-2">
+                            <label for="message_body">Message</label>
+                            <textarea id="message_body" name="message_body" rows="7" required>{{ compose_body }}</textarea>
+                        </div>
+                        <div class="compose-actions field span-2">
+                            <button type="submit" class="btn btn-primary">{{ compose_submit_label }}</button>
+                            {% if selected_notification %}
+                                <a href="{% url 'user-inbox' %}?message={{ selected_notification.id }}" class="btn btn-secondary">Reset Draft</a>
+                            {% else %}
+                                <a href="{% url 'user-inbox' %}" class="btn btn-secondary">Clear</a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </section>
+
+                <div class="workspace">
+                    <section class="panel">
+                        <div class="panel-head">
+                            <div>
+                                <h2>Inbox Messages</h2>
+                                <p class="panel-copy">Select a message to view the full details, then reply, forward, share, or delete it.</p>
+                            </div>
+                            <div class="record-count">{{ notifications|length }} item{{ notifications|length|pluralize }}</div>
+                        </div>
+
+                        {% if not inbox_available %}
+                            <div class="empty">The inbox table is not available yet. Run <strong>python manage.py migrate</strong> to activate internal messaging.</div>
+                        {% elif notifications %}
+                            <div class="message-list">
+                                {% for notification in notifications %}
+                                    <article class="message-card {% if not notification.is_read %}unread{% endif %} {% if selected_notification and selected_notification.id == notification.id %}active{% endif %}">
+                                        <div class="message-top">
+                                            <div>
+                                                <h3 class="message-title">{{ notification.title }}</h3>
+                                                <div class="message-meta">
+                                                    From:
+                                                    {% if notification.sender %}
+                                                        {{ notification.sender.get_full_name|default:notification.sender.username }}
+                                                    {% else %}
+                                                        System
+                                                    {% endif %}
+                                                    · {{ notification.created_at|date:"Y-m-d H:i" }}
+                                                </div>
+                                            </div>
+                                            <span class="badge {% if notification.is_read %}read{% else %}unread{% endif %}">
+                                                {% if notification.is_read %}Read{% else %}Unread{% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="message-preview">{{ notification.message|truncatechars:140 }}</div>
+                                        <div class="list-item-actions">
+                                            <a href="{% url 'user-inbox' %}?message={{ notification.id }}" class="btn btn-secondary">View</a>
+                                            {% if notification.target_url %}
+                                                <form method="post" action="{% url 'user-notification-open' notification.id %}" class="inline-form">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-primary">Open</button>
+                                                </form>
+                                            {% elif not notification.is_read %}
+                                                <form method="post" action="{% url 'user-notification-read' notification.id %}" class="inline-form">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-primary">Mark Read</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </article>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="empty">No messages are in your inbox yet.</div>
+                        {% endif %}
+                    </section>
+
+                    <div class="detail-layout">
+                        <section class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Selected Message</h2>
+                                    <p class="panel-copy">Use the message actions below to reply, forward, send an emailed copy, share the attached link, or remove it from your inbox.</p>
+                                </div>
+                                {% if selected_notification %}
+                                    <div class="record-count">{{ selected_notification.category }}</div>
+                                {% endif %}
+                            </div>
+
+                            {% if selected_notification %}
+                                <div class="detail-grid">
+                                    <article class="detail-card">
+                                        <div class="message-top">
+                                            <div>
+                                                <h3 class="detail-title">{{ selected_notification.title }}</h3>
+                                                <div class="detail-meta">
+                                                    From:
+                                                    {% if selected_notification.sender %}
+                                                        {{ selected_notification.sender.get_full_name|default:selected_notification.sender.username }}
+                                                    {% else %}
+                                                        System
+                                                    {% endif %}
+                                                    <br>
+                                                    To: {{ selected_notification.recipient.get_full_name|default:selected_notification.recipient.username }}
+                                                    <br>
+                                                    Sent: {{ selected_notification.created_at|date:"Y-m-d H:i" }}
+                                                    {% if selected_notification.read_at %}
+                                                        <br>
+                                                        Read: {{ selected_notification.read_at|date:"Y-m-d H:i" }}
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="hero-actions">
+                                                <span class="badge {% if selected_notification.is_read %}read{% else %}unread{% endif %}">
+                                                    {% if selected_notification.is_read %}Read{% else %}Unread{% endif %}
+                                                </span>
+                                                <span class="badge email">
+                                                    {% if selected_notification.email_sent %}Email Sent{% else %}Email Pending{% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="detail-body">{{ selected_notification.message }}</div>
+                                        {% if selected_notification.target_url %}
+                                            <div class="detail-url">Linked page: {{ selected_notification.target_url }}</div>
+                                        {% endif %}
+                                    </article>
+
+                                    <article class="detail-card">
+                                        <div class="panel-head">
+                                            <div>
+                                                <h2>Actions</h2>
+                                                <p class="panel-copy">These actions use the selected message as the source.</p>
+                                            </div>
+                                        </div>
+                                        <div class="detail-actions">
+                                            {% if selected_is_recipient and selected_notification.target_url %}
+                                                <form method="post" action="{% url 'user-notification-open' selected_notification.id %}" class="inline-form">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-primary">Open Linked Page</button>
+                                                </form>
+                                            {% elif selected_notification.target_url %}
+                                                <a href="{{ selected_notification.target_url }}" class="btn btn-primary">Open Linked Page</a>
+                                            {% endif %}
+
+                                            {% if selected_is_recipient and not selected_notification.is_read %}
+                                                <form method="post" action="{% url 'user-notification-read' selected_notification.id %}" class="inline-form">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-secondary">Mark Read</button>
+                                                </form>
+                                            {% endif %}
+
+                                            {% if selected_notification.sender and not selected_is_sender %}
+                                                <a href="{% url 'user-inbox' %}?message={{ selected_notification.id }}&compose=reply" class="btn btn-secondary">Reply</a>
+                                            {% endif %}
+
+                                            <a href="{% url 'user-inbox' %}?message={{ selected_notification.id }}&compose=forward" class="btn btn-secondary">Forward</a>
+                                            <a href="{% url 'user-inbox' %}?message={{ selected_notification.id }}&compose=share" class="btn btn-secondary">Share Link</a>
+                                            <a href="{% url 'user-inbox' %}?message={{ selected_notification.id }}&compose=email" class="btn btn-accent">Send Email Copy</a>
+
+                                            {% if selected_is_recipient %}
+                                                <form method="post" action="{% url 'user-notification-delete' selected_notification.id %}" class="inline-form">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </article>
+                                </div>
+                            {% else %}
+                                <div class="empty">Select a message from the inbox to view its details and actions here.</div>
+                            {% endif %}
+                        </section>
+
+                        <section class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Sent by You</h2>
+                                    <p class="panel-copy">Recent direct messages you already sent to other users.</p>
+                                </div>
+                                <div class="record-count">{{ sent_notifications|length }} item{{ sent_notifications|length|pluralize }}</div>
+                            </div>
+
+                            {% if not inbox_available %}
+                                <div class="empty">Sent history will appear here after the inbox migration is applied.</div>
+                            {% elif sent_notifications %}
+                                <div class="sent-list">
+                                    {% for notification in sent_notifications %}
+                                        <article class="message-card {% if selected_notification and selected_notification.id == notification.id %}active{% endif %}">
+                                            <div class="message-top">
+                                                <div>
+                                                    <h3 class="message-title">{{ notification.title }}</h3>
+                                                    <div class="message-meta">
+                                                        To: {{ notification.recipient.get_full_name|default:notification.recipient.username }}
+                                                        · {{ notification.created_at|date:"Y-m-d H:i" }}
+                                                    </div>
+                                                </div>
+                                                <span class="badge email">
+                                                    {% if notification.email_sent %}Email Sent{% else %}Email Pending{% endif %}
+                                                </span>
+                                            </div>
+                                            <div class="message-preview">{{ notification.message|truncatechars:120 }}</div>
+                                            <div class="list-item-actions">
+                                                <a href="{% url 'user-inbox' %}?message={{ notification.id }}" class="btn btn-secondary">View</a>
+                                                <a href="{% url 'user-inbox' %}?message={{ notification.id }}&compose=forward" class="btn btn-secondary">Forward</a>
+                                                <a href="{% url 'user-inbox' %}?message={{ notification.id }}&compose=share" class="btn btn-secondary">Share</a>
+                                            </div>
+                                        </article>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="empty">You have not sent any direct messages yet.</div>
+                            {% endif %}
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

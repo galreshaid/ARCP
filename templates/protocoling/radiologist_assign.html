@@ -1,0 +1,1016 @@
+{% load protocol_formatting %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Radiologist - Assignment and Review – AAML RadCore Platform</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% include "partials/app_shell_styles.html" %}
+
+<style>
+:root{
+    --page:#edf3f7;
+    --panel:#ffffff;
+    --line:#d7e2ea;
+    --line-strong:#bfd0dd;
+    --ink:#18324d;
+    --muted:#6c8194;
+    --brand:#145d8d;
+    --brand-dark:#0f476b;
+    --accent:#de541a;
+    --soft:#f6fafc;
+    --soft-blue:#edf5ff;
+    --ok-bg:#ecfdf5;
+    --ok-text:#166534;
+    --warn-bg:#fef3c7;
+    --warn-text:#92400e;
+    --shadow:0 24px 48px rgba(15,49,77,.08);
+    --radius-xl:22px;
+    --radius-lg:16px;
+    --radius-md:12px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+    font-family:"Trebuchet MS","Segoe UI",sans-serif;
+    background:
+        radial-gradient(circle at top right, rgba(20,93,141,.12), transparent 30%),
+        radial-gradient(circle at bottom left, rgba(222,84,26,.08), transparent 26%),
+        linear-gradient(135deg, #f7fafc, var(--page));
+    color:var(--ink);
+}
+
+.page{
+    display:grid;
+    gap:16px;
+}
+
+.hero{
+    background:
+        linear-gradient(135deg, rgba(9,54,82,.95), rgba(20,93,141,.97)),
+        linear-gradient(135deg, rgba(222,84,26,.14), transparent);
+    color:#fff;
+    border-radius:var(--radius-xl);
+    padding:24px 28px;
+    box-shadow:0 18px 36px rgba(11,42,62,.16);
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:18px;
+    flex-wrap:wrap;
+}
+
+.eyebrow{
+    display:inline-flex;
+    align-items:center;
+    padding:6px 10px;
+    border-radius:999px;
+    font-size:12px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    font-weight:700;
+    background:rgba(255,255,255,.12);
+    color:rgba(255,255,255,.86);
+    margin-bottom:12px;
+}
+
+.hero h1{
+    font-size:34px;
+    line-height:1.08;
+    margin-bottom:8px;
+}
+
+.hero p{
+    max-width:760px;
+    color:rgba(255,255,255,.78);
+    line-height:1.55;
+}
+
+.hero-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.container{
+    margin-top:20px;
+    display:grid;
+    gap:18px;
+}
+
+.panel{
+    background:rgba(255,255,255,.94);
+    border:1px solid var(--line);
+    border-radius:var(--radius-xl);
+    box-shadow:var(--shadow);
+    padding:20px;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:14px;
+}
+
+.stat{
+    background:linear-gradient(180deg, #ffffff, #f7fbff);
+    border:1px solid #dbe7f2;
+    border-radius:var(--radius-lg);
+    padding:18px;
+}
+
+.stat-label{
+    font-size:12px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    font-weight:700;
+    margin-bottom:10px;
+}
+
+.stat-value{
+    font-size:34px;
+    line-height:1;
+    font-weight:800;
+    color:var(--brand-dark);
+}
+
+.stat-detail{
+    margin-top:8px;
+    color:var(--muted);
+    font-size:13px;
+}
+
+.toolbar{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:14px;
+}
+
+.field{
+    display:grid;
+    gap:8px;
+}
+
+.field label{
+    font-size:12px;
+    color:var(--muted);
+    font-weight:800;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+}
+
+.field input,
+.field select{
+    width:100%;
+    min-height:46px;
+    padding:0 14px;
+    border-radius:14px;
+    border:1px solid var(--line-strong);
+    background:#fbfdff;
+    font:inherit;
+    color:var(--ink);
+}
+
+.field input:focus,
+.field select:focus{
+    outline:none;
+    border-color:#8eb6d3;
+    box-shadow:0 0 0 3px rgba(20,93,141,.08);
+}
+
+.panel-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+}
+
+.panel-head h2{
+    font-size:20px;
+    line-height:1.2;
+    margin-bottom:4px;
+}
+
+.panel-copy{
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.5;
+}
+
+.record-count{
+    display:inline-flex;
+    align-items:center;
+    min-height:34px;
+    padding:0 12px;
+    border-radius:999px;
+    background:var(--soft-blue);
+    color:var(--brand-dark);
+    font-size:12px;
+    font-weight:800;
+}
+
+.table-wrap{
+    overflow:auto;
+    border:1px solid #dde7ef;
+    border-radius:18px;
+}
+
+table{
+    width:100%;
+    min-width:1040px;
+    border-collapse:collapse;
+    background:#fff;
+}
+
+th,td{
+    padding:14px 16px;
+    border-bottom:1px solid #edf2f7;
+    text-align:left;
+    vertical-align:top;
+}
+
+th{
+    background:#f8fbfd;
+    font-size:12px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.05em;
+}
+
+tbody tr:nth-child(even){
+    background:#fbfdff;
+}
+
+tbody tr:hover{
+    background:#f4f9fc;
+}
+
+.id-cell{
+    display:grid;
+    gap:4px;
+}
+
+.id-cell strong{
+    font-size:14px;
+}
+
+.cell-subtle{
+    font-size:12px;
+    color:var(--muted);
+}
+
+.patient-cell{
+    display:grid;
+    gap:4px;
+}
+
+.patient-name{
+    font-weight:700;
+}
+
+.patient-history{
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.45;
+    max-width:280px;
+}
+
+.badge{
+    display:inline-flex;
+    align-items:center;
+    min-height:28px;
+    padding:0 10px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:800;
+}
+
+.badge.pending{
+    background:var(--warn-bg);
+    color:var(--warn-text);
+}
+
+.badge.assigned,
+.badge.acknowledged,
+.badge.done{
+    background:var(--ok-bg);
+    color:var(--ok-text);
+}
+
+.badge.cancelled{
+    background:#fef2f2;
+    color:#b91c1c;
+}
+
+.badge.ct{background:#dbeafe;color:#1e40af}
+.badge.mr{background:#ede9fe;color:#5b21b6}
+.badge.xr{background:#ecfeff;color:#155e75}
+.badge.us{background:#fef3c7;color:#92400e}
+
+.btn{
+    min-height:42px;
+    padding:0 16px;
+    border-radius:999px;
+    border:none;
+    cursor:pointer;
+    font:inherit;
+    font-weight:700;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.btn:hover{
+    transform:translateY(-1px);
+}
+
+.btn-primary{
+    background:linear-gradient(135deg, var(--brand), var(--brand-dark));
+    color:#fff;
+    box-shadow:0 12px 24px rgba(20,93,141,.16);
+}
+
+.btn-accent{
+    background:linear-gradient(135deg, var(--accent), #c2410c);
+    color:#fff;
+    box-shadow:0 12px 24px rgba(222,84,26,.16);
+}
+
+.btn-secondary{
+    background:#fff;
+    border:1px solid var(--line-strong);
+    color:var(--brand);
+}
+
+.btn-disabled{
+    background:#eef3f7;
+    border:1px solid #d7e2ea;
+    color:#7e90a0;
+    cursor:not-allowed;
+    box-shadow:none;
+}
+
+.action-group{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+}
+
+.center{
+    text-align:center;
+    padding:60px;
+    color:var(--muted);
+}
+
+{% include "partials/protocoling_review_component_styles.html" %}
+
+@media (max-width:1100px){
+    .toolbar{
+        grid-template-columns:1fr;
+    }
+}
+</style>
+</head>
+<body>
+    {% include "partials/app_header.html" with header_title="Radiologist Workspace" header_subtitle="Protocol Assignment / Review / Technologist Handoff" %}
+<div class="app-frame">
+    {% include "partials/app_sidebar.html" with current_nav="worklist" %}
+    <main class="app-main">
+      <div class="page">
+        <section class="hero header">
+          <div class="header-top">
+            <div class="eyebrow">Protocol Review</div>
+            <h1>Radiologist Assignment &amp; Review</h1>
+            <p class="header-copy">
+              Assign the protocol, review the current order, compare AI suggestions with the active protocol, and finalize a clear execution note for the technologist.
+            </p>
+            <div class="meta-strip">
+              <div class="meta-chip"><strong>Acc#</strong>{{ exam.accession_number }}</div>
+              <div class="meta-chip"><strong>Order#</strong>{{ exam.order_id }}</div>
+              <div class="meta-chip"><strong>MRN</strong>{{ exam.mrn }}</div>
+              <div class="meta-chip"><strong>Class</strong>{{ exam.patient_class_display }}</div>
+              <div class="meta-chip"><strong>Modality</strong>{{ exam.modality.code }}</div>
+              <div class="meta-chip"><strong>Facility</strong>{{ exam.facility.code }}</div>
+            </div>
+          </div>
+        </section>
+
+        <div class="container layout">
+        <div class="stack">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Exam Details</h2>
+            <div class="card-copy">Clinical context for this order before confirming or changing the assigned protocol.</div>
+          </div>
+        </div>
+        <div class="detail-grid">
+          <div class="detail detail-wide">
+            <div class="detail-label">Patient</div>
+            <div class="detail-value">{{ exam.patient_name }}</div>
+          </div>
+          <div class="detail">
+            <div class="detail-label">Patient Class</div>
+            <div class="detail-value">{{ exam.patient_class_display }}</div>
+          </div>
+          <div class="detail">
+            <div class="detail-label">Procedure</div>
+            <div class="detail-value">{{ exam.procedure_code }} - {{ exam.procedure_name }}</div>
+          </div>
+          <div class="detail">
+            <div class="detail-label">Ordering Provider</div>
+            <div class="detail-value">{{ exam.ordering_provider|default:"—" }}</div>
+          </div>
+          <div class="detail detail-wide">
+            <div class="detail-label">History</div>
+            <div class="detail-value">{{ exam.clinical_history|default:"—" }}</div>
+          </div>
+          <div class="detail detail-wide">
+            <div class="detail-label">Reason</div>
+            <div class="detail-value">{{ exam.reason_for_exam|default:"—" }}</div>
+          </div>
+          <div class="detail">
+            <div class="detail-label">ICD-10 Code</div>
+            <div class="detail-value">{{ exam.icd_10_code|default:"—" }}</div>
+          </div>
+          <div class="detail">
+            <div class="detail-label">ICD-10 Description</div>
+            <div class="detail-value">{{ exam.icd_10_description|default:"—" }}</div>
+          </div>
+          <div class="detail">
+            <div class="detail-label">Scheduled</div>
+            <div class="detail-value">{{ exam.scheduled_datetime|date:"Y-m-d H:i"|default:"—" }}</div>
+          </div>
+          <div class="detail">
+            <div class="detail-label">Status</div>
+            <div class="detail-value"><span class="status">{{ exam.status }}</span></div>
+          </div>
+          <div class="detail detail-wide">
+            <div class="detail-label">PACS</div>
+            <div class="detail-value pacs-links">
+              {% if exam.accession_number %}
+                <a
+                  class="pacs-link"
+                  href="https://192.168.101.67/ZFP?lights=off&amp;mode=proxy#view&amp;un=zfpuser&amp;pw=hEHFlBFUFpMk0x2j7Sdc8DRqJZZVXlI6%2fegPQMaz7szyvaSxcNo7Gy8avdZZv%2bbt&amp;ris_exam_id={{ exam.accession_number|urlencode }}&amp;authority=RKFMRN"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Open PACS Exam"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3h4l1 2h4a2 2 0 0 1 2 2v9a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a2 2 0 0 1 2-2h4l1-2zm2 5a5 5 0 1 0 .001 10.001A5 5 0 0 0 12 8zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></svg>
+                  <span>PACS Exam</span>
+                </a>
+              {% endif %}
+              {% if exam.mrn %}
+                <a
+                  class="pacs-link"
+                  href="https://192.168.101.67/ZFP?lights=off&amp;mode=proxy#view&amp;un=zfpuser&amp;pw=hEHFlBFUFpMk0x2j7Sdc8DRqJZZVXlI6%2fegPQMaz7szyvaSxcNo7Gy8avdZZv%2bbt&amp;ris_pat_id={{ exam.mrn|urlencode }}&amp;authority=RKFMRN"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Open PACS Patient"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 12c4.42 0 8 2.24 8 5v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1c0-2.76 3.58-5 8-5z"/></svg>
+                  <span>PACS Patient</span>
+                </a>
+              {% endif %}
+              {% if not exam.accession_number and not exam.mrn %}
+                <span class="small">No Acc# or MRN available for PACS launch.</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Current Assignment</h2>
+            <div class="card-copy">The protocol that is currently attached to this order.</div>
+          </div>
+        </div>
+        {% if assignment %}
+          <div class="assignment-summary">
+            <div class="assignment-title"><strong>{{ assignment.protocol.code }}</strong> — {{ assignment.protocol.name }}</div>
+            <div class="assignment-meta">
+              <span class="meta-badge">Method: {{ assignment.assignment_method }}</span>
+              <span class="workflow-pill {{ assignment.status|lower }}">{{ assignment.status }}</span>
+            </div>
+          </div>
+          {% if assignment.radiologist_note %}
+            <div class="note-panel">
+              <strong>Current Radiologist Note</strong>
+              <div>{{ assignment.radiologist_note }}</div>
+            </div>
+          {% endif %}
+          <div class="btn-row" style="margin-top:12px;">
+            <button class="btn btn-secondary" type="button" onclick="location.href='{{ technologist_view_url }}'">Technologist View</button>
+            <button class="btn btn-secondary" type="button" onclick="location.href='{{ technologist_print_url }}'">Print Copy</button>
+          </div>
+        {% else %}
+          <div class="small">No protocol assigned yet. Select a protocol below to create the first assignment.</div>
+        {% endif %}
+      </div>
+
+      {% include "partials/protocoling_workflow_timeline.html" %}
+
+        </div>
+
+        <div class="stack">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>{% if assignment %}Change Protocol / Add Comment{% else %}Assign Protocol{% endif %}</h2>
+            <div class="card-copy">Compare AI-ranked options with the protocol library and document your decision.</div>
+          </div>
+        </div>
+
+        {% if saved %}
+          <div class="alert success">Protocol decision saved. This page now handles both assignment and review for the radiologist workflow.</div>
+        {% endif %}
+        {% if form_error %}
+          <div class="alert error">{{ form_error }}</div>
+        {% endif %}
+
+        <form method="post" onsubmit="return confirm('Save this protocol decision and notes?');">
+          {% csrf_token %}
+          <input type="hidden" id="current_protocol_id" value="{% if current_protocol %}{{ current_protocol.id }}{% endif %}"/>
+
+          <div class="decision-flow">
+            <div class="step-pill active">1. Choose protocol</div>
+            <div class="step-pill active">2. Add handoff note</div>
+            <div class="step-pill">3. Save to technologist</div>
+          </div>
+
+          <div class="selection-summary">
+            <div class="selection-grid">
+              <div class="selection-compare">
+                <div class="selection-card">
+                  <div class="selection-label">Current Assignment</div>
+                  <div class="selection-value">
+                    {% if current_protocol %}
+                      {{ current_protocol.code }} — {{ current_protocol.name }}
+                    {% else %}
+                      No current assignment
+                    {% endif %}
+                  </div>
+                  <div class="selection-subvalue">
+                    {% if assignment %}
+                      Current workflow status: {{ assignment.status }}.
+                    {% else %}
+                      This exam has not been assigned yet.
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="selection-card pending">
+                  <div class="selection-label">Pending Save</div>
+                  <div class="selection-value" id="selection-title">
+                    {% if current_protocol %}
+                      {{ current_protocol.code }} — {{ current_protocol.name }}
+                    {% else %}
+                      No protocol selected yet
+                    {% endif %}
+                  </div>
+                  <div class="selection-subvalue" id="selection-hint">
+                    {% if current_protocol %}
+                      Save will keep or update this protocol and preserve your note for the technologist.
+                    {% else %}
+                      Choose an AI suggestion or a manual protocol before saving.
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <div class="selection-side">
+                <div>
+                  <div class="selection-label">Decision Source</div>
+                  <div class="selection-state" id="selection-mode">
+                    {% if assignment and assignment.assignment_method == 'AI' %}
+                      AI Decision
+                    {% elif current_protocol %}
+                      Manual Decision
+                    {% else %}
+                      Selection Required
+                    {% endif %}
+                  </div>
+                </div>
+                <div>
+                  <div class="selection-label">Save State</div>
+                  <div class="selection-ready {% if current_protocol %}ready{% endif %}" id="selection-ready">
+                    {% if current_protocol %}
+                      Ready to save this review.
+                    {% else %}
+                      Waiting for a protocol selection.
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="workspace">
+            <div class="stack-panel">
+              <div class="field">
+                <label>AI Suggestions</label>
+                <div class="small">Ranked protocols for this order using modality, body region, clinical context, and learned radiologist behavior.</div>
+              </div>
+              {% if suggestions %}
+                {% for s in suggestions %}
+                  <label class="proto {% if current_protocol and s.protocol.id == current_protocol.id and assignment and assignment.assignment_method == 'AI' %}selected{% endif %}">
+                    <input type="radio" name="suggested_protocol_id" value="{{ s.protocol.id }}" onclick="selectAISuggestion()" {% if current_protocol and s.protocol.id == current_protocol.id and assignment and assignment.assignment_method == 'AI' %}checked{% endif %}/>
+                    <div class="proto-body">
+                      <div class="proto-title">{{ s.protocol.code }} <span>— {{ s.protocol.name }}</span></div>
+                      <div class="proto-meta">
+                      {% if s.rank == 1 %}
+                          <span class="score-pill">Recommended</span>
+                        {% endif %}
+                        {% if current_protocol and s.protocol.id == current_protocol.id %}
+                          <span class="score-pill">Current</span>
+                        {% endif %}
+                        {% if s.match_percent %}
+                          <span class="score-pill">Match {{ s.match_percent }}%</span>
+                        {% endif %}
+                        <span class="score-pill">Score {{ s.score|floatformat:1 }}</span>
+                        <span class="score-pill">Rank {{ s.rank }}</span>
+                      </div>
+                      {% with hints=s.reasoning|suggestion_reasoning_lines %}
+                        {% if hints %}
+                          <div class="reason-list">
+                            {% for hint in hints %}
+                              <span class="reason-pill">{{ hint }}</span>
+                            {% endfor %}
+                          </div>
+                        {% endif %}
+                      {% endwith %}
+                      {% if s.match_percent %}
+                        <div class="match-track" aria-hidden="true">
+                          <div class="match-fill" style="width: {{ s.match_percent }}%;"></div>
+                        </div>
+                        <div class="match-caption">Confidence preview based on procedure fit, body region, usage history, priority, and learned behavior.</div>
+                      {% endif %}
+                    </div>
+                  </label>
+                {% endfor %}
+              {% else %}
+                <div class="small">No AI suggestions available for this exam.</div>
+              {% endif %}
+            </div>
+
+            <div class="stack-panel">
+              <div class="field">
+                <label for="manual_protocol_select">Manual Protocol List ({{ exam.modality.code }})</label>
+                <select id="manual_protocol_select" name="manual_protocol_id" onchange="selectManualProtocol()">
+                  <option value="">-- Select protocol --</option>
+                  {% for p in candidates %}
+                    <option value="{{ p.id }}" {% if current_protocol and p.id == current_protocol.id %}selected{% endif %}>
+                      {{ p.code }} — {{ p.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <div class="field-helper">Use the manual list to override the AI suggestion or keep the existing protocol while adding comments.</div>
+              </div>
+
+              <div class="field">
+                <label for="radiologist_note">Note to Technologist</label>
+                <textarea id="radiologist_note" name="radiologist_note" rows="4" placeholder="Add execution note, special instruction, or handoff message...">{{ assignment.radiologist_note|default:"" }}</textarea>
+                <div class="field-helper">This note is the handoff instruction the technologist will see during confirmation.</div>
+                <div class="quick-actions">
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('radiologist_note', 'Proceed with selected protocol as documented.')">Standard Handoff</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('radiologist_note', 'Confirm contrast screening and proceed if cleared.')">Contrast Check</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('radiologist_note', 'Pay close attention to patient positioning and complete the full sequence set.')">Positioning Reminder</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('radiologist_note', 'Radiologist should attend the procedure.')">Radiologist Attend</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('radiologist_note', 'Call the radiologist before starting the scan if any clinical concern changes.')">Call Before Start</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('radiologist_note', 'Prioritize this exam and notify the team once the patient is ready on table.')">Priority Exam</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('radiologist_note', 'Verify patient preparation, consent, and screening checklist before execution.')">Prep Verification</button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="comment">Internal Comment</label>
+                <textarea id="comment" name="comment" rows="4" placeholder="Add internal discussion or change note..."></textarea>
+                <div class="field-helper">Use internal comments for audit trail, rationale, and reviewer discussion.</div>
+                <div class="quick-actions">
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('comment', 'Protocol reviewed and confirmed by radiologist.')">Reviewed</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('comment', 'Protocol changed after radiologist review.')">Protocol Changed</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('comment', 'Clinical history reviewed and aligned with selected protocol.')">Clinical Match</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('comment', 'Radiologist requested direct attendance during the procedure.')">Direct Attendance</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('comment', 'Case discussed with the technologist before workflow handoff.')">Discussed With Tech</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('comment', 'Escalate to radiologist immediately if the patient condition or indication changes.')">Escalation Note</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('comment', 'Protocol preserved and notes updated without changing the selected template.')">Notes Updated Only</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <input type="hidden" id="ai_selected" name="ai_selected" value="{% if assignment and assignment.assignment_method == 'AI' %}1{% else %}0{% endif %}"/>
+
+          <div class="btn-row">
+            <button class="btn btn-primary" id="decision-submit" type="submit">{% if assignment %}Save Change / Comment{% else %}Save Assignment{% endif %}</button>
+            <button class="btn btn-secondary" type="button" onclick="location.href='/protocoling/'">Back to Worklist</button>
+          </div>
+
+          <div class="small">
+            Saving here keeps the assignment inside the system. The technologist page is where the protocol is reviewed and confirmed.
+          </div>
+        </form>
+      </div>
+
+      {% if current_protocol %}
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2>Protocol Commands</h2>
+              <div class="card-copy">Readable operational guidance extracted from the imported protocol sheet.</div>
+            </div>
+          </div>
+          <div class="command-grid">
+            {% if current_protocol.indications %}
+              <section class="command-block">
+                <div class="command-block-header">
+                  <h3>Indications</h3>
+                  <div class="small">Why this protocol should be used.</div>
+                </div>
+                <ul class="command-list">
+                  {% for line in current_protocol.indications|protocol_note_lines %}
+                    <li>{{ line }}</li>
+                  {% endfor %}
+                </ul>
+              </section>
+            {% endif %}
+            {% if current_protocol.patient_prep %}
+              <section class="command-block">
+                <div class="command-block-header">
+                  <h3>Patient Preparation</h3>
+                  <div class="small">Setup and positioning before scanning.</div>
+                </div>
+                <ul class="command-list">
+                  {% for line in current_protocol.patient_prep|protocol_note_lines %}
+                    <li>{{ line }}</li>
+                  {% endfor %}
+                </ul>
+              </section>
+            {% endif %}
+            {% if current_protocol.safety_notes %}
+              <section class="command-block">
+                <div class="command-block-header">
+                  <h3>Safety Notes</h3>
+                  <div class="small">Safety items that must be checked before execution.</div>
+                </div>
+                <ul class="command-list">
+                  {% for line in current_protocol.safety_notes|protocol_note_lines %}
+                    <li>{{ line }}</li>
+                  {% endfor %}
+                </ul>
+              </section>
+            {% endif %}
+            {% if current_protocol.general_notes %}
+              <section class="command-block">
+                <div class="command-block-header">
+                  <h3>Operational Notes</h3>
+                  <div class="small">Scanner steps and protocol instructions.</div>
+                </div>
+                <ul class="command-list">
+                  {% for line in current_protocol.general_notes|protocol_note_lines %}
+                    <li>{{ line }}</li>
+                  {% endfor %}
+                </ul>
+              </section>
+            {% endif %}
+            {% if not current_protocol.indications and not current_protocol.patient_prep and not current_protocol.safety_notes and not current_protocol.general_notes %}
+              <div class="command-empty">No additional command notes were stored for this protocol.</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2>Current Protocol Sequences</h2>
+              <div class="card-copy">Sequence-level steps for the currently selected protocol.</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>SER</th>
+                  <th>COIL</th>
+                  <th>PH. ARRAY</th>
+                  <th>Scan Plane</th>
+                  <th>Pulse Seq.</th>
+                  <th>Options</th>
+                  <th>Comments</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in current_sequences %}
+                  <tr>
+                    <td>{{ s.ser }}</td>
+                    <td>{{ s.coil|default:"—" }}</td>
+                    <td>{{ s.phase_array|default:"—" }}</td>
+                    <td>{{ s.scan_plane|default:"—" }}</td>
+                    <td>{{ s.pulse_sequence|default:"—" }}</td>
+                    <td>{{ s.options|default:"—" }}</td>
+                    <td>{{ s.comments|default:"—" }}</td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="7" class="cell-muted">No sequence rows are stored for this protocol.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Comment Thread</h2>
+            <div class="card-copy">Change notes and communication history for this protocol assignment.</div>
+          </div>
+        </div>
+        <div class="comment-thread">
+          {% for c in comments %}
+            <div class="bubble">
+              <div class="bubble-head">
+                <span class="bubble-role">{{ c.author_role|default:"User" }}</span>
+                <span class="bubble-time">{{ c.created_at|date:"Y-m-d H:i" }}</span>
+              </div>
+              <div class="bubble-body">{{ c.message }}</div>
+            </div>
+          {% empty %}
+            <div class="small">No comments yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Direct User Message</h2>
+            <div class="card-copy">Send an internal inbox message and email directly to another user without leaving the radiologist workflow page.</div>
+          </div>
+        </div>
+
+        {% if message_sent %}
+          <div class="alert success">Direct message sent. The recipient will receive it in the internal inbox and by email when email delivery is available.</div>
+        {% endif %}
+        {% if direct_message_error %}
+          <div class="alert error">{{ direct_message_error }}</div>
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="form_action" value="send_message">
+
+          <div class="field">
+            <label for="message_recipient_id">Send To User</label>
+            <select id="message_recipient_id" name="message_recipient_id">
+              <option value="">-- Select user --</option>
+              {% for recipient in message_recipients %}
+                <option value="{{ recipient.id }}" {% if message_recipient_id == recipient.id|stringformat:"s" %}selected{% endif %}>
+                  {{ recipient.get_full_name|default:recipient.username }}{% if recipient.role %} ({{ recipient.role }}){% endif %}
+                </option>
+              {% endfor %}
+            </select>
+            <div class="field-helper">Choose any active user who should receive this workflow message.</div>
+          </div>
+
+          <div class="field">
+            <label for="message_title">Message Title</label>
+            <input id="message_title" name="message_title" type="text" value="{{ message_title }}" placeholder="Protocol question, review request, or workflow update">
+            <div class="field-helper">Leave blank to use an automatic protocol message title for this exam.</div>
+          </div>
+
+          <div class="field">
+            <label for="message_body">Message Body</label>
+            <textarea id="message_body" name="message_body" rows="4" placeholder="Write the direct message for the selected user...">{{ message_body }}</textarea>
+            <div class="field-helper">The message will appear in the user inbox and will also be sent by email when email delivery is configured.</div>
+            <div class="quick-actions">
+              <button class="chip-btn" type="button" onclick="appendToTextarea('message_body', 'Please review this exam and respond when available.')">Review Request</button>
+              <button class="chip-btn" type="button" onclick="appendToTextarea('message_body', 'Technologist follow-up is needed before the exam proceeds.')">Tech Follow-up</button>
+              <button class="chip-btn" type="button" onclick="appendToTextarea('message_body', 'Please call me regarding this protocol decision.')">Call Me</button>
+              <button class="chip-btn" type="button" onclick="appendToTextarea('message_body', 'Urgent workflow update for this exam. Please check immediately.')">Urgent Update</button>
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-secondary" type="submit">Send Direct Message</button>
+          </div>
+        </form>
+      </div>
+        </div>
+      </div>
+      </div>
+    </main>
+</div>
+
+  <script>
+  function setAI(value){
+    document.getElementById("ai_selected").value = value ? "1" : "0";
+  }
+
+  function getSelectedAISuggestion(){
+    return document.querySelector('input[name="suggested_protocol_id"]:checked');
+  }
+
+  function syncSelectionStates(){
+    document.querySelectorAll('.proto').forEach((card) => {
+      const input = card.querySelector('input[name="suggested_protocol_id"]');
+      card.classList.toggle('selected', Boolean(input && input.checked));
+    });
+  }
+
+  function updateDecisionPanel(){
+    const selectionTitle = document.getElementById('selection-title');
+    const selectionMode = document.getElementById('selection-mode');
+    const selectionHint = document.getElementById('selection-hint');
+    const selectionReady = document.getElementById('selection-ready');
+    const submitButton = document.getElementById('decision-submit');
+    const manualSelect = document.getElementById('manual_protocol_select');
+    const selectedAI = getSelectedAISuggestion();
+    const currentProtocolId = document.getElementById('current_protocol_id').value;
+
+    let hasSelection = false;
+    let selectedId = '';
+    let title = 'No protocol selected yet';
+    let mode = 'Selection Required';
+    let hint = 'Choose an AI suggestion or a manual protocol before saving.';
+    let readyText = 'Waiting for a protocol selection.';
+    let ready = false;
+
+    if (selectedAI) {
+      selectedId = selectedAI.value;
+      const titleNode = selectedAI.closest('.proto').querySelector('.proto-title');
+      title = titleNode ? titleNode.innerText.replace(/\s+/g, ' ').trim() : 'Selected AI suggestion';
+      mode = 'AI Decision';
+      hint = 'Save will use the selected AI suggestion and keep your note for the technologist.';
+      readyText = 'Ready to save an AI-driven protocol decision.';
+      ready = true;
+      hasSelection = true;
+    } else if (manualSelect && manualSelect.value) {
+      selectedId = manualSelect.value;
+      title = manualSelect.options[manualSelect.selectedIndex].text.trim();
+      mode = 'Manual Decision';
+      hint = 'Save will use the manual protocol selection and keep your note for the technologist.';
+      readyText = 'Ready to save a manual protocol decision.';
+      ready = true;
+      hasSelection = true;
+    }
+
+    if (hasSelection && currentProtocolId && selectedId === currentProtocolId) {
+      hint = 'Save will keep the current protocol and preserve any updated radiologist note or internal comment.';
+      readyText = 'Ready to save notes without changing the protocol.';
+    }
+
+    selectionTitle.textContent = title;
+    selectionMode.textContent = mode;
+    selectionHint.textContent = hint;
+    selectionReady.textContent = readyText;
+    selectionReady.classList.toggle('ready', ready);
+    submitButton.disabled = !hasSelection;
+    submitButton.textContent = hasSelection && currentProtocolId && selectedId === currentProtocolId
+      ? 'Save Comment / Keep Protocol'
+      : '{% if assignment %}Save Change / Comment{% else %}Save Assignment{% endif %}';
+  }
+
+  function appendToTextarea(id, snippet){
+    const field = document.getElementById(id);
+    if (!field) {
+      return;
+    }
+
+    const existing = field.value.trim();
+    field.value = existing ? `${existing}\n${snippet}` : snippet;
+    field.focus();
+    field.setSelectionRange(field.value.length, field.value.length);
+  }
+
+  function selectAISuggestion(){
+    setAI(true);
+    const manualSelect = document.getElementById("manual_protocol_select");
+    if (manualSelect) {
+      manualSelect.value = "";
+    }
+    syncSelectionStates();
+    updateDecisionPanel();
+  }
+
+  function selectManualProtocol(){
+    setAI(false);
+    document.querySelectorAll('input[name="suggested_protocol_id"]').forEach((input) => {
+      input.checked = false;
+    });
+    syncSelectionStates();
+    updateDecisionPanel();
+  }
+
+  syncSelectionStates();
+  updateDecisionPanel();
+  </script>
+</body>
+</html>

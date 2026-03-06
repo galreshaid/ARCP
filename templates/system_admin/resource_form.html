@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page_title }} | System Admin</title>
+    {% include "partials/app_shell_styles.html" %}
+    <style>
+        :root {
+            --ink: #10243a;
+            --muted: #5f7288;
+            --line: #d6dee6;
+            --brand: #145d8d;
+            --brand-dark: #0f4b72;
+            --surface: #eef4f8;
+            --card: #ffffff;
+            --error-bg: rgba(222, 84, 26, 0.08);
+            --error-text: #9b3c11;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(20, 93, 141, 0.12), transparent 28%),
+                linear-gradient(135deg, #edf4f8, var(--surface));
+        }
+
+        .app-main,
+        .app-main > * {
+            min-width: 0;
+        }
+
+        .page {
+            display: grid;
+            gap: 18px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            box-shadow: 0 24px 60px rgba(16, 36, 58, 0.12);
+            padding: 24px;
+        }
+
+        .crumbs {
+            display: inline-flex;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .crumbs a,
+        .link {
+            color: var(--brand);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        h1 {
+            margin: 10px 0 8px;
+            font-size: clamp(28px, 4vw, 38px);
+        }
+
+        .subtitle {
+            margin: 0 0 18px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .message {
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(20, 93, 141, 0.08);
+            color: var(--brand-dark);
+            font-weight: 700;
+        }
+
+        .error-note,
+        .errorlist {
+            margin: 0;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: var(--error-bg);
+            color: var(--error-text);
+            list-style: none;
+            font-size: 14px;
+        }
+
+        form {
+            display: grid;
+            gap: 16px;
+        }
+
+        .field-grid,
+        .material-form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .field {
+            display: grid;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .field-wide {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            min-height: 46px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: #fbfdff;
+            font: inherit;
+        }
+
+        textarea {
+            min-height: 120px;
+        }
+
+        select[multiple] {
+            min-height: 180px;
+        }
+
+        input[type="checkbox"] {
+            width: auto;
+            min-height: auto;
+        }
+
+        .checkbox-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 46px;
+            padding: 0 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: #fbfdff;
+        }
+
+        .help {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .btn {
+            min-height: 46px;
+            padding: 0 16px;
+            border-radius: 999px;
+            border: 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 800;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: var(--brand);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--brand-dark);
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
+
+        .user-form-stack {
+            display: grid;
+            gap: 14px;
+        }
+
+        .user-section {
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: #f9fcff;
+            padding: 14px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .user-section h3 {
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.3;
+            color: var(--brand-dark);
+        }
+
+        .user-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .user-grid .field-wide {
+            grid-column: 1 / -1;
+        }
+
+        .option-list {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: #fff;
+            padding: 10px;
+            max-height: 220px;
+            overflow: auto;
+        }
+
+        .option-list ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 8px;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        }
+
+        .option-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            line-height: 1.45;
+            font-size: 13px;
+            color: var(--ink);
+        }
+
+        .option-list input[type="checkbox"] {
+            margin-top: 2px;
+        }
+
+        .security-note {
+            border: 1px solid #cdddea;
+            border-radius: 14px;
+            background: #f3f9ff;
+            color: #315671;
+            padding: 10px 12px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+    </style>
+    {% include "partials/system_admin_match_worklist_styles.html" %}
+</head>
+<body>
+    {% include "partials/app_header.html" %}
+    <div class="app-frame">
+        {% include "partials/app_sidebar.html" with current_nav="admin" %}
+        <main class="app-main">
+    {% if resource_key == 'material_usages' %}
+        <div class="page system-admin-page material-usage-form">
+            <section class="hero-panel">
+                <div class="eyebrow">Operational Queue</div>
+                <div class="crumbs">
+                    <a href="{{ dashboard_url }}">System Admin</a>
+                    <span>/</span>
+                    <a href="{{ list_url }}">{{ resource_label }}</a>
+                    <span>/</span>
+                    <span>{{ page_title }}</span>
+                </div>
+
+                <h1>{{ page_title }}</h1>
+                <p class="subtitle hero-copy">
+                    Track and document exam-linked consumables with standardized measurement units, PEC mapping, and catalog references.
+                    {% if object_label %}
+                        Editing: {{ object_label }}
+                    {% endif %}
+                </p>
+                <div class="hero-actions">
+                    <a href="{{ list_url }}" class="btn btn-secondary">Back to List</a>
+                    <a href="{{ dashboard_url }}" class="btn btn-secondary">Dashboard</a>
+                    {% if object_label and create_url %}
+                        <a href="{{ create_url }}" class="btn btn-primary">New Usage Record</a>
+                    {% endif %}
+                </div>
+            </section>
+
+            <div class="container">
+                <section class="stats">
+                    <article class="stat">
+                        <div class="stat-label">Total Material Records</div>
+                        <div class="stat-value">{{ material_usage_total_count|default:"0" }}</div>
+                        <div class="stat-detail">All stored material usage rows across studies.</div>
+                    </article>
+                    <article class="stat">
+                        <div class="stat-label">Active Catalog Items</div>
+                        <div class="stat-value">{{ material_usage_catalog_count|default:"0" }}</div>
+                        <div class="stat-detail">Billable and non-billable consumables in active catalog.</div>
+                    </article>
+                    <article class="stat">
+                        <div class="stat-label">Measurement Units</div>
+                        <div class="stat-value">{{ material_usage_measurement_count|default:"0" }}</div>
+                        <div class="stat-detail">Configured measurement/unit references.</div>
+                    </article>
+                    <article class="stat">
+                        <div class="stat-label">Current Exam Usage</div>
+                        <div class="stat-value">
+                            {% if material_usage_selected_exam %}
+                                {{ material_usage_exam_count|default:"0" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                        <div class="stat-detail">
+                            {% if material_usage_selected_exam %}
+                                Existing rows for Acc# {{ material_usage_selected_exam.accession_number|default:"-" }}.
+                            {% else %}
+                                Select an exam to show exam-level usage count.
+                            {% endif %}
+                        </div>
+                    </article>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2>{{ submit_label }}</h2>
+                            <div class="panel-copy">Capture a complete consumable usage record with exam, catalog, and quantity details.</div>
+                        </div>
+                        <div class="material-record-label">
+                            {% if material_usage_selected_exam %}
+                                <strong>Acc# {{ material_usage_selected_exam.accession_number|default:"-" }}</strong>
+                                <span>Order# {{ material_usage_selected_exam.order_id|default:"-" }}</span>
+                            {% else %}
+                                <strong>{{ resource_label }}</strong>
+                                <span>No exam selected</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="message">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+
+                    {% if form.non_field_errors %}
+                        <div class="error-note">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+                        {% for hidden_field in form.hidden_fields %}
+                            {{ hidden_field }}
+                        {% endfor %}
+
+                        <div class="material-form-grid">
+                            {% for field in form.visible_fields %}
+                                <div class="field {% if field.field.widget.input_type == 'textarea' or field.field.widget.attrs.rows or field.name == 'metadata' %}field-wide{% endif %}">
+                                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {% if field.field.widget.input_type == 'checkbox' %}
+                                        <div class="checkbox-wrap">{{ field }}</div>
+                                    {% else %}
+                                        {{ field }}
+                                    {% endif %}
+                                    {% if field.help_text %}
+                                        <div class="help">{{ field.help_text }}</div>
+                                    {% endif %}
+                                    {% if field.errors %}
+                                        <div class="error-note">{{ field.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="actions">
+                            <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+                            <a href="{{ list_url }}" class="btn btn-secondary">Back to List</a>
+                            <a href="{{ dashboard_url }}" class="btn btn-secondary">Dashboard</a>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2>Recent Material Usage</h2>
+                            <div class="panel-copy">
+                                {% if material_usage_selected_exam %}
+                                    Latest entries for the selected exam.
+                                {% else %}
+                                    Latest entries across all exams.
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="record-count">{{ material_usage_recent_rows|length }} visible rows</div>
+                    </div>
+                    <div class="table-wrap">
+                        {% if material_usage_recent_rows %}
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Created</th>
+                                        <th>Acc# / Order#</th>
+                                        <th>Patient</th>
+                                        <th>Modality</th>
+                                        <th>Material</th>
+                                        <th>Measurement</th>
+                                        <th>Unit</th>
+                                        <th>Qty</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in material_usage_recent_rows %}
+                                        <tr>
+                                            <td>{{ row.created_at|date:"Y-m-d H:i" }}</td>
+                                            <td>
+                                                {{ row.exam.accession_number|default:"-" }}<br>
+                                                <span class="help">Order# {{ row.exam.order_id|default:"-" }}</span>
+                                            </td>
+                                            <td>{{ row.exam.patient_name|default:"-" }}</td>
+                                            <td>{{ row.exam.modality.code|default:"-" }}</td>
+                                            <td>
+                                                {% if row.material_item %}
+                                                    {% if row.material_item.material_code %}{{ row.material_item.material_code }} - {% endif %}{{ row.material_item.name }}
+                                                {% else %}
+                                                    {{ row.material_name|default:"-" }}
+                                                {% endif %}
+                                            </td>
+                                            <td>{% if row.measurement %}{{ row.measurement.code }}{% else %}-{% endif %}</td>
+                                            <td>{{ row.unit|default:"-" }}</td>
+                                            <td>{{ row.quantity }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <div class="empty">No material usage rows found for the current scope.</div>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+        </div>
+    {% elif resource_key == 'users' %}
+        <div class="page system-admin-page">
+            <section class="hero-panel">
+                <div class="eyebrow">System Control</div>
+                <div class="crumbs">
+                    <a href="{{ dashboard_url }}">System Admin</a>
+                    <span>/</span>
+                    <a href="{{ list_url }}">{{ resource_label }}</a>
+                    <span>/</span>
+                    <span>{{ page_title }}</span>
+                </div>
+
+                <h1>{{ page_title }}</h1>
+                <p class="subtitle hero-copy">
+                    {{ resource_description }}
+                    {% if object_label %}
+                        Editing: {{ object_label }}
+                    {% endif %}
+                </p>
+                <div class="hero-actions">
+                    <a href="{{ list_url }}" class="btn btn-secondary">Back to List</a>
+                    <a href="{{ dashboard_url }}" class="btn btn-secondary">Dashboard</a>
+                </div>
+            </section>
+
+            <div class="container">
+                <section class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2>{{ submit_label }}</h2>
+                            <div class="panel-copy">Create or update user records with structured identity, access, and security controls.</div>
+                        </div>
+                        <div class="record-count">{{ resource_label }}</div>
+                    </div>
+
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="message">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+
+                    {% if form.non_field_errors %}
+                        <div class="error-note">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+                        {% for hidden_field in form.hidden_fields %}
+                            {{ hidden_field }}
+                        {% endfor %}
+
+                        <div class="user-form-stack">
+                            <section class="user-section">
+                                <h3>Identity & Contact</h3>
+                                <div class="user-grid">
+                                    <div class="field">
+                                        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                                        {{ form.email }}
+                                        {% if form.email.help_text %}<div class="help">{{ form.email.help_text }}</div>{% endif %}
+                                        {% if form.email.errors %}<div class="error-note">{{ form.email.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                                        {{ form.username }}
+                                        {% if form.username.help_text %}<div class="help">{{ form.username.help_text }}</div>{% endif %}
+                                        {% if form.username.errors %}<div class="error-note">{{ form.username.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+                                        {{ form.first_name }}
+                                        {% if form.first_name.help_text %}<div class="help">{{ form.first_name.help_text }}</div>{% endif %}
+                                        {% if form.first_name.errors %}<div class="error-note">{{ form.first_name.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+                                        {{ form.last_name }}
+                                        {% if form.last_name.help_text %}<div class="help">{{ form.last_name.help_text }}</div>{% endif %}
+                                        {% if form.last_name.errors %}<div class="error-note">{{ form.last_name.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+                                        {{ form.phone }}
+                                        {% if form.phone.help_text %}<div class="help">{{ form.phone.help_text }}</div>{% endif %}
+                                        {% if form.phone.errors %}<div class="error-note">{{ form.phone.errors }}</div>{% endif %}
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="user-section">
+                                <h3>Organization & Role</h3>
+                                <div class="user-grid">
+                                    <div class="field">
+                                        <label for="{{ form.role.id_for_label }}">{{ form.role.label }}</label>
+                                        {{ form.role }}
+                                        {% if form.role.help_text %}<div class="help">{{ form.role.help_text }}</div>{% endif %}
+                                        {% if form.role.errors %}<div class="error-note">{{ form.role.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.primary_facility.id_for_label }}">{{ form.primary_facility.label }}</label>
+                                        {{ form.primary_facility }}
+                                        {% if form.primary_facility.help_text %}<div class="help">{{ form.primary_facility.help_text }}</div>{% endif %}
+                                        {% if form.primary_facility.errors %}<div class="error-note">{{ form.primary_facility.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.professional_id.id_for_label }}">{{ form.professional_id.label }}</label>
+                                        {{ form.professional_id }}
+                                        {% if form.professional_id.help_text %}<div class="help">{{ form.professional_id.help_text }}</div>{% endif %}
+                                        {% if form.professional_id.errors %}<div class="error-note">{{ form.professional_id.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.nid.id_for_label }}">{{ form.nid.label }}</label>
+                                        {{ form.nid }}
+                                        {% if form.nid.help_text %}<div class="help">{{ form.nid.help_text }}</div>{% endif %}
+                                        {% if form.nid.errors %}<div class="error-note">{{ form.nid.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.specialty.id_for_label }}">{{ form.specialty.label }}</label>
+                                        {{ form.specialty }}
+                                        {% if form.specialty.help_text %}<div class="help">{{ form.specialty.help_text }}</div>{% endif %}
+                                        {% if form.specialty.errors %}<div class="error-note">{{ form.specialty.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+                                        {{ form.department }}
+                                        {% if form.department.help_text %}<div class="help">{{ form.department.help_text }}</div>{% endif %}
+                                        {% if form.department.errors %}<div class="error-note">{{ form.department.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field field-wide">
+                                        <label for="{{ form.facilities.id_for_label }}">{{ form.facilities.label }}</label>
+                                        {{ form.facilities }}
+                                        {% if form.facilities.help_text %}<div class="help">{{ form.facilities.help_text }}</div>{% endif %}
+                                        {% if form.facilities.errors %}<div class="error-note">{{ form.facilities.errors }}</div>{% endif %}
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="user-section">
+                                <h3>Access & Permissions</h3>
+                                <div class="user-grid">
+                                    <div class="field field-wide">
+                                        <label for="{{ form.groups.id_for_label }}">{{ form.groups.label }}</label>
+                                        <div class="option-list">{{ form.groups }}</div>
+                                        {% if form.groups.help_text %}<div class="help">{{ form.groups.help_text }}</div>{% endif %}
+                                        {% if form.groups.errors %}<div class="error-note">{{ form.groups.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field field-wide">
+                                        <label for="{{ form.app_permissions.id_for_label }}">{{ form.app_permissions.label }}</label>
+                                        <div class="option-list">{{ form.app_permissions }}</div>
+                                        {% if form.app_permissions.help_text %}<div class="help">{{ form.app_permissions.help_text }}</div>{% endif %}
+                                        {% if form.app_permissions.errors %}<div class="error-note">{{ form.app_permissions.errors }}</div>{% endif %}
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="user-section">
+                                <h3>User Preferences</h3>
+                                <div class="user-grid">
+                                    <div class="field">
+                                        <label for="{{ form.preference_type.id_for_label }}">{{ form.preference_type.label }}</label>
+                                        {{ form.preference_type }}
+                                        {% if form.preference_type.help_text %}<div class="help">{{ form.preference_type.help_text }}</div>{% endif %}
+                                        {% if form.preference_type.errors %}<div class="error-note">{{ form.preference_type.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.preference_key.id_for_label }}">{{ form.preference_key.label }}</label>
+                                        {{ form.preference_key }}
+                                        {% if form.preference_key.help_text %}<div class="help">{{ form.preference_key.help_text }}</div>{% endif %}
+                                        {% if form.preference_key.errors %}<div class="error-note">{{ form.preference_key.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field field-wide">
+                                        <label for="{{ form.preference_value.id_for_label }}">{{ form.preference_value.label }}</label>
+                                        {{ form.preference_value }}
+                                        {% if form.preference_value.help_text %}<div class="help">{{ form.preference_value.help_text }}</div>{% endif %}
+                                        {% if form.preference_value.errors %}<div class="error-note">{{ form.preference_value.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field field-wide">
+                                        <label for="{{ form.preferences.id_for_label }}">{{ form.preferences.label }}</label>
+                                        {{ form.preferences }}
+                                        {% if form.preferences.help_text %}<div class="help">{{ form.preferences.help_text }}</div>{% endif %}
+                                        {% if form.preferences.errors %}<div class="error-note">{{ form.preferences.errors }}</div>{% endif %}
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="user-section">
+                                <h3>Security & Status</h3>
+                                <div class="security-note">
+                                    Password reset is protected with confirmation and minimum length checks.
+                                    Use role groups for baseline access, then add direct permissions only when needed.
+                                </div>
+                                <div class="user-grid">
+                                    <div class="field">
+                                        <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+                                        <div class="checkbox-wrap">{{ form.is_active }}</div>
+                                        {% if form.is_active.errors %}<div class="error-note">{{ form.is_active.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.is_staff.id_for_label }}">{{ form.is_staff.label }}</label>
+                                        <div class="checkbox-wrap">{{ form.is_staff }}</div>
+                                        {% if form.is_staff.errors %}<div class="error-note">{{ form.is_staff.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.is_superuser.id_for_label }}">{{ form.is_superuser.label }}</label>
+                                        <div class="checkbox-wrap">{{ form.is_superuser }}</div>
+                                        {% if form.is_superuser.help_text %}<div class="help">{{ form.is_superuser.help_text }}</div>{% endif %}
+                                        {% if form.is_superuser.errors %}<div class="error-note">{{ form.is_superuser.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.email_verified.id_for_label }}">{{ form.email_verified.label }}</label>
+                                        <div class="checkbox-wrap">{{ form.email_verified }}</div>
+                                        {% if form.email_verified.errors %}<div class="error-note">{{ form.email_verified.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.reset_password.id_for_label }}">{{ form.reset_password.label }}</label>
+                                        <div class="checkbox-wrap">{{ form.reset_password }}</div>
+                                        {% if form.reset_password.help_text %}<div class="help">{{ form.reset_password.help_text }}</div>{% endif %}
+                                        {% if form.reset_password.errors %}<div class="error-note">{{ form.reset_password.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                                        {{ form.password }}
+                                        {% if form.password.help_text %}<div class="help">{{ form.password.help_text }}</div>{% endif %}
+                                        {% if form.password.errors %}<div class="error-note">{{ form.password.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field">
+                                        <label for="{{ form.password_confirm.id_for_label }}">{{ form.password_confirm.label }}</label>
+                                        {{ form.password_confirm }}
+                                        {% if form.password_confirm.help_text %}<div class="help">{{ form.password_confirm.help_text }}</div>{% endif %}
+                                        {% if form.password_confirm.errors %}<div class="error-note">{{ form.password_confirm.errors }}</div>{% endif %}
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div class="actions">
+                            <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+                            <a href="{{ list_url }}" class="btn btn-secondary">Back to List</a>
+                            <a href="{{ dashboard_url }}" class="btn btn-secondary">Dashboard</a>
+                        </div>
+                    </form>
+                </section>
+            </div>
+        </div>
+    {% else %}
+        <div class="page system-admin-page">
+            <section class="hero-panel">
+                <div class="eyebrow">System Control</div>
+                <div class="crumbs">
+                    <a href="{{ dashboard_url }}">System Admin</a>
+                    <span>/</span>
+                    <a href="{{ list_url }}">{{ resource_label }}</a>
+                    <span>/</span>
+                    <span>{{ page_title }}</span>
+                </div>
+
+                <h1>{{ page_title }}</h1>
+                <p class="subtitle hero-copy">
+                    {{ resource_description }}
+                    {% if object_label %}
+                        Editing: {{ object_label }}
+                    {% endif %}
+                </p>
+                <div class="hero-actions">
+                    <a href="{{ list_url }}" class="btn btn-secondary">Back to List</a>
+                    <a href="{{ dashboard_url }}" class="btn btn-secondary">Dashboard</a>
+                </div>
+            </section>
+
+            <div class="container">
+                <section class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2>{{ submit_label }}</h2>
+                            <div class="panel-copy">Create or update {{ resource_label|lower }} records inside the protected internal workflow.</div>
+                        </div>
+                        <div class="record-count">{{ resource_label }}</div>
+                    </div>
+
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="message">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+
+                    {% if form.non_field_errors %}
+                        <div class="error-note">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="field-grid">
+                            {% for hidden_field in form.hidden_fields %}
+                                {{ hidden_field }}
+                            {% endfor %}
+
+                            {% for field in form.visible_fields %}
+                                <div class="field {% if field.field.widget.input_type == 'textarea' or field.field.widget.attrs.rows or field.name == 'preferences' or field.name == 'metadata' or field.name == 'technical_parameters' or field.name == 'clinical_keywords' or field.name == 'tags' or field.name == 'raw_hl7_message' or field.name == 'config_json' or field.name == 'qc_checklist_template' or field.name == 'preference_value' %}field-wide{% endif %}">
+                                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {% if field.field.widget.input_type == 'checkbox' %}
+                                        <div class="checkbox-wrap">{{ field }}</div>
+                                    {% else %}
+                                        {{ field }}
+                                    {% endif %}
+                                    {% if field.help_text %}
+                                        <div class="help">{{ field.help_text }}</div>
+                                    {% endif %}
+                                    {% if field.errors %}
+                                        <div class="error-note">{{ field.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="actions">
+                            <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+                            <a href="{{ list_url }}" class="btn btn-secondary">Back to List</a>
+                            <a href="{{ dashboard_url }}" class="btn btn-secondary">Dashboard</a>
+                        </div>
+                    </form>
+                </section>
+            </div>
+        </div>
+    {% endif %}
+        </main>
+    </div>
+</body>
+</html>

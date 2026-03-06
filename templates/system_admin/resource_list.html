@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ resource_label }} | System Admin</title>
+    {% include "partials/app_shell_styles.html" %}
+    <style>
+        :root {
+            --ink: #10243a;
+            --muted: #5f7288;
+            --line: #d6dee6;
+            --brand: #145d8d;
+            --brand-dark: #0f4b72;
+            --accent: #de541a;
+            --surface: #eef4f8;
+            --card: #ffffff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top right, rgba(20, 93, 141, 0.1), transparent 28%),
+                linear-gradient(135deg, #edf4f8, var(--surface));
+        }
+
+        .page {
+            display: grid;
+            gap: 18px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            box-shadow: 0 24px 60px rgba(16, 36, 58, 0.12);
+            padding: 24px;
+        }
+
+        .topbar,
+        .toolbar,
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .topbar {
+            margin-bottom: 20px;
+        }
+
+        .crumbs {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .crumbs a,
+        .link {
+            color: var(--brand);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        h1 {
+            margin: 8px 0 8px;
+            font-size: clamp(28px, 4vw, 38px);
+        }
+
+        .subtitle {
+            margin: 0 0 18px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .toolbar {
+            margin-bottom: 20px;
+        }
+
+        .search {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        input[type="search"] {
+            min-width: min(420px, 100%);
+            min-height: 46px;
+            padding: 0 14px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: #fbfdff;
+        }
+
+        .btn {
+            min-height: 46px;
+            padding: 0 16px;
+            border-radius: 999px;
+            border: 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 800;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: var(--brand);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--brand-dark);
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
+
+        .messages {
+            margin-bottom: 18px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .message {
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(20, 93, 141, 0.08);
+            color: var(--brand-dark);
+            font-weight: 700;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 760px;
+            background: #fff;
+        }
+
+        th,
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #eef2f7;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f8fbfd;
+            font-size: 13px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        tbody tr:hover {
+            background: #fbfdff;
+        }
+
+        .empty {
+            padding: 28px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .pagination {
+            margin-top: 18px;
+        }
+
+        .page-meta {
+            color: var(--muted);
+            font-size: 14px;
+        }
+    </style>
+    {% include "partials/system_admin_match_worklist_styles.html" %}
+</head>
+<body>
+    {% include "partials/app_header.html" %}
+    <div class="app-frame">
+        {% include "partials/app_sidebar.html" with current_nav="admin" %}
+        <main class="app-main">
+    <div class="page system-admin-page">
+        <section class="hero-panel">
+            <div class="eyebrow">System Control</div>
+            <div class="topbar">
+                <div>
+                    <div class="crumbs">
+                        <a href="{{ dashboard_url }}">System Admin</a>
+                        <span>/</span>
+                        <span>{{ resource_label }}</span>
+                    </div>
+                    <h1>{{ resource_label }}</h1>
+                    <p class="subtitle hero-copy">{{ resource_description }}</p>
+                </div>
+
+                <div class="hero-actions">
+                    {% if create_url %}
+                        <a href="{{ create_url }}" class="btn btn-primary">Add New</a>
+                    {% endif %}
+                    <a href="{{ dashboard_url }}" class="btn btn-secondary">Back to Dashboard</a>
+                </div>
+            </div>
+        </section>
+
+        <div class="container">
+            <section class="panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Active Records</h2>
+                        <div class="panel-copy">{{ resource_label }} records available inside the protected internal workflow.</div>
+                    </div>
+                    <div class="record-count">{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}</div>
+                </div>
+
+                {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                            <div class="message">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="toolbar">
+                    <form method="get" class="search">
+                        <input type="search" name="q" value="{{ search_query }}" placeholder="Search {{ resource_label|lower }}">
+                        <button type="submit" class="btn btn-primary">Search</button>
+                        {% if search_query %}
+                            <a href="?" class="btn btn-secondary">Clear</a>
+                        {% endif %}
+                    </form>
+
+                    <div class="page-meta">{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}</div>
+                </div>
+
+                <div class="table-wrap">
+                    {% if rows %}
+                        <table>
+                            <thead>
+                                <tr>
+                                    {% for column in columns %}
+                                        <th>{{ column }}</th>
+                                    {% endfor %}
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in rows %}
+                                    <tr>
+                                        {% for value in row.values %}
+                                            <td>{{ value }}</td>
+                                        {% endfor %}
+                                        <td>
+                                            {% if row.action_url %}
+                                                <a class="link" href="{{ row.action_url }}">{{ row.action_label }}</a>
+                                            {% else %}
+                                                <span class="page-meta">Read only</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="empty">No records found.</div>
+                    {% endif %}
+                </div>
+
+                <div class="pagination">
+                    <div class="page-meta">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </div>
+                    <div class="toolbar">
+                        {% if page_obj.has_previous %}
+                            <a class="btn btn-secondary" href="?q={{ search_query }}&page={{ page_obj.previous_page_number }}">Previous</a>
+                        {% endif %}
+                        {% if page_obj.has_next %}
+                            <a class="btn btn-secondary" href="?q={{ search_query }}&page={{ page_obj.next_page_number }}">Next</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+        </main>
+    </div>
+</body>
+</html>

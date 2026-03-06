@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AAML RadCore Platform - Radiology Workflow</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% include "partials/app_shell_styles.html" %}
+    <style>
+        :root{
+            --page:#edf3f7;
+            --panel:#ffffff;
+            --line:#d7e2ea;
+            --line-strong:#bfd0dd;
+            --ink:#18324d;
+            --muted:#6c8194;
+            --brand:#145d8d;
+            --brand-dark:#0f476b;
+            --accent:#de541a;
+            --soft:#f6fafc;
+            --soft-blue:#edf5ff;
+            --shadow:0 24px 48px rgba(15,49,77,.08);
+            --radius-xl:22px;
+            --radius-lg:16px;
+            --radius-md:12px;
+        }
+
+        *{box-sizing:border-box}
+
+        body{
+            margin:0;
+            font-family:"Segoe UI Variable","Segoe UI",Tahoma,sans-serif;
+            background:#edf1f5;
+            color:var(--ink);
+        }
+
+        .page{
+            display:grid;
+            gap:18px;
+        }
+
+        .app-frame{
+            margin-top:0;
+        }
+
+        .dashboard-topbar{
+            width:min(1880px, calc(100% - 24px));
+            margin:12px auto 0;
+            min-height:74px;
+            padding:12px 18px;
+            border-radius:22px 22px 0 0;
+            background:linear-gradient(135deg, var(--aaml-blue), var(--aaml-blue-deep));
+            border-bottom:3px solid var(--aaml-orange);
+            box-shadow:0 22px 40px rgba(9, 41, 63, 0.16);
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:16px;
+            color:var(--aaml-white);
+        }
+
+        .dashboard-topbar-left{
+            display:flex;
+            align-items:center;
+            gap:14px;
+            min-width:0;
+        }
+
+        .dashboard-menu-icon{
+            display:grid;
+            gap:4px;
+            width:22px;
+            flex:0 0 auto;
+        }
+
+        .dashboard-menu-icon span{
+            display:block;
+            height:3px;
+            border-radius:999px;
+            background:rgba(255,255,255,.92);
+        }
+
+        .dashboard-title-block{
+            min-width:0;
+        }
+
+        .dashboard-title{
+            margin:0;
+            font-size:28px;
+            line-height:1;
+            font-weight:800;
+        }
+
+        .dashboard-subtitle{
+            margin:4px 0 0;
+            font-size:12px;
+            line-height:1.5;
+            color:rgba(200,215,233,.9);
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+
+        .dashboard-topbar-actions{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        .dashboard-action-form{
+            margin:0;
+        }
+
+        .dashboard-chip,
+        .dashboard-action{
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-height:40px;
+            padding:0 16px;
+            border-radius:999px;
+            font-size:13px;
+            font-weight:700;
+            text-decoration:none;
+            font-family:inherit;
+        }
+
+        .dashboard-chip{
+            background:rgba(255,255,255,.12);
+            border:1px solid rgba(255,255,255,.16);
+            color:var(--aaml-white);
+        }
+
+        .dashboard-action{
+            cursor:pointer;
+            background:linear-gradient(135deg, var(--aaml-orange), var(--aaml-orange-strong));
+            border:1px solid var(--aaml-orange);
+            color:var(--aaml-white);
+            box-shadow:0 12px 20px rgba(255,122,33,.2);
+        }
+
+        .hero{
+            background:var(--panel);
+            color:var(--ink);
+            border:1px solid var(--line);
+            border-radius:var(--radius-xl);
+            padding:24px;
+            box-shadow:var(--shadow);
+            display:grid;
+            gap:18px;
+        }
+
+        .hero-grid{
+            display:grid;
+            grid-template-columns:minmax(0, 1fr);
+            gap:16px;
+            align-items:stretch;
+        }
+
+        .eyebrow{
+            display:inline-flex;
+            align-items:center;
+            padding:6px 10px;
+            border-radius:999px;
+            font-size:12px;
+            letter-spacing:.08em;
+            text-transform:uppercase;
+            font-weight:700;
+            background:#edf5ff;
+            color:var(--aaml-blue);
+        }
+
+        .hero h1{
+            margin:0 0 10px;
+            font-size:clamp(32px, 3vw, 42px);
+            line-height:1.08;
+        }
+
+        .hero-copy{
+            margin:0;
+            max-width:760px;
+            color:var(--muted);
+            line-height:1.7;
+        }
+
+        .hero-tags{
+            margin-top:18px;
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        .hero-tag{
+            display:inline-flex;
+            align-items:center;
+            padding:7px 11px;
+            border-radius:999px;
+            font-size:12px;
+            font-weight:700;
+            letter-spacing:.02em;
+            background:#f1f7fb;
+            color:var(--aaml-blue);
+            border:1px solid #d6e7f4;
+        }
+
+        .hero-status{
+            display:flex;
+            align-items:center;
+            gap:12px;
+            flex-wrap:wrap;
+            margin-top:6px;
+        }
+
+        .hero-status-card{
+            padding:11px 14px;
+            border-radius:14px;
+            border:1px solid #d6e7f4;
+            background:linear-gradient(180deg, #ffffff, #f7fbff);
+            font-size:12.5px;
+            line-height:1.55;
+            color:#355874;
+        }
+
+        .hero-status-card strong{
+            color:var(--brand);
+        }
+
+        .metrics{
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+            gap:14px;
+        }
+
+        .metric,
+        .section{
+            background:rgba(255,255,255,.94);
+            border:1px solid var(--line);
+            border-radius:var(--radius-xl);
+            box-shadow:var(--shadow);
+        }
+
+        .metric{
+            padding:18px;
+        }
+
+        .metric-label{
+            margin:0 0 10px;
+            font-size:12px;
+            color:var(--muted);
+            text-transform:uppercase;
+            letter-spacing:.06em;
+            font-weight:700;
+        }
+
+        .metric-value{
+            margin:0;
+            font-size:34px;
+            line-height:1;
+            font-weight:800;
+            color:var(--brand-dark);
+        }
+
+        .metric-detail{
+            margin:8px 0 0;
+            color:var(--muted);
+            font-size:13px;
+            line-height:1.5;
+        }
+
+        .section{
+            padding:22px;
+        }
+
+        .section-stack{
+            display:grid;
+            gap:18px;
+        }
+
+        .section-head{
+            display:flex;
+            align-items:flex-end;
+            justify-content:space-between;
+            gap:16px;
+            margin-bottom:16px;
+            flex-wrap:wrap;
+        }
+
+        .section-head h2{
+            margin:0 0 6px;
+            font-size:22px;
+        }
+
+        .section-copy{
+            margin:0;
+            color:var(--muted);
+            line-height:1.6;
+        }
+
+        .grid{
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+            gap:14px;
+        }
+
+        .feature{
+            padding:18px;
+            border-radius:var(--radius-lg);
+            border:1px solid #dbe7f2;
+            background:linear-gradient(180deg, #ffffff, #f7fbff);
+            display:grid;
+            gap:10px;
+        }
+
+        .feature-eyebrow{
+            margin:0;
+            font-size:11px;
+            letter-spacing:.08em;
+            text-transform:uppercase;
+            font-weight:700;
+            color:var(--muted);
+        }
+
+        .feature h3{
+            margin:0;
+            font-size:18px;
+        }
+
+        .feature p{
+            margin:0;
+            color:var(--muted);
+            font-size:14px;
+            line-height:1.6;
+        }
+
+        .feature a{
+            color:var(--brand);
+            font-weight:700;
+            text-decoration:none;
+        }
+
+        .governance-grid{
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+            gap:14px;
+        }
+
+        .governance-card{
+            padding:18px;
+            border-radius:var(--radius-lg);
+            border:1px solid #dbe7f2;
+            background:linear-gradient(180deg, #ffffff, #fbfdff);
+            display:grid;
+            gap:10px;
+        }
+
+        .governance-card strong{
+            font-size:17px;
+            line-height:1.35;
+        }
+
+        .governance-card p{
+            margin:0;
+            color:var(--muted);
+            font-size:14px;
+            line-height:1.65;
+        }
+
+        .footer-note{
+            color:var(--muted);
+            font-size:13px;
+            text-align:right;
+        }
+
+    </style>
+</head>
+<body>
+    {% include "partials/app_header.html" with header_title="AAML RadCore Platform" %}
+    <div class="app-frame">
+        {% include "partials/app_sidebar.html" with current_nav="home" %}
+        <main class="app-main">
+            <div class="page">
+                <section class="hero">
+                    <div class="eyebrow">Enterprise Workflow Hub</div>
+                    <div class="hero-grid">
+                        <div>
+                            <h1>AAML RadCore Platform</h1>
+                            <p class="hero-copy">
+                                Operational command center for protocol review, QC readiness, contrast-aware planning,
+                                and controlled internal administration.
+                            </p>
+                            <div class="hero-tags">
+                                <span class="hero-tag">Protocol Governance</span>
+                                <span class="hero-tag">QC Readiness</span>
+                                <span class="hero-tag">HL7-Aware Workflow</span>
+                                <span class="hero-tag">Protected Staff Access</span>
+                            </div>
+                            {% if request.user.is_authenticated %}
+                                <div class="hero-status">
+                                    <div class="hero-status-card">
+                                        <strong>Protected session:</strong>
+                                        Automatic sign-out after 15 minutes of inactivity.
+                                    </div>
+                                    <div class="hero-status-card">
+                                        <strong>Access model:</strong>
+                                        Role-based permissions and workflow traceability are active.
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
+
+                <section class="metrics">
+                    {% for metric in home_metrics %}
+                        <article class="metric">
+                            <p class="metric-label">{{ metric.label }}</p>
+                            <p class="metric-value">{{ metric.value }}</p>
+                            <p class="metric-detail">{{ metric.detail }}</p>
+                        </article>
+                    {% endfor %}
+                </section>
+
+                <section class="section">
+                    <div class="section-stack">
+                        <div class="section-head">
+                            <div>
+                                <h2>Operational Modules</h2>
+                                <p class="section-copy">Move directly into the workflow surface you need, with consistent controls across every module.</p>
+                            </div>
+                        </div>
+                        <div class="grid">
+                            <article class="feature">
+                                <p class="feature-eyebrow">Queue Operations</p>
+                                <h3>Protocol Worklist</h3>
+                                <p>Review the live exam queue, assign protocols, and route studies through radiologist and technologist review.</p>
+                                <a href="/protocoling/">Open queue</a>
+                            </article>
+                            <article class="feature">
+                                <p class="feature-eyebrow">Readiness</p>
+                                <h3>Quality Control (QC)</h3>
+                                <p>Inspect QC readiness, maintain checklist-driven modality settings, and track operational QC dependencies.</p>
+                                <a href="/quality-control/">Open QC overview</a>
+                            </article>
+                            <article class="feature">
+                                <p class="feature-eyebrow">Materials</p>
+                                <h3>Contrast &amp; Materials</h3>
+                                <p>Review contrast-capable protocols, surface material notes, and prepare contrast-aware exam workflows.</p>
+                                <a href="/contrast-materials/">Open contrast overview</a>
+                            </article>
+                            <article class="feature">
+                                <p class="feature-eyebrow">Administration</p>
+                                <h3>Internal Admin</h3>
+                                <p>Manage users, permissions, procedures, protocols, and HL7 message visibility without exposing Django admin to staff.</p>
+                                <a href="{{ admin_url }}">Open internal admin</a>
+                            </article>
+                        </div>
+                        <div class="governance-grid">
+                            <article class="governance-card">
+                                <p class="feature-eyebrow">Security</p>
+                                <strong>Role-based controls with auditable actions</strong>
+                                <p>Permission boundaries are enforced by user role, while key protocol and material steps remain traceable for operational governance.</p>
+                            </article>
+                            <article class="governance-card">
+                                <p class="feature-eyebrow">Interoperability</p>
+                                <strong>HL7-driven workflow intake and traceability</strong>
+                                <p>Operational worklists stay synchronized from inbound ORM order creation through ORR accession updates, with message visibility retained in the internal admin surfaces.</p>
+                            </article>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="footer-note">AAML - AAML RadCore Platform · Clinical Systems Division</div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

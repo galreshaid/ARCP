@@ -1,0 +1,151 @@
+<header class="app-header">
+    <div class="app-header-left">
+        <button type="button" class="app-header-toggle" id="appSidebarToggle" aria-label="Toggle sidebar">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="app-header-title-block">
+            <p class="app-header-title">{{ header_title|default:"AAML RadCore Platform" }}</p>
+            <p class="app-header-subtitle">{{ header_subtitle|default:"Protocoling / Quality Control / Contrast Planning / Internal Workflow" }}</p>
+        </div>
+    </div>
+    <div class="app-header-actions">
+        {% if request.user.is_authenticated %}
+            <details class="app-header-inbox-menu">
+                <summary class="app-header-inbox-link">
+                    Inbox
+                    {% if user_inbox_unread_count %}
+                        <span class="app-header-count">{{ user_inbox_unread_count }}</span>
+                    {% endif %}
+                </summary>
+                <div class="app-header-inbox-panel">
+                    <div class="app-header-inbox-head">
+                        <div>
+                            <strong>Internal Notifications</strong>
+                            <small>Workflow alerts and staff communication.</small>
+                        </div>
+                        <div class="app-header-inbox-item-actions">
+                            <a href="{% url 'user-inbox' %}" class="app-header-inline-button">Open Message Center</a>
+                            {% if user_inbox_available and user_inbox_unread_count %}
+                                <form method="post" action="{% url 'user-inbox-read-all' %}" class="app-header-inline-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="app-header-inline-button">Mark All Read</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="app-header-inbox-compose">
+                        <form method="post" action="{% url 'user-notification-send' %}" class="app-header-compose-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="target_url" value="{{ request.get_full_path }}">
+                            <label class="app-header-compose-label" for="header_message_recipient_id">Send Direct Message</label>
+                            <select id="header_message_recipient_id" name="message_recipient_id" class="app-header-compose-select">
+                                <option value="">Select user...</option>
+                                {% for recipient in user_message_recipients %}
+                                    <option value="{{ recipient.id }}">
+                                        {{ recipient.get_full_name|default:recipient.username }}{% if recipient.role %} ({{ recipient.role }}){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <input
+                                type="text"
+                                name="message_title"
+                                class="app-header-compose-input"
+                                placeholder="Message title (optional)"
+                            >
+                            <textarea
+                                name="message_body"
+                                class="app-header-compose-textarea"
+                                rows="3"
+                                placeholder="Write a direct message to any user..."
+                            ></textarea>
+                            <button type="submit" class="app-header-inline-button primary">Send</button>
+                        </form>
+                    </div>
+
+                    {% if not user_inbox_available %}
+                        <div class="app-header-inbox-empty">Notifications will appear here after the inbox migration is applied.</div>
+                    {% elif user_inbox_items %}
+                        <div class="app-header-inbox-list">
+                            {% for notification in user_inbox_items %}
+                                <article class="app-header-inbox-item {% if not notification.is_read %}unread{% endif %}">
+                                    <div class="app-header-inbox-item-head">
+                                        <strong>{{ notification.title }}</strong>
+                                        <span>
+                                            {% if notification.is_read %}Read{% else %}Unread{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="app-header-inbox-meta">
+                                        {% if notification.sender %}
+                                            {{ notification.sender.get_full_name|default:notification.sender.username }}
+                                        {% else %}
+                                            System
+                                        {% endif %}
+                                        · {{ notification.created_at|date:"Y-m-d H:i" }}
+                                    </div>
+                                    <div class="app-header-inbox-message">{{ notification.message|linebreaksbr }}</div>
+                                    <div class="app-header-inbox-item-actions">
+                                        <form method="post" action="{% url 'user-notification-open' notification.id %}" class="app-header-inline-form">
+                                            {% csrf_token %}
+                                            <button type="submit" class="app-header-inline-button primary">
+                                                {% if notification.target_url %}Open{% else %}Mark Read{% endif %}
+                                            </button>
+                                        </form>
+                                        {% if not notification.is_read %}
+                                            <form method="post" action="{% url 'user-notification-read' notification.id %}" class="app-header-inline-form">
+                                                {% csrf_token %}
+                                                <button type="submit" class="app-header-inline-button">Read</button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="app-header-inbox-empty">No recent notifications.</div>
+                    {% endif %}
+                </div>
+            </details>
+            {% if not hide_header_user_chip %}
+                <span class="app-user-chip">{{ request.user.get_full_name|default:request.user.username }}</span>
+            {% endif %}
+            <form method="post" action="{% url 'logout' %}" class="app-header-action-form">
+                {% csrf_token %}
+                <button type="submit" class="app-header-action">Logout</button>
+            </form>
+        {% else %}
+            <a href="{% url 'login' %}" class="app-header-action">Sign In</a>
+        {% endif %}
+    </div>
+</header>
+<script>
+    (function () {
+        const toggleButton = document.getElementById("appSidebarToggle");
+        const inboxMenu = document.querySelector(".app-header-inbox-menu");
+
+        if (!toggleButton || toggleButton.dataset.bound === "1") {
+            return;
+        }
+
+        toggleButton.dataset.bound = "1";
+        toggleButton.addEventListener("click", function () {
+            document.body.classList.toggle("app-shell-collapsed");
+        });
+
+        if (inboxMenu) {
+            document.addEventListener("click", function (event) {
+                if (inboxMenu.open && !inboxMenu.contains(event.target)) {
+                    inboxMenu.removeAttribute("open");
+                }
+            });
+
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "Escape" && inboxMenu.open) {
+                    inboxMenu.removeAttribute("open");
+                }
+            });
+        }
+    })();
+</script>

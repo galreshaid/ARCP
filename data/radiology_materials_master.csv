@@ -1,0 +1,59 @@
+﻿MaterialCode,MaterialName,Category,Unit,PackSize,ModalityScope,ProcedureMappingTags,ChargeCode,BillingRef_Example,TypicalCost_SAR,DefaultPrice_SAR,Notes,TypicalConcentration,TypicalDoseVolume,RouteOfAdministration,Department,AutoConsumption
+RAD001,IV Cannula 18G,IV Access,Piece,18 Gauge,CT|MRI,IV_Access,CHG-RAD001,RAD001,2,8,Peripheral IV for contrast,,,IV,Radiology,1
+RAD002,IV Cannula 20G,IV Access,Piece,20 Gauge,CT|MRI,IV_Access,CHG-RAD002,RAD002,2,8,Routine peripheral IV,,,IV,Radiology,1
+RAD003,IV Cannula 22G,IV Access,Piece,22 Gauge,Pediatric CT|MRI,IV_Access,CHG-RAD003,RAD003,2,8,Small vein access,,,IV,Radiology,1
+RAD004,IV Extension Line,IV Access,Piece,20-30 cm,CT|MRI,IV_Access,CHG-RAD004,RAD004,4,12,Connect IV catheter to injector,,,IV,Radiology,1
+RAD005,3-Way Stopcock,IV Access,Piece,Standard,CT|IR,IV_Access,CHG-RAD005,RAD005,4,15,Control IV flow direction,,,IV,Radiology,1
+RAD006,Transparent IV Dressing,IV Access,Piece,6x7 cm,CT|MRI,IV_Access,CHG-RAD006,RAD006,2,7,Secure IV catheter,,,Topical,Radiology,1
+RAD007,Tourniquet,IV Access,Piece,Adjustable,ALL,IV_Access,CHG-RAD007,RAD007,1,5,IV insertion support,,,NA,Radiology,1
+RAD008,Alcohol Swab,Skin Prep,Piece,70% Isopropyl,ALL,Skin_Prep,CHG-RAD008,RAD008,0.2,1,Skin disinfection before cannulation,,,Topical,Radiology,2
+RAD009,Sterile Gauze 5x5 cm,Dressing,Piece,5x5 cm,ALL,Dressing,CHG-RAD009,RAD009,0.5,2,Wound care and pressure dressing,,,Topical,Radiology,1
+RAD010,Sterile Gauze 10x10 cm,Dressing,Piece,10x10 cm,ALL,Dressing,CHG-RAD010,RAD010,0.7,2.5,Larger wound care dressing,,,Topical,Radiology,1
+RAD011,CT Injector Syringe,Injection System,Piece,100-200 mL,CT,CT_Contrast,CHG-RAD011,RAD011,12,45,Power injector syringe for iodinated contrast,,,IV,Radiology,1
+RAD012,Dual Injector Syringe Set,Injection System,Set,2x100 mL,CT,CT_Contrast,CHG-RAD012,RAD012,20,70,Contrast + saline dual injector,,,IV,Radiology,1
+RAD013,MRI Injector Syringe,Injection System,Piece,50-65 mL,MRI,MRI_Contrast,CHG-RAD013,RAD013,15,55,MRI compatible injector syringe,,,IV,Radiology,1
+RAD014,High Pressure Tubing,Injection System,Piece,150-300 PSI,CT,CT_Contrast,CHG-RAD014,RAD014,10,35,Reinforced tubing for injector,,,IV,Radiology,1
+RAD015,Saline Flush Syringe,Injection,Piece,10-20 mL,CT|MRI,Contrast_Flush,CHG-RAD015,RAD015,3,10,Post contrast saline flush,,,IV,Radiology,1
+RAD016,Manual Syringe 5mL,Injection,Piece,5 mL,IR,IR_Procedure,CHG-RAD016,RAD016,1.5,6,Manual injection small volume,,,Local,Radiology,1
+RAD017,Manual Syringe 10mL,Injection,Piece,10 mL,IR,IR_Procedure,CHG-RAD017,RAD017,2,7,Manual injection medium volume,,,Local,Radiology,1
+RAD018,Manual Syringe 20mL,Injection,Piece,20 mL,IR,IR_Procedure,CHG-RAD018,RAD018,2.5,8,Manual injection larger volume,,,Local,Radiology,1
+RAD019,Ultrasound Gel Bottle,Ultrasound,Bottle,250-500 mL,US,Ultrasound,CHG-RAD019,RAD019,8,20,Acoustic coupling gel,,,Topical,Radiology,1
+RAD020,Ultrasound Gel Packet,Ultrasound,Piece,10-20 mL,US,Ultrasound,CHG-RAD020,RAD020,1,3,Single use gel packet,,,Topical,Radiology,1
+RAD021,Ultrasound Probe Cover,Ultrasound,Piece,Standard,US,Ultrasound,CHG-RAD021,RAD021,2,8,Sterile probe cover,,,Topical,Radiology,1
+RAD022,ECG Electrodes,Monitoring,Set,Disposable pads,CT|MRI,Monitoring,CHG-RAD022,RAD022,5,18,Cardiac monitoring consumable,,,Topical,Radiology,1
+RAD023,Disposable Bed Sheet,Patient Care,Piece,60x90 cm,ALL,Patient_Care,CHG-RAD023,RAD023,1,4,Bed protection,,,NA,Radiology,1
+RAD024,Surgical Mask,PPE,Piece,Standard,ALL,PPE,CHG-RAD024,RAD024,0.5,2,Infection control,,,NA,Radiology,1
+RAD025,Sterile Gloves,PPE,Pair,Size 6-9,ALL,PPE,CHG-RAD025,RAD025,2,9,Sterile gloves,,,NA,Radiology,1
+RAD026,Sterile Drapes,Sterile Field,Piece,40x40 cm,IR,Sterile_Field,CHG-RAD026,RAD026,4,14,Maintain sterile field,,,NA,Radiology,1
+RAD027,Sterile Drapes Large,Sterile Field,Piece,100x150 cm,IR,Sterile_Field,CHG-RAD027,RAD027,6,20,Large sterile field,,,NA,Radiology,1
+RAD028,Local Anesthetic Lidocaine,Medication,Vial,1-2%,IR,IR_Procedure,CHG-RAD028,RAD028,3,12,Local anesthesia,1-2%,5-20 mL,Local injection,Radiology,1
+RAD029,Introducer Sheath 4F,Interventional,Piece,4 French,IR,IR_Procedure,CHG-RAD029,RAD029,30,90,Diagnostic vascular access,,,Local,Radiology,1
+RAD030,Introducer Sheath 5F,Interventional,Piece,5 French,IR,IR_Procedure,CHG-RAD030,RAD030,35,100,Common vascular access,,,Local,Radiology,1
+RAD031,Introducer Sheath 6F,Interventional,Piece,6 French,IR,IR_Procedure,CHG-RAD031,RAD031,40,120,Interventional vascular access,,,Local,Radiology,1
+RAD032,Diagnostic Catheter 4F,Interventional,Piece,4 French,IR,IR_Procedure,CHG-RAD032,RAD032,45,130,Diagnostic angiography catheter,,,Intra-arterial,Radiology,1
+RAD033,Diagnostic Catheter 5F,Interventional,Piece,5 French,IR,IR_Procedure,CHG-RAD033,RAD033,50,145,Most common diagnostic catheter,,,Intra-arterial,Radiology,1
+RAD034,Diagnostic Catheter 6F,Interventional,Piece,6 French,IR,IR_Procedure,CHG-RAD034,RAD034,60,170,Interventional catheter,,,Intra-arterial,Radiology,1
+RAD035,Guidewire 0.035,Interventional,Piece,0.035 inch,IR,IR_Procedure,CHG-RAD035,RAD035,25,80,Catheter navigation wire,,,Intra-arterial,Radiology,1
+RAD036,Guidewire 0.018,Interventional,Piece,0.018 inch,IR,IR_Procedure,CHG-RAD036,RAD036,20,70,Fine catheter navigation wire,,,Intra-arterial,Radiology,1
+RAD037,Biopsy Needle 18G,Interventional,Piece,18G,IR,Biopsy,CHG-RAD037,RAD037,35,110,Image guided biopsy needle,,,Local,Radiology,1
+RAD038,Biopsy Needle 20G,Interventional,Piece,20G,IR,Biopsy,CHG-RAD038,RAD038,30,95,Fine biopsy needle,,,Local,Radiology,1
+RAD039,Iodinated Contrast,Contrast Media,Bottle,300-370 mgI/mL,CT,CT_Contrast,CHG-RAD039,RAD039,120,260,CT iodinated contrast,300-370 mgI/mL,80-150 mL,IV,Radiology,1 per CT contrast exam
+RAD040,Gadolinium Contrast,Contrast Media,Vial,0.5 mmol/mL,MRI,MRI_Contrast,CHG-RAD040,RAD040,180,340,MRI gadolinium agent,0.5 mmol/mL,0.1 mmol/kg,IV,Radiology,1 per MRI contrast exam
+RAD041,Barium Sulfate,Contrast Media,Bottle,GI Suspension,FL,Fluoroscopy,CHG-RAD041,RAD041,45,120,GI fluoroscopy contrast,40-250% w/v,150-600 mL,Oral,Radiology,1
+RAD042,FDG Radiotracer,Nuclear Medicine,Dose,5-10 mCi,PET,Pet_Tracer,CHG-RAD042,RAD042,450,900,Oncology PET tracer,Radiotracer,3-10 mCi,IV,Radiology,1
+RAD043,Tc-99m Radiotracer,Nuclear Medicine,Dose,10-30 mCi,NM,Nuclear_Tracer,CHG-RAD043,RAD043,300,700,Nuclear medicine tracer,Radiotracer,5-30 mCi,IV,Radiology,1
+RAD044,Lead Syringe Shield,Radiation Safety,Piece,Standard,NM,Radiation_Safety,CHG-RAD044,RAD044,80,220,Shielding for radioactive syringe,,,NA,Radiology,1
+RAD045,Contrast Media Filter,Injection,Piece,Standard,CT|MRI,Contrast_Filter,CHG-RAD045,RAD045,8,25,Filter for contrast line,,,IV,Radiology,1
+RAD046,Power Injector Spike,Injection,Piece,Standard,CT,CT_Contrast,CHG-RAD046,RAD046,6,20,Injector spike accessory,,,IV,Radiology,1
+RAD047,Saline Bag,Injection,Bag,500 mL,CT,Contrast_Flush,CHG-RAD047,RAD047,10,28,Saline flush bag,0.9%,500 mL,IV,Radiology,1
+RAD048,Waste Disposal Bag,Safety,Piece,Biohazard,ALL,Safety,CHG-RAD048,RAD048,1,4,Biohazard waste disposal,,,NA,Radiology,1
+RAD049,Sharps Container,Safety,Piece,5 L,ALL,Safety,CHG-RAD049,RAD049,12,30,Sharps collection container,,,NA,Radiology,1
+RAD050,Disposable Patient Gown,Patient Care,Piece,Standard,ALL,Patient_Care,CHG-RAD050,RAD050,4,12,Patient gown,,,NA,Radiology,1
+RAD051,Contrast Media Warmer Cover,Equipment,Piece,Standard,CT,CT_Contrast,CHG-RAD051,RAD051,9,24,Warmer cover consumable,,,NA,Radiology,1
+RAD052,Sterile Ultrasound Kit,Procedure Kit,Kit,Standard,US|IR,Ultrasound_IR,CHG-RAD052,RAD052,25,75,Sterile US guided IR kit,,,NA,Radiology,1
+RAD053,Angiography Pigtail Catheter,Interventional,Piece,5F,IR,IR_Procedure,CHG-RAD053,RAD053,70,190,Pigtail angiography catheter,,,Intra-arterial,Radiology,1
+RAD054,Angiography Multipurpose Catheter,Interventional,Piece,5F,IR,IR_Procedure,CHG-RAD054,RAD054,75,205,Multipurpose angiography catheter,,,Intra-arterial,Radiology,1
+RAD055,Contrast Extension Tube,Injection,Piece,20-30 cm,CT,CT_Contrast,CHG-RAD055,RAD055,7,22,Extension tubing for contrast line,,,IV,Radiology,1
+RAD056,Sterile Saline,Injection,Vial,10 mL,IR,IR_Procedure,CHG-RAD056,RAD056,2,6,Sterile saline vial,0.9%,10 mL,IV,Radiology,1
+RAD057,Disposable Cap,PPE,Piece,Standard,IR,PPE,CHG-RAD057,RAD057,0.5,2,Head cover for sterile procedures,,,NA,Radiology,1
+RAD058,Disposable Shoe Cover,PPE,Pair,Standard,IR,PPE,CHG-RAD058,RAD058,1,3,Shoe cover for sterile procedures,,,NA,Radiology,1

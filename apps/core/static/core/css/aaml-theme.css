@@ -1,0 +1,37 @@
+/* ===============================
+   AAML / AIP Design System
+   =============================== */
+
+:root {
+  /* Brand */
+  --aaml-blue: #145D8D;
+  --aaml-orange: #DE541A;
+
+  /* Support */
+  --aaml-cyan: #00AEC3;
+  --aaml-green-soft: #A7BB30;
+  --aaml-yellow-soft: #E59E00;
+  --aaml-red-soft: #E83943;
+
+  /* System States */
+  --state-success: #62BC13;
+  --state-warning: #E6B188;
+  --state-error: #AC3832;
+  --state-info: #3A7891;
+
+  /* Neutrals */
+  --bg-page: #F5F7FA;
+  --bg-card: #FFFFFF;
+  --border-light: #ECF0F1;
+
+  --text-primary: #2C3E50;
+  --text-secondary: #7F8C8D;
+
+  /* UI */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-soft: 0 2px 10px rgba(0,0,0,0.08);
+  --shadow-hover: 0 6px 20px rgba(20,93,141,0.25);
+}

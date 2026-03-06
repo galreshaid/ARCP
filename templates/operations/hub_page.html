@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ hero_title }} - AAML RadCore Platform</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% include "partials/app_shell_styles.html" %}
+    <style>
+        :root{
+            --page:#edf3f7;
+            --panel:#ffffff;
+            --line:#d7e2ea;
+            --line-strong:#bfd0dd;
+            --ink:#18324d;
+            --muted:#6c8194;
+            --brand:#145d8d;
+            --brand-dark:#0f476b;
+            --accent:#de541a;
+            --shadow:0 24px 48px rgba(15,49,77,.08);
+            --radius-xl:22px;
+            --radius-lg:16px;
+            --radius-md:12px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body{
+            margin:0;
+            font-family:"Trebuchet MS","Segoe UI",sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(20,93,141,.12), transparent 30%),
+                radial-gradient(circle at bottom left, rgba(222,84,26,.08), transparent 26%),
+                linear-gradient(135deg, #f7fafc, var(--page));
+            color:var(--ink);
+        }
+
+        .page{
+            display:grid;
+            gap:18px;
+        }
+
+        .hero{
+            background:
+                linear-gradient(135deg, rgba(9,54,82,.95), rgba(20,93,141,.97)),
+                linear-gradient(135deg, rgba(222,84,26,.14), transparent);
+            color:#fff;
+            border-radius:var(--radius-xl);
+            padding:24px 28px;
+            box-shadow:0 18px 36px rgba(11,42,62,.16);
+            display:flex;
+            align-items:flex-start;
+            justify-content:space-between;
+            gap:18px;
+            flex-wrap:wrap;
+        }
+
+        .eyebrow{
+            display:inline-flex;
+            align-items:center;
+            padding:6px 10px;
+            border-radius:999px;
+            font-size:12px;
+            letter-spacing:.08em;
+            text-transform:uppercase;
+            font-weight:700;
+            background:rgba(255,255,255,.12);
+            color:rgba(255,255,255,.86);
+            margin-bottom:12px;
+        }
+
+        .hero h1{
+            margin:0 0 8px;
+            font-size:34px;
+            line-height:1.08;
+        }
+
+        .hero p{
+            margin:0;
+            max-width:760px;
+            color:rgba(255,255,255,.8);
+            line-height:1.6;
+        }
+
+        .hero-actions{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        .btn{
+            min-height:44px;
+            padding:0 16px;
+            border-radius:999px;
+            border:none;
+            cursor:pointer;
+            font:inherit;
+            font-weight:700;
+            text-decoration:none;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
+        }
+
+        .btn:hover{ transform:translateY(-1px); }
+
+        .btn-primary{
+            background:linear-gradient(135deg, #ffffff, #eef6ff);
+            color:var(--brand-dark);
+            box-shadow:0 12px 24px rgba(255,255,255,.14);
+        }
+
+        .btn-secondary{
+            background:rgba(255,255,255,.1);
+            color:#fff;
+            border:1px solid rgba(255,255,255,.18);
+        }
+
+        .metrics{
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+            gap:14px;
+        }
+
+        .metric,
+        .panel{
+            background:rgba(255,255,255,.94);
+            border:1px solid var(--line);
+            border-radius:var(--radius-xl);
+            box-shadow:var(--shadow);
+        }
+
+        .metric{
+            padding:18px;
+        }
+
+        .metric-label{
+            margin:0 0 10px;
+            font-size:12px;
+            font-weight:700;
+            letter-spacing:.06em;
+            text-transform:uppercase;
+            color:var(--muted);
+        }
+
+        .metric-value{
+            margin:0;
+            font-size:34px;
+            line-height:1;
+            font-weight:800;
+            color:var(--brand-dark);
+        }
+
+        .metric-detail{
+            margin:8px 0 0;
+            font-size:13px;
+            line-height:1.5;
+            color:var(--muted);
+        }
+
+        .panel{
+            padding:22px;
+        }
+
+        .panel-head{
+            display:flex;
+            align-items:flex-end;
+            justify-content:space-between;
+            gap:16px;
+            margin-bottom:16px;
+            flex-wrap:wrap;
+        }
+
+        .panel-head h2{
+            margin:0 0 6px;
+            font-size:22px;
+        }
+
+        .panel-copy{
+            margin:0;
+            color:var(--muted);
+            line-height:1.6;
+        }
+
+        .focus-grid{
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
+            gap:14px;
+        }
+
+        .focus-card{
+            border:1px solid #dbe7f2;
+            border-radius:var(--radius-lg);
+            padding:18px;
+            background:linear-gradient(180deg, #ffffff, #f7fbff);
+            display:grid;
+            gap:12px;
+        }
+
+        .focus-card h3{
+            margin:0;
+            font-size:18px;
+        }
+
+        .focus-card p{
+            margin:0;
+            color:var(--muted);
+            line-height:1.6;
+            font-size:14px;
+        }
+
+        .focus-card a{
+            color:var(--brand);
+            font-weight:700;
+            text-decoration:none;
+        }
+    </style>
+</head>
+<body>
+    {% include "partials/app_header.html" %}
+    <div class="app-frame">
+        {% include "partials/app_sidebar.html" with current_nav=current_nav %}
+        <main class="app-main">
+            <div class="page">
+                <section class="hero">
+                    <div>
+                        <div class="eyebrow">Operational Surface</div>
+                        <h1>{{ hero_title }}</h1>
+                        <p>{{ hero_copy }}</p>
+                    </div>
+                    <div class="hero-actions">
+                        <a href="{{ primary_url }}" class="btn btn-primary">{{ primary_label }}</a>
+                        <a href="{{ secondary_url }}" class="btn btn-secondary">{{ secondary_label }}</a>
+                    </div>
+                </section>
+
+                <section class="metrics">
+                    {% for card in metric_cards %}
+                        <article class="metric">
+                            <p class="metric-label">{{ card.label }}</p>
+                            <p class="metric-value">{{ card.value }}</p>
+                            <p class="metric-detail">{{ card.detail }}</p>
+                        </article>
+                    {% endfor %}
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2>Focus Areas</h2>
+                            <p class="panel-copy">Use these direct paths to move from overview into the operational screens that already exist in the system.</p>
+                        </div>
+                    </div>
+                    <div class="focus-grid">
+                        {% for card in focus_cards %}
+                            <article class="focus-card">
+                                <h3>{{ card.title }}</h3>
+                                <p>{{ card.description }}</p>
+                                <a href="{{ card.url }}">{{ card.action }}</a>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

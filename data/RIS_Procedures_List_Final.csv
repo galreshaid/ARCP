@@ -1,0 +1,626 @@
+Code,Concept  Name,Relationship to Body Region,Relationship to Modality
+FJANB,Arthrogram ankle Both,Lower Extremity,Fluoro
+FJANL,Arthrogram ankle Lt,Lower Extremity,Fluoro
+FJANR,Arthrogram ankle Rt,Lower Extremity,Fluoro
+FJELB,Arthrogram elbow Both,Upper Extremity,Fluoro
+FJELL,Arthrogram elbow Lt,Upper Extremity,Fluoro
+FJELR,Arthrogram elbow Rt,Upper Extremity,Fluoro
+FJFAC,Arthrogram facet joint,Spine,Fluoro
+FJLACJ,Arthrogram facet joint cervical,Spine,Fluoro
+FJLLAJ,Arthrogram facet joint lumbar,Spine,Fluoro
+FJLTAJ,Arthrogram facet joint thoracic,Spine,Fluoro
+FJHIB,Arthrogram hip Both,Lower Extremity,Fluoro
+FJHIL,Arthrogram hip Lt,Lower Extremity,Fluoro
+FJHIR,Arthrogram hip Rt,Lower Extremity,Fluoro
+FJDIP,Arthrogram interphalangeal joint,Upper Extremity,Fluoro
+FJKNB,Arthrogram knee Both,Lower Extremity,Fluoro
+FJKNL,Arthrogram knee Lt,Lower Extremity,Fluoro
+FJKNR,Arthrogram knee Rt,Lower Extremity,Fluoro
+FJMCP,Arthrogram metacarpophalangeal joint,Upper Extremity,Fluoro
+FJMTP,Arthrogram metatarsophalangeal joint,Lower Extremity,Fluoro
+FJMTL,Arthrogram mid tarsal Lt,Lower Extremity,Fluoro
+FJMTR,Arthrogram mid tarsal Rt,Lower Extremity,Fluoro
+FJMTB,Arthrogram midtarsal Both,Lower Extremity,Fluoro
+FJSIBC,Arthrogram sacroiliac joint Both,Pelvis,Fluoro
+FJSILC,Arthrogram sacroiliac joint Lt,Pelvis,Fluoro
+FJSIRC,Arthrogram sacroiliac joint Rt,Pelvis,Fluoro
+FJDSL,Arthrogram shoulder and distention Lt,Upper Extremity,Fluoro
+FJDSR,Arthrogram shoulder and distention Rt,Upper Extremity,Fluoro
+FJSHB,Arthrogram shoulder Both,Upper Extremity,Fluoro
+FJSHL,Arthrogram shoulder Lt,Upper Extremity,Fluoro
+FJSHR,Arthrogram shoulder Rt,Upper Extremity,Fluoro
+FJSTJ,Arthrogram steroid injection,Nonspecific,Fluoro
+FJSTB,Arthrogram subtalar Both,Lower Extremity,Fluoro
+FJSTL,Arthrogram subtalar Lt,Lower Extremity,Fluoro
+FJSTR,Arthrogram subtalar Rt,Lower Extremity,Fluoro
+FJTMB,Arthrogram TMJ Both,Head,Fluoro
+FJTML,Arthrogram TMJ Lt,Head,Fluoro
+FJTMR,Arthrogram TMJ Rt,Head,Fluoro
+FJWRB,Arthrogram wrist Both,Upper Extremity,Fluoro
+FJWRL,Arthrogram wrist Lt,Upper Extremity,Fluoro
+FJWRR,Arthrogram wrist Rt,Upper Extremity,Fluoro
+FBAFT,Barium follow through,Abdomen,Fluoro
+FBAME,Barium meal,Abdomen,Fluoro
+FSBEN,Barium small bowel enema,Abdomen,Fluoro
+FBASW,Barium swallow,Chest,Fluoro
+XDEXA,Bone densitometry DXA,Nonspecific,BMD
+XHDXL,Bone mineral densitometry hip Lt,Pelvis,BMD
+XHDXR,Bone mineral densitometry hip Rt,Pelvis,BMD
+XLDEX,Bone mineral densitometry lumbar spine,Spine,BMD
+XMDEX,Bone mineral densitometry mandible,Head,BMD
+XPDEX,Bone mineral densitometry peripheral,Nonspecific,BMD
+NSKIO,Brain Dopamine transporter study,Head,NM
+FBRON,Bronchogram,Chest,Fluoro
+CABDO,CT Abdomen,Abdomen,CT
+CABPE,CT Abdomen and pelvis,Multi Area,CT
+CABPEC,CT Abdomen and pelvis w/C,Multi Area,CT
+CABDOC,CT Abdomen w/C,Abdomen,CT
+CADRB,CT Adrenal Both,Abdomen,CT
+CADRBC,CT Adrenal w/C Both,Abdomen,CT
+CADRB-W,CT Adrenal wo+w/C Both,Abdomen,CT
+CACDB,CT Angio aortic arch and carotid Both,Multi Area,CT
+CAAAG,CT Angiogram aorta,Multi Area,CT
+CAICN,CT Angiogram intracranial,Head,CT
+CALLB,CT Angiogram lower limb Both,Lower Extremity,CT
+CAPUG,CT Angiogram pulmonary,Chest,CT
+CANRE,CT Angiogram renal,Abdomen,CT
+CAULB,CT Angiogram upper limb Both,Upper Extremity,CT
+CANKL,CT Ankle Lt,Lower Extremity,CT
+CANKR,CT Ankle Rt,Lower Extremity,CT
+CABAO,CT Aorta abdominal,Abdomen,CT
+CAOTHC,CT Aorta thoracic w/C,Chest,CT
+CJANL,CT Arthrogram ankle Lt,Lower Extremity,CT
+CJANR,CT Arthrogram ankle Rt,Lower Extremity,CT
+CJELL,CT Arthrogram elbow Lt,Upper Extremity,CT
+CJELR,CT Arthrogram elbow Rt,Upper Extremity,CT
+CJHIL,CT Arthrogram hip Lt,Lower Extremity,CT
+CJHIR,CT Arthrogram hip Rt,Lower Extremity,CT
+CJKNL,CT Arthrogram knee Lt,Lower Extremity,CT
+CJKNR,CT Arthrogram knee Rt,Lower Extremity,CT
+CJSHL,CT Arthrogram shoulder Lt,Upper Extremity,CT
+CJSHR,CT Arthrogram shoulder Rt,Upper Extremity,CT
+CJWRL,CT Arthrogram wrist Lt,Upper Extremity,CT
+CJWRR,CT Arthrogram wrist Rt,Upper Extremity,CT
+CSKPE,CT Brain perfusion study,Head,CT
+CACRY,CT Cardiac angiogram coronary,Chest,CT
+CCASC,CT Cardiac Cor artery calcium scoring,Chest,CT
+CCAGA,CT Cardiac gated,Chest,CT
+C-CPER,CT Cardiac Perfusion,Chest,CT
+CCHES,CT Chest,Chest,CT
+CCHAP,CT chest abdomen and pelvis,Multi Area,CT
+CCHAPC,CT chest abdomen pelvis w/C,Multi Area,CT
+CHRC,CT Chest high resolution,Chest,CT
+CCHES-P,CT Chest screening pulmonary,Chest,CT
+CCHESC,CT Chest w/C,Chest,CT
+CCHES-W,CT Chest wo+w/C,Chest,CT
+CELBL,CT Elbow Lt,Upper Extremity,CT
+CELBR,CT Elbow Rt,Upper Extremity,CT
+CFACE,CT Facial bones,Head,CT
+CFOOL,CT Foot Lt,Lower Extremity,CT
+CFOOR,CT Foot Rt,Lower Extremity,CT
+CFARL,CT Forearm Lt,Upper Extremity,CT
+CFARR,CT Forearm Rt,Upper Extremity,CT
+CHANL,CT Hand Lt,Upper Extremity,CT
+CHANR,CT Hand Rt,Upper Extremity,CT
+CSKUH,CT Head,Head,CT
+CSKNE,CT Head and neck,Multi Area,CT
+CHENEC,CT Head and neck w/C,Multi Area,CT
+CHENE-W,CT Head and neck wo+w/C,Multi Area,CT
+CSKUHC,CT Head w/C,Head,CT
+CSKUH-W,CT Head wo+w/C,Head,CT
+CHIPL,CT Hip Lt,Lower Extremity,CT
+CHIPR,CT Hip Rt,Lower Extremity,CT
+CHIPLC,CT Hip w/C Lt,Lower Extremity,CT
+CHIPRC,CT Hip w/C Rt,Lower Extremity,CT
+CIAMB,CT IAM Both,Head,CT
+CIAMBC,CT IAM w/C,Head,CT
+CKNEL,CT Knee Lt,Lower Extremity,CT
+CKNER,CT Knee Rt,Lower Extremity,CT
+CLARY,CT Larynx,Neck,CT
+CLARYC,CT Larynx w/C,Neck,CT
+CLOLB,CT Leg Both,Lower Extremity,CT
+CLOLL,CT Leg Lt,Lower Extremity,CT
+CLOLR,CT Leg Rt,Lower Extremity,CT
+CLOLLC,CT Leg w/C Lt,Lower Extremity,CT
+CLOLRC,CT Leg w/C Rt,Lower Extremity,CT
+CLLIBC,CT Lower limb w/C Both,Lower Extremity,CT
+CMAND,CT Mandible,Head,CT
+CMAMX,CT Mandible and maxilla,Head,CT
+CMAXI,CT Maxilla,Head,CT
+CNECK,CT Neck,Neck,CT
+CORBB,CT Orbit Both,Head,CT
+CORBBC,CT Orbit w/C Both,Head,CT
+CPELV,CT Pelvis,Pelvis,CT
+CPELVC,CT Pelvis w/C,Pelvis,CT
+CPITF,CT Pituitary,Head,CT
+CPITFC,CT Pituitary w/C,Head,CT
+CKIDB,CT Renal ,Abdomen,CT
+CSAIB,CT Sacroiliac joint Both,Pelvis,CT
+CSIAW,CT Salivary glands,Head,CT
+CSHRB,CT Shoulder Both,Upper Extremity,CT
+CSHRL,CT Shoulder Lt,Upper Extremity,CT
+CSHRR,CT Shoulder Rt,Upper Extremity,CT
+CSHOLC,CT Shoulder w/C Lt,Upper Extremity,CT
+CSHORC,CT Shoulder w/C Rt,Upper Extremity,CT
+CSINU,CT Sinuses,Head,CT
+CSINUC,CT Sinuses w/C,Head,CT
+CCSPN,CT Spine cervical,Spine,CT
+CCSPNT,CT Spine cervical myelogram,Spine,CT
+CCSPNC,CT Spine cervical w/C,Spine,CT
+CLSPN,CT Spine lumbar,Spine,CT
+CTSPN,CT Spine thoracic,Spine,CT
+CTSPNC,CT Spine thoracic w/C,Spine,CT
+CTEMP,CT Temporal bones,Head,CT
+CTHIL,CT Thigh Lt,Lower Extremity,CT
+CTHIR,CT Thigh Rt,Lower Extremity,CT
+CTHILC,CT Thigh w/C Lt,Lower Extremity,CT
+CTHIRC,CT Thigh w/C Rt,Lower Extremity,CT
+CTMJB,CT TMJ Both,Head,CT
+CUPAB,CT Upper arm Both,Upper Extremity,CT
+CUPAL,CT Upper arm Lt,Upper Extremity,CT
+CUPAR,CT Upper arm Rt,Upper Extremity,CT
+CUPABC,CT Upper arm w/C Both,Upper Extremity,CT
+CUPALC,CT Upper arm w/C Lt,Upper Extremity,CT
+CUPARC,CT Upper arm w/C Rt,Upper Extremity,CT
+CWSPNC,CT Whole Spine w/C,Spine,CT
+CWRIL,CT Wrist Lt,Upper Extremity,CT
+CWRIR,CT Wrist Rt,Upper Extremity,CT
+CWSPN,CT Whole spine,Spine,CT
+CASPNN,CTG aspiration,Nonspecific,CT
+CABDON,CTG aspiration abdomen,Abdomen,CT
+CBIOPB,CTG biopsy,Nonspecific,CT
+CBONEB,CTG biopsy bone,Nonspecific,CT
+CCHESB,CTG biopsy chest,Chest,CT
+CCKIBA,CTG cryotherapy ablation kidney Both,Abdomen,CT
+CCKILA,CTG cryotherapy ablation kidney Lt,Abdomen,CT
+CCKIRA,CTG cryotherapy ablation kidney Rt,Abdomen,CT
+CCLIVA,CTG cryotherapy ablation liver,Abdomen,CT
+CDRAID,CTG drainage,Nonspecific,CT
+CLMAFA,CTG Liver ablation RF,Abdomen,CT
+CRRFBA,CTG RF ablation kidney Both,Abdomen,CT
+CRRFLA,CTG RF ablation kidney Lt,Abdomen,CT
+CRRFRA,CTG RF ablation kidney Rt,Abdomen,CT
+FCYST,Cystogram,Pelvis,Fluoro
+XBDXW,DEXA Whole body,Body,BMD
+XVDXA,DXA Vertebral morphometry,Spine,BMD
+FFIST,Fistulogram,Nonspecific,Fluoro
+FINJTJ,Fluoro guided injection,Nonspecific,Fluoro
+FTHOX,Fluoroscopy chest,Chest,Fluoro
+FGASTX,Gastrostomy tube removal,Abdomen,Fluoro
+FGENI,Genitogram,Pelvis,Fluoro
+FHYSG,Hysterosalpingogram,Pelvis,Fluoro
+FLOOG,Loopogram gastrointestinal tract,Abdomen,Fluoro
+X-MADL,Mammogram Additional Views,Breast,Mammo
+XMAMB,Mammogram Both,Breast,Mammo
+XMAML,Mammogram Lt,Breast,Mammo
+XMAMR,Mammogram Rt,Breast,Mammo
+XBRTB,MG Breast tomosynthesis Both,Breast,Mammo
+XMAMLN,MG guided aspiration breast Lt,Breast,Mammo
+XMAMRN,MG guided aspiration breast Rt,Breast,Mammo
+XMALL,MG guided guidewire Loc breast Lt,Breast,Mammo
+XMALR,MG guided guidewire Loc breast Rt,Breast,Mammo
+XBRMLI,MG Guided marker insertion breast Lt,Breast,Mammo
+XBRMRI,MG Guided marker insertion breast Rt,Breast,Mammo
+XBRRLB,MG Guided radiofrequency Bx breast Lt,Breast,Mammo
+XBRRRB,MG Guided radiofrequency Bx breast Rt,Breast,Mammo
+XMADL,MG Mammary ductogram Lt,Breast,Mammo
+XMADR,MG Mammary ductogram Rt,Breast,Mammo
+FMCYS,Micturating cystourethrogram,Pelvis,Fluoro
+MAAOA,MR Angio Aorta abdominal,Abdomen,MR
+MAORTC,MR Angio Aorta w/C,Multi Area,MR
+MCARB,MR Angio Carotid Both,Neck,MR
+MAICA,MR Angio Head,Head,MR
+MALLB,MR Angio Lower limb Both,Lower Extremity,MR
+MMESE,MR Angio Mesenteric artery,Abdomen,MR
+M-ANECW,MR Angio Neck wo+w/C,Neck,MR
+MAPUA,MR Angio Pulmonary arteries,Chest,MR
+MAREB,MR Angio Renal Both,Abdomen,MR
+MSPINC,MR Angio Spine w/C,Spine,MR
+MAULB,MR Angio Upper limb Both,Upper Extremity,MR
+MAULL,MR Angio Upper limb Lt,Upper Extremity,MR
+MAULR,MR Angio Upper limb Rt,Upper Extremity,MR
+MDTBN,MR Diffusion tensor brain,Head,MR
+MDTNT,MR Diffusion tensor cerebral nerve tract,Head,MR
+MVSKU,MR Venography Cerebral veins,Head,MR
+MVIVC,MR Venography IVC,Abdomen,MR
+MMRCP,MRCP,Abdomen,MR
+MMRCPC,MRCP w/C,Abdomen,MR
+MABDO,MRI Abdomen,Abdomen,MR
+MABDOC,MRI Abdomen w/C,Abdomen,MR
+MADRB,MRI Adrenal Both,Abdomen,MR
+MANKL,MRI Ankle Lt,Lower Extremity,MR
+MANKR,MRI Ankle Rt,Lower Extremity,MR
+MJANL,MRI Arthrogram ankle Lt,Lower Extremity,MR
+MJANR,MRI Arthrogram ankle Rt,Lower Extremity,MR
+MJELL,MRI Arthrogram elbow Lt,Upper Extremity,MR
+MJELR,MRI Arthrogram elbow Rt,Upper Extremity,MR
+MJHIL,MRI Arthrogram hip Lt,Lower Extremity,MR
+MJHIR,MRI Arthrogram hip Rt,Lower Extremity,MR
+MJKNL,MRI Arthrogram knee Lt,Lower Extremity,MR
+MJKNR,MRI Arthrogram knee Rt,Lower Extremity,MR
+MJSHL,MRI Arthrogram shoulder Lt,Upper Extremity,MR
+MJSHR,MRI Arthrogram shoulder Rt,Upper Extremity,MR
+MJWRL,MRI Arthrogram wrist Lt,Upper Extremity,MR
+MJWRR,MRI Arthrogram wrist Rt,Upper Extremity,MR
+MBRPX,MRI Brachial plexus,Neck,MR
+MMAMB,MRI Breast Both,Breast,MR
+MMAMBC,MRI Breast w/C Both,Breast,MR
+MCMFS,MRI Card morphology function stress,Chest,MR
+MIRCA,MRI Cardiac iron load,Chest,MR
+MCMOP,MRI Cardiac morphology function,Chest,MR
+MCVIA,MRI Cardiac myocardial viability,Chest,MR
+MCSFS,MRI Cardiac stress function study,Chest,MR
+MCSFF,MRI Cerebrospinal fluid flow,Spine,MR
+MCHES,MRI chest,Chest,MR
+MCHESC,MRI chest w/C,Chest,MR
+MELBL,MRI Elbow Lt,Upper Extremity,MR
+MELBR,MRI Elbow Rt,Upper Extremity,MR
+MELBLC,MRI Elbow w/C Lt,Upper Extremity,MR
+MELBRC,MRI Elbow w/C Rt,Upper Extremity,MR
+MTHIL,MRI Femur Lt,Lower Extremity,MR
+MTHIR,MRI Femur Rt,Lower Extremity,MR
+MTHILC,MRI Femur w/C Lt,Lower Extremity,MR
+MTHIRC,MRI Femur w/C Rt,Lower Extremity,MR
+MFOET,MRI Fetus,Abdomen,MR
+MFOOL,MRI Foot Lt,Lower Extremity,MR
+MFOOR,MRI Foot Rt,Lower Extremity,MR
+MFOOLC,MRI Foot w/C Lt,Lower Extremity,MR
+MFOORC,MRI Foot w/C Rt,Lower Extremity,MR
+MFARRC,MRI Forearm w/C Rt,Upper Extremity,MR
+MFARL-W,MRI Forearm wo+w/C Lt,Upper Extremity,MR
+MFARR-W,MRI Forearm wo+w/C Rt,Upper Extremity,MR
+MFUNC,MRI Functional imaging,Nonspecific,MR
+MHANL,MRI Hand Lt,Upper Extremity,MR
+MHANR,MRI Hand Rt,Upper Extremity,MR
+MHANLC,MRI Hand w/C Lt,Upper Extremity,MR
+MHANRC,MRI Hand w/C Rt,Upper Extremity,MR
+MHANL-W,MRI Hand wo+w/C Lt,Upper Extremity,MR
+MHANR-W,MRI Hand wo+w/C Rt,Upper Extremity,MR
+MSKUH,MRI Head,Head,MR
+MSKPE,MRI Head brain perfusion study,Head,MR
+MSKUS,MRI Head spectroscopy,Head,MR
+MSKUHC,MRI Head w/C,Head,MR
+MHIPLC,MRI Hip w/C Lt,Lower Extremity,MR
+MHIPRC,MRI Hip w/C Rt,Lower Extremity,MR
+MHIPL-W,MRI Hip wo+w/C Lt,Lower Extremity,MR
+MHIPR-W,MRI Hip wo+w/C Rt,Lower Extremity,MR
+MIAMBC,MRI IAM w/C Both,Head,MR
+MKNELC,MRI Knee w/C Lt,Lower Extremity,MR
+MKNERC,MRI Knee w/C Rt,Lower Extremity,MR
+MLOLL,MRI Leg Lt,Lower Extremity,MR
+MLOLR,MRI Leg Rt,Lower Extremity,MR
+MLOLLC,MRI Leg w/C Lt,Lower Extremity,MR
+MLOLRC,MRI Leg w/C Rt,Lower Extremity,MR
+MRLIV,MRI Liver,Abdomen,MR
+MLIVEC,MRI Liver w/C,Abdomen,MR
+MNECK,MRI Neck,Neck,MR
+MNECKC,MRI Neck w/C,Neck,MR
+MNECK-W,MRI Neck wo+w/C,Neck,MR
+MORCA,MRI Oral cavity,Head,MR
+MORBB,MRI Orbit Both,Head,MR
+MABPA,MRI Pancreas,Abdomen,MR
+MPANCC,MRI Pancreas w/C,Abdomen,MR
+MPARD,MRI Parotid,Head,MR
+MPELV,MRI Pelvis,Pelvis,MR
+MPEST,MRI Pelvis prostate,Pelvis,MR
+MSIJB,MRI Pelvis SIJ Both,Pelvis,MR
+MSIJBC,MRI Pelvis SIJ w/C Both,Pelvis,MR
+MPELVC,MRI Pelvis w/C,Pelvis,MR
+MPITF,MRI Pituitary,Head,MR
+MPITFC,MRI Pituitary w/C,Head,MR
+MSHRL,MRI Shoulder Lt,Upper Extremity,MR
+MSHRR,MRI Shoulder Rt,Upper Extremity,MR
+MSHRLC,MRI Shoulder w/C Lt,Upper Extremity,MR
+MSHRRC,MRI Shoulder w/C Rt,Upper Extremity,MR
+MSINU,MRI Sinuses,Head,MR
+MCSPN,MRI Spine cervical,Spine,MR
+MCSPNC,MRI Spine cervical w/C,Spine,MR
+MCTSP,MRI Spine cervicothoracic,Spine,MR
+MCTSPC,MRI Spine cervicothoracic w/C,Spine,MR
+MCOCX,MRI Spine coccyx,Spine,MR
+MLUSP,MRI Spine lumbar,Spine,MR
+MLSPN,MRI Spine lumbar and sacral,Spine,MR
+MLSPNC,MRI Spine lumbar sacral w/C,Spine,MR
+MLSPN-W,MRI Spine lumbar sacral wo+w/C,Spine,MR
+MSACM,MRI Spine sacrum,Spine,MR
+MTSPN,MRI Spine thoracic,Spine,MR
+MTHLUC,MRI Spine thoracic lumbar w/C,Spine,MR
+MTSPNC,MRI Spine thoracic w/C,Spine,MR
+MTLSP,MRI Spine thoracolumbar,Spine,MR
+MSPNW,MRI Spine whole,Spine,MR
+MSPNWC,MRI Spine whole w/C,Spine,MR
+MTHGL,MRI Thigh Lt,Lower Extremity,MR
+MTHGR,MRI Thigh Rt,Lower Extremity,MR
+MTHGLC,MRI Thigh w/C Lt,Lower Extremity,MR
+MTHGRC,MRI Thigh w/C Rt,Lower Extremity,MR
+MTHUL,MRI Thumb Lt,Upper Extremity,MR
+MTHUR,MRI Thumb Rt,Upper Extremity,MR
+MTMJB,MRI TMJ Both,Head,MR
+MUPAL,MRI Upper arm Lt,Upper Extremity,MR
+MUPAR,MRI Upper arm Rt,Upper Extremity,MR
+MUPALC,MRI Upper arm w/C Lt,Upper Extremity,MR
+MUPARC,MRI Upper arm w/C Rt,Upper Extremity,MR
+MUPAL-W,MRI Upper arm wo+w/C Lt,Upper Extremity,MR
+MUPAR-W,MRI Upper arm wo+w/C Rt,Upper Extremity,MR
+MUROG,MRI Urogram,Abdomen,MR
+MWBOD,MRI Whole body,Body,MR
+MWRIL,MRI Wrist Lt,Upper Extremity,MR
+MWRIR,MRI Wrist Rt,Upper Extremity,MR
+MWRILC,MRI Wrist w/C Lt,Upper Extremity,MR
+MWRIRC,MRI Wrist w/C Rt,Upper Extremity,MR
+MWRIL-W,MRI Wrist wo+w/C Lt,Upper Extremity,MR
+MWRIR-W,MRI Wrist wo+w/C Rt,Upper Extremity,MR
+FNPGB,Nephrostogram Both,Abdomen,Fluoro
+NAMYS,NM Amyloid study,Nonspecific,NM
+NBONWO,NM Bone whole body with SPECT,Body,NM
+NCBRA,NM Brain FDG PET CT,Head,NM
+NBPI,NM Brain perfusion imaging,Head,NM
+NSMAB,NM Breast scintimammogram Both,Breast,NM
+NC14U,NM C14 urea breath test,Nonspecific,NM
+NCRVE,NM Card ventriculography rest SPECT CT,Chest,NM
+NCSRN,NM Card ventriculography stress SPECT CT,Chest,NM
+NCMPS,NM Cardiac myocardial perfusion scan,Chest,NM
+NCCRF,NM Cardiac rest FDG PET CT,Chest,NM
+NRRB82,NM Cardiac rest PET Rb82,Chest,NM
+NSRB82,NM Cardiac stress PET Rb82,Chest,NM
+NCCAV,NM Cardiac viability scan FDG PET CT,Chest,NM
+NPCHPO,NM Choline local PET F18,Nonspecific,NM
+NCSFD,NM CSF leak detection and localisation,Spine,NM
+NSHUN,NM CSF shuntogram,Spine,NM
+NGADWO,NM Ga68 DOTATATE whole body PET,Body,NM
+NGALW,NM Gallium scan whole body,Body,NM
+NGEDU,NM Gastric emptying study dual,Abdomen,NM
+NGIBS,NM Gastrointestinal bleed scan,Abdomen,NM
+NGERS,NM Gastrooesphageal reflux scan,Abdomen,NM
+NGFR3,NM GFR estimation 3 samples,Abdomen,NM
+NGI51,NM GI permeability oral Cr 51 EDTA,Abdomen,NM
+NHEHAO,NM Hepatic haemangioma imaging SPECT,Abdomen,NM
+NHEBI,NM Hepatobiliary study,Abdomen,NM
+NTS131,NM I131 thyroid Radioth planning,Neck,NM
+NINFI,NM Infection scan,Nonspecific,NM
+N123W,NM Iodine 123 whole body,Body,NM
+NI131Y,NM Iodine 131 antibody therapy,Nonspecific,NM
+NMIBGY,NM Iodine 131 MIBG therapy,Multi Area,NM
+N131W,NM Iodine 131 whole body,Body,NM
+NC131W,NM Iodine 131 whole body SPECT CT,Body,NM
+NLIVS,NM Liver and spleen,Abdomen,NM
+NCLUPE,NM Lung perfusion SPECT CT,Chest,NM
+NLUNV,NM Lung ventilation perfusion SPECT,Chest,NM
+NCHEV,NM Lung ventilation scan V,Chest,NM
+NLYMP,NM Lymphoscintigram,Nonspecific,NM
+NMECK,NM Meckels scan,Abdomen,NM
+NM123W,NM MIBG Iodine 123 scan whole body,Body,NM
+NCARE,NM MPS exercise stress study,Chest,NM
+NMTRG,NM MPS Tf rest gated,Chest,NM
+NCTRGO,NM MPS Thallium rest and Redist gated,Chest,NM
+NOCT,NM Octreotide scan,Nonspecific,NM
+NEITS,NM Oesophageal isotope transit study,Chest,NM
+NPTHY,NM Parathyroid MIBI,Neck,NM
+NPROT,NM Protein losing enteropathy study,Abdomen,NM
+NDMSA,NM Renal DMSA,Abdomen,NM
+NMREC,NM Renogram with ACE inhibitor,Abdomen,NM
+NREND,NM Renogram with diuretic,Abdomen,NM
+NSIAM,NM Salivary glands scintisialogram,Head,NM
+NSBTS,NM Small bowel transit study,Abdomen,NM
+NLLSW,NM Tc99m MAA WB liver lung shunt study,Body,NM
+NT131Y,NM Thyroid I131 thyrotoxicosis therapy,Neck,NM
+NT123,NM Thyroid scan Iodine 123,Neck,NM
+N123U,NM Thyroid scan Iodine 123 with uptake,Neck,NM
+NTTCU,NM Thyroid Scan with uptake Technetium,Neck,NM
+NCGENW,NM Whole body FDG PET CT,Body,NM
+NCLVP,NM Y90 liver PET CT,Abdomen,NM
+XMPBRB,Prone Stereo Mammo and core biopsy Rt,Breast,Mammo
+XMPVLB,Prone Stereo Mammo and VAB Lt,Breast,Mammo
+FRETB,Retrograde ureteropyelogram Both,Abdomen,Fluoro
+XSCMB,Screening mammogram Both,Breast,Mammo
+XSCML,Screening mammogram Lt,Breast,Mammo
+XSCMR,Screening mammogram Rt,Breast,Mammo
+FSPEE,Speech video fluoroscopy,Neck,Fluoro
+FTTCH,T-tube cholangiogram,Pelvis,Fluoro
+XMUVLB,UpRt Stereo Mammo and VAB Lt,Breast,Mammo
+XMUVRB,UpRt Stereo Mammo and VAB Rt,Breast,Mammo
+UABDO,US Abdomen,Abdomen,US
+UAORT,US Abdominal aorta,Abdomen,US
+UANKB,US Ankle Both,Lower Extremity,US
+UANKL,US Ankle Lt,Lower Extremity,US
+UANKR,US Ankle Rt,Lower Extremity,US
+UABDA,US Anterior Abdominal Wall,Abdomen,US
+UMAMB,US Breast Both,Breast,US
+UMAML,US Breast Lt,Breast,US
+UMAMR,US Breast Rt,Breast,US
+UCHES,US chest and pleural cavity,Chest,US
+UCRAN,US Cranial contents,Head,US
+UDOPP,US Doppler,Nonspecific,US
+UAOTD,US Doppler aorta,Abdomen,US
+UAORI,US Doppler aortoiliac,Pelvis,US
+UDCAB,US Doppler carotid artery Both,Neck,US
+UDCAL,US Doppler carotid artery Lt,Neck,US
+UDCAR,US Doppler carotid artery Rt,Neck,US
+UDDA,US Doppler for dialysis access,Nonspecific,US
+UAILB,US Doppler iliac and femoral artery Both,Pelvis,US
+UJVDB,US Doppler jugular vein Both,Neck,US
+URENT,US Doppler kidney transplant,Abdomen,US
+UPORT,US Doppler liver and portal system,Abdomen,US
+ULLAB,US Doppler lower limb arteries Both,Lower Extremity,US
+ULLAL,US Doppler lower limb arteries Lt,Lower Extremity,US
+ULLAR,US Doppler lower limb arteries Rt,Lower Extremity,US
+ULLVL,US Doppler lower limb veins Lt,Lower Extremity,US
+ULLVR,US Doppler lower limb veins Rt,Lower Extremity,US
+UDRNB,US Doppler renal Both,Abdomen,US
+USMAD,US Doppler superior mesenteric artery,Abdomen,US
+UTCRA,US Doppler transcranial,Head,US
+UULAR,US Doppler upper limb arteries Rt,Upper Extremity,US
+UULVB,US Doppler upper limb veins Both,Upper Extremity,US
+UULVL,US Doppler upper limb veins Lt,Upper Extremity,US
+UULVR,US Doppler upper limb veins Rt,Upper Extremity,US
+ULVMB,US Doppler vein map lower limb Both,Lower Extremity,US
+UAVMB,US Doppler vein map upper limb Both,Upper Extremity,US
+UELAS,US Elastography,Nonspecific,US
+UELBL,US Elbow Lt,Upper Extremity,US
+UELBR,US Elbow Rt,Upper Extremity,US
+UFINL,US Finger Lt,Upper Extremity,US
+UFINR,US Finger Rt,Upper Extremity,US
+UFOTA,US Follicular tracking transabdominal,Pelvis,US
+UFOTV,US Follicular tracking transvaginal,Pelvis,US
+UFOOB,US Foot Both,Lower Extremity,US
+UFOOL,US Foot Lt,Lower Extremity,US
+UFOOR,US Foot Rt,Lower Extremity,US
+UFARL,US Forearm Lt,Upper Extremity,US
+UFARR,US Forearm Rt,Upper Extremity,US
+UINGU,US Groin and inguinal region,Pelvis,US
+UKIDBB,US Guided biopsy kidney Both,Abdomen,US
+UHANB,US Hand Both,Upper Extremity,US
+UHANL,US Hand Lt,Upper Extremity,US
+UHANR,US Hand Rt,Upper Extremity,US
+UHIPL,US Hip Lt,Lower Extremity,US
+UHIPR,US Hip Rt,Lower Extremity,US
+UKIDB,US Kidney Both,Abdomen,US
+UKIDL,US Kidney Lt,Abdomen,US
+UKIDR,US Kidney Rt,Abdomen,US
+UKNEB,US Knee Both,Lower Extremity,US
+UKNEL,US Knee Lt,Lower Extremity,US
+UKNER,US Knee Rt,Lower Extremity,US
+ULLDL,US Leg Lt,Lower Extremity,US
+ULLDR,US Leg Rt,Lower Extremity,US
+ULIVE,US Liver,Abdomen,US
+ULIVEC,US Liver w/C,Abdomen,US
+ULABD,US Lower abdomen,Abdomen,US
+UMULT,US Multiple pregnancy,Abdomen,US
+UNECK,US Neck,Neck,US
+UO1T,US Obstetric 1st trimester,Abdomen,US
+UO2T,US Obstetric 2nd trimester,Abdomen,US
+UO3T,US Obstetric 3rd trimester,Abdomen,US
+UOCLE,US Obstetric cervical length ,Pelvis,US
+UODOP,US Obstetric doppler study,Abdomen,US
+UOEPV,US Obstetric Early Pregnancy,Abdomen,US
+UANOM,US Obstetric fetal anatomy scan,Abdomen,US
+UOFG,US Obstetric fetal growth,Abdomen,US
+UPLAC,US Obstetric placental localisation,Abdomen,US
+UOTV,US Obstetric Transvaginal,Abdomen,US
+UPANC,US Pancreas,Abdomen,US
+UPTHY,US Parathyroid,Neck,US
+UPELV,US Pelvis,Pelvis,US
+UPEN,US Penis,Pelvis,US
+UPROS,US Prostate,Pelvis,US
+UTRPT,US prostate Transrectal,Pelvis,US
+USAG,US Salivary gland,Head,US
+USGPA,US Salivary glands parotid,Head,US
+USGSM,US Salivary glands submandibular,Head,US
+UCHWA,US Scan chest wall,Chest,US
+USHRB,US Shoulder Both,Upper Extremity,US
+USHRL,US Shoulder Lt,Upper Extremity,US
+USHRR,US Shoulder Rt,Upper Extremity,US
+USMLI,US Small bowel,Abdomen,US
+USOTI,US Soft tissue,Nonspecific,US
+USPN,US Spine,Spine,US
+USPLE,US Spleen,Abdomen,US
+USCFB,US Supraclavicular fossa Both,Chest,US
+UTEST,US Testes,Pelvis,US
+UTHIL,US Thigh Lt,Lower Extremity,US
+UTHIR,US Thigh Rt,Lower Extremity,US
+UTHYD,US Thyroid,Neck,US
+UTOEB,US Toes Both,Lower Extremity,US
+UTOEL,US Toes Lt,Lower Extremity,US
+UTOER,US Toes Rt,Lower Extremity,US
+UTRRE,US Transplant kidney,Abdomen,US
+UUPPA,US Upper abdomen,Abdomen,US
+UUPAL,US Upper arm Lt,Upper Extremity,US
+UUPAR,US Upper arm Rt,Upper Extremity,US
+UBLAD,US Urinary bladder,Pelvis,US
+UWRIB,US Wrist Both,Upper Extremity,US
+UWRIL,US Wrist Lt,Upper Extremity,US
+UWRIR,US Wrist Rt,Upper Extremity,US
+FWSEN,Water soluble contrast enema,Abdomen,Fluoro
+FWASW,Water soluble contrast swallow,Chest,Fluoro
+FWSSM,Water soluble contrast swallow and meal,Abdomen,Fluoro
+XABDO,XR Abdomen,Abdomen,XR
+XABDO-AES,XR Abdomen AP Erect and Supine,Abdomen,XR
+XABDO-ALS,XR Abdomen AP+Lateral Supine,Abdomen,XR
+XANKB,XR Ankle Both ,Lower Extremity,XR
+XANKL,XR Ankle Lt ,Lower Extremity,XR
+XANKR,XR Ankle Rt ,Lower Extremity,XR
+XCALB,XR Calcaneus Both,Lower Extremity,XR
+XCALL,XR Calcaneus Lt ,Lower Extremity,XR
+XCALR,XR Calcaneus Rt  ,Lower Extremity,XR
+XCSFS,XR Cerebro-spinal fluid shunt,Spine,XR
+XCSPN,XR Cervical spine,Spine,XR
+XCSPN-AO,XR Cervical spine AP Open Mouth,Spine,XR
+XCTJN,XR Cervicothoracic junction (lateral swimmers'),Spine,XR
+XCHES,XR Chest,Chest,XR
+XCHAB,XR Chest and abdomen,Multi Area,XR
+XCHES-DL,XR Chest DecubL,Chest,XR
+XCHES-DLR,XR Chest DecubL+DecubR,Chest,XR
+XCLAL,XR Clavicle Lt,Chest,XR
+XCLAR,XR Clavicle Rt,Chest,XR
+XCOCX,XR Coccyx,Spine,XR
+XELBL,XR Elbow Lt,Upper Extremity,XR
+XELBR,XR Elbow Rt,Upper Extremity,XR
+XFACI,XR Facial bones,Head,XR
+XFEMB,XR Femur Both,Lower Extremity,XR
+XFEML,XR Femur Lt,Lower Extremity,XR
+XFEMR,XR Femur Rt,Lower Extremity,XR
+XFINL,XR Fingers Lt,Upper Extremity,XR
+XFINR,XR Fingers Rt,Upper Extremity,XR
+XFOOB,XR Foot Both,Lower Extremity,XR
+XFOOL,XR Foot Lt,Lower Extremity,XR
+XFOOR,XR Foot Rt,Lower Extremity,XR
+XHAWB,XR Hand and wrist Both,Upper Extremity,XR
+XHWBA,XR Hand and wrist for bone age,Upper Extremity,XR
+XHANB,XR Hand Both,Upper Extremity,XR
+XHANL,XR Hand Lt,Upper Extremity,XR
+XHANR,XR Hand Rt,Upper Extremity,XR
+XHIPB,XR Hip Both ,Lower Extremity,XR
+XHIPL,XR Hip Lt,Lower Extremity,XR
+XHIPR,XR Hip Rt,Lower Extremity,XR
+XUPAL,XR Humerus Lt,Upper Extremity,XR
+XUPAR,XR Humerus Rt,Upper Extremity,XR
+X-OPER,XR Intraoperative,Nonspecific,XR
+XIVU,XR Intravenous urogram,Multi Area,XR
+XKNEB,XR Knee Both,Lower Extremity,XR
+XKNEL,XR Knee Lt,Lower Extremity,XR
+XKNER,XR Knee Rt,Lower Extremity,XR
+X-KUB,XR KUB,Multi Area,XR
+XLSPN,XR Lumbar spine,Spine,XR
+XMAND,XR Mandible,Head,XR
+XMASB,XR Mastoid ,Head,XR
+XNASA,XR Nasal bones,Head,XR
+X-NSPHX,XR Nasopharynx,Multi Area,XR
+XNEST,XR Neck soft tissue,Neck,XR
+XORBB,XR Orbit ,Head,XR
+XPSIN,XR Paranasal sinuses,Head,XR
+XPATB,XR Patella Both,Lower Extremity,XR
+XPATL,XR Patella Lt,Lower Extremity,XR
+XPATR,XR Patella Rt,Lower Extremity,XR
+XPELV,XR Pelvis,Pelvis,XR
+XFARL,XR Radius and ulna Lt,Lower Extremity,XR
+XFARR,XR Radius and ulna Rt,Lower Extremity,XR
+X-RIBS,XR Ribs,Chest,XR
+XRIBL,XR Ribs Lt,Chest,XR
+XRIBR,XR Ribs Rt,Chest,XR
+XSACM,XR Sacrum,Spine,XR
+XSCAL,XR Scaphoid Lt,Upper Extremity,XR
+XSCAR,XR Scaphoid Rt,Upper Extremity,XR
+XSCPB,XR Scapula Both,Chest,XR
+XSCPL,XR Scapula Lt,Chest,XR
+XSCPR,XR Scapula Rt,Chest,XR
+XSHRL,XR Shoulder Lt,Upper Extremity,XR
+XSHRR,XR Shoulder Rt,Upper Extremity,XR
+XSKSU,XR Skeletal survey,Body,XR
+XSKUH,XR Skull,Head,XR
+XSKPF,XR Skull sella turcica ,Head,XR
+X-SPNSC,XR Spine for scoliosis,Spine,XR
+XSCJB,XR Sternoclavicular joint Both,Chest,XR
+XSTRM,XR Sternum,Chest,XR
+XTSPN,XR Thoracic spine,Spine,XR
+XTLSP,XR Thoracolumbar spine,Spine,XR
+XLOLB,XR Tibia and fibula Both,Lower Extremity,XR
+XLOLL,XR Tibia and fibula Lt,Lower Extremity,XR
+XLOLR,XR Tibia and fibula Rt,Lower Extremity,XR
+XTMJB,XR TMJ Both,Head,XR
+XTOEL,XR Toes Lt,Lower Extremity,XR
+XTOER,XR Toes Rt,Lower Extremity,XR
+XWRIB,XR Wrist Both,Upper Extremity,XR
+XWRIL,XR Wrist Lt,Upper Extremity,XR
+XWRIL-F,XR Wrist Lt Lat Flex+Ext,Upper Extremity,XR
+XWRIR,XR Wrist Rt,Upper Extremity,XR
+XWRIR-F,XR Wrist Rt Lat Flex+Ext,Upper Extremity,XR

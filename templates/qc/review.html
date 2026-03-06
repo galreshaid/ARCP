@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QC Review - {{ exam.accession_number }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% include "partials/app_shell_styles.html" %}
+    <style>
+        :root{
+            --page:#edf3f7;
+            --panel:#ffffff;
+            --line:#d7e2ea;
+            --line-strong:#bfd0dd;
+            --ink:#18324d;
+            --muted:#6c8194;
+            --brand:#145d8d;
+            --brand-dark:#0f476b;
+            --accent:#de541a;
+            --ok:#166534;
+            --ok-bg:#ecfdf5;
+            --bad:#b91c1c;
+            --bad-bg:#fef2f2;
+            --shadow:0 24px 48px rgba(15,49,77,.08);
+            --radius-xl:22px;
+            --radius-lg:16px;
+            --radius-md:12px;
+        }
+
+        *{box-sizing:border-box}
+
+        body{
+            margin:0;
+            font-family:"Trebuchet MS","Segoe UI",sans-serif;
+            color:var(--ink);
+            background:
+                radial-gradient(circle at top right, rgba(20,93,141,.12), transparent 30%),
+                radial-gradient(circle at bottom left, rgba(222,84,26,.08), transparent 24%),
+                linear-gradient(140deg, #f7fafc, var(--page));
+        }
+
+        .page{
+            display:grid;
+            gap:16px;
+        }
+
+        .hero{
+            background:var(--panel);
+            border:1px solid var(--line);
+            border-radius:var(--radius-xl);
+            box-shadow:var(--shadow);
+            padding:20px;
+            display:flex;
+            justify-content:space-between;
+            gap:14px;
+            flex-wrap:wrap;
+        }
+
+        .hero h1{
+            margin:0;
+            font-size:30px;
+            line-height:1.1;
+        }
+
+        .hero p{
+            margin:8px 0 0;
+            color:var(--muted);
+            max-width:860px;
+            line-height:1.55;
+        }
+
+        .hero-actions{
+            display:flex;
+            gap:10px;
+            align-items:flex-start;
+            flex-wrap:wrap;
+        }
+
+        .btn{
+            min-height:38px;
+            padding:0 14px;
+            border-radius:999px;
+            border:1px solid transparent;
+            cursor:pointer;
+            font:inherit;
+            font-size:12px;
+            font-weight:800;
+            text-decoration:none;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            transition:transform .18s ease, box-shadow .18s ease;
+            white-space:nowrap;
+        }
+
+        .btn:hover{ transform:translateY(-1px); }
+
+        .btn:disabled{
+            opacity:.55;
+            cursor:not-allowed;
+            transform:none;
+        }
+
+        .btn-primary{
+            background:linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color:#fff;
+            box-shadow:0 12px 24px rgba(20,93,141,.16);
+        }
+
+        .btn-secondary{
+            background:linear-gradient(180deg, #fff, #f8fbfd);
+            border-color:var(--line-strong);
+            color:var(--brand-dark);
+            box-shadow:0 8px 18px rgba(15,49,77,.08);
+        }
+
+        .btn-ack{
+            background:linear-gradient(135deg, #16a34a, #15803d);
+            color:#fff;
+            box-shadow:0 12px 24px rgba(22,163,74,.2);
+        }
+
+        .btn-reply{
+            background:linear-gradient(135deg, #145d8d, #0f476b);
+            color:#fff;
+            box-shadow:0 12px 24px rgba(20,93,141,.2);
+        }
+
+        .grid{
+            display:grid;
+            gap:16px;
+            grid-template-columns:minmax(260px, 380px) minmax(420px, 1fr);
+        }
+
+        .panel{
+            background:var(--panel);
+            border:1px solid var(--line);
+            border-radius:var(--radius-xl);
+            box-shadow:var(--shadow);
+            padding:16px;
+        }
+
+        .panel h2{
+            margin:0 0 10px;
+            font-size:19px;
+        }
+
+        .meta-grid{
+            display:grid;
+            gap:8px;
+        }
+
+        .meta-item{
+            border:1px solid #e2ebf2;
+            border-radius:var(--radius-md);
+            background:#fbfdff;
+            padding:10px;
+        }
+
+        .meta-item small{
+            display:block;
+            font-size:11px;
+            text-transform:uppercase;
+            letter-spacing:.05em;
+            color:var(--muted);
+            font-weight:700;
+        }
+
+        .meta-item strong{
+            display:block;
+            margin-top:3px;
+            font-size:14px;
+        }
+
+        .checklist{
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+            gap:10px;
+            margin-top:10px;
+        }
+
+        .checklist-block{
+            margin-top:12px;
+        }
+
+        .checklist-block h3{
+            margin:0;
+            font-size:16px;
+        }
+
+        .check-item{
+            border:1px solid #e2ebf2;
+            border-radius:999px;
+            background:linear-gradient(180deg, #ffffff, #f8fbff);
+            padding:10px;
+            display:flex;
+            align-items:center;
+            gap:8px;
+            min-height:42px;
+            transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+        }
+
+        .check-item input{
+            margin-top:0;
+        }
+
+        .check-item strong{
+            font-size:13px;
+            line-height:1.25;
+        }
+
+        .check-item p{
+            margin:3px 0 0;
+            color:var(--muted);
+            font-size:12px;
+            line-height:1.45;
+        }
+
+        .check-item.active{
+            border-color:#8ab3d1;
+            box-shadow:0 0 0 2px rgba(20,93,141,.1);
+            transform:translateY(-1px);
+        }
+
+        .capture-tools{
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+            margin-bottom:10px;
+        }
+
+        .tool-btn.active{
+            background:linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color:#fff;
+            border-color:transparent;
+        }
+
+        .capture-shell{
+            border:1px dashed #bfd0dd;
+            border-radius:16px;
+            background:linear-gradient(180deg, #fcfdff, #f5f9fc);
+            padding:12px;
+            min-height:320px;
+            display:grid;
+            gap:10px;
+        }
+
+        .capture-header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:8px;
+            flex-wrap:wrap;
+        }
+
+        .capture-header small{
+            color:var(--muted);
+            font-size:12px;
+        }
+
+        .canvas-wrap{
+            width:100%;
+            overflow:auto;
+            border:1px solid #dbe7f2;
+            border-radius:12px;
+            background:#fff;
+            min-height:220px;
+            display:grid;
+            place-items:center;
+        }
+
+        #qc-canvas{
+            max-width:100%;
+            display:block;
+            touch-action:none;
+            cursor:crosshair;
+        }
+
+        .canvas-empty{
+            color:var(--muted);
+            padding:36px 12px;
+            text-align:center;
+            font-size:13px;
+        }
+
+        .image-strip{
+            display:flex;
+            gap:8px;
+            overflow:auto;
+            padding-bottom:4px;
+        }
+
+        .image-chip{
+            border:1px solid #dbe7f2;
+            border-radius:12px;
+            background:#fff;
+            min-width:180px;
+            max-width:240px;
+            padding:8px;
+            display:grid;
+            gap:6px;
+        }
+
+        .image-chip.active{
+            border-color:#8ab3d1;
+            box-shadow:0 0 0 2px rgba(20,93,141,.08);
+        }
+
+        .image-chip strong{
+            font-size:12px;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+
+        .chip-meta{
+            color:var(--muted);
+            font-size:11px;
+        }
+
+        .chip-actions{
+            display:flex;
+            gap:6px;
+        }
+
+        .chip-actions .btn{
+            min-height:28px;
+            padding:0 10px;
+            font-size:10px;
+            flex:1;
+        }
+
+        .notes{
+            margin-top:12px;
+            display:grid;
+            gap:6px;
+        }
+
+        .reply-box{
+            margin-top:12px;
+            display:grid;
+            gap:6px;
+        }
+
+        .reply-box label{
+            color:var(--muted);
+            font-size:11px;
+            text-transform:uppercase;
+            letter-spacing:.05em;
+            font-weight:800;
+        }
+
+        .reply-box textarea{
+            width:100%;
+            min-height:84px;
+            resize:vertical;
+            border:1px solid var(--line-strong);
+            border-radius:12px;
+            padding:10px 12px;
+            font:inherit;
+            color:var(--ink);
+            background:#fbfdff;
+        }
+
+        .notes label{
+            color:var(--muted);
+            font-size:11px;
+            text-transform:uppercase;
+            letter-spacing:.05em;
+            font-weight:800;
+        }
+
+        .notes textarea{
+            width:100%;
+            min-height:90px;
+            resize:vertical;
+            border:1px solid var(--line-strong);
+            border-radius:12px;
+            padding:10px 12px;
+            font:inherit;
+            color:var(--ink);
+            background:#fbfdff;
+        }
+
+        .concern-box{
+            margin-top:8px;
+            border:1px solid #fde68a;
+            border-radius:12px;
+            background:#fffbeb;
+            padding:10px;
+            display:flex;
+            align-items:flex-start;
+            gap:10px;
+        }
+
+        .concern-box strong{
+            display:block;
+            font-size:13px;
+            line-height:1.35;
+        }
+
+        .concern-box small{
+            display:block;
+            color:#92400e;
+            margin-top:2px;
+            font-size:11px;
+        }
+
+        .launch-links{
+            margin-top:10px;
+            display:grid;
+            gap:8px;
+        }
+
+        .launch-line{
+            border:1px solid #e2ebf2;
+            border-radius:12px;
+            background:#f8fbff;
+            padding:10px;
+            display:grid;
+            gap:6px;
+        }
+
+        .launch-line code{
+            display:block;
+            font-size:11px;
+            line-height:1.4;
+            white-space:nowrap;
+            overflow:auto;
+            color:#1e3a8a;
+        }
+
+        .launch-line .btn{
+            min-height:28px;
+            padding:0 10px;
+            font-size:10px;
+            width:max-content;
+        }
+
+        .action-row{
+            margin-top:12px;
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+            align-items:center;
+        }
+
+        .direct-message{
+            margin-top:12px;
+            border:1px solid #dbe7f2;
+            border-radius:14px;
+            background:#f8fbff;
+            padding:12px;
+            display:grid;
+            gap:8px;
+        }
+
+        .direct-message h3{
+            margin:0;
+            font-size:14px;
+        }
+
+        .direct-message p{
+            margin:0;
+            color:var(--muted);
+            font-size:12px;
+        }
+
+        .direct-message-grid{
+            display:grid;
+            gap:8px;
+            grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        .direct-message .field{
+            display:grid;
+            gap:6px;
+        }
+
+        .direct-message label{
+            color:var(--muted);
+            font-size:11px;
+            text-transform:uppercase;
+            letter-spacing:.05em;
+            font-weight:800;
+        }
+
+        .direct-message input,
+        .direct-message select,
+        .direct-message textarea{
+            border:1px solid var(--line-strong);
+            border-radius:12px;
+            background:#fff;
+            color:var(--ink);
+            font:inherit;
+            padding:8px 10px;
+        }
+
+        .direct-message textarea{
+            min-height:72px;
+            resize:vertical;
+        }
+
+        .status-note{
+            font-size:12px;
+            color:var(--muted);
+        }
+
+        .history{
+            display:grid;
+            gap:8px;
+        }
+
+        .history-item{
+            border:1px solid #e2ebf2;
+            border-radius:12px;
+            background:#fbfdff;
+            padding:10px;
+        }
+
+        .history-row{
+            display:flex;
+            justify-content:space-between;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        .btn-mini{
+            min-height:28px;
+            padding:0 10px;
+            font-size:10px;
+        }
+
+        .session-view{
+            margin-top:8px;
+        }
+
+        .session-view > summary{
+            list-style:none;
+            display:inline-flex;
+            cursor:pointer;
+        }
+
+        .session-view > summary::-webkit-details-marker{
+            display:none;
+        }
+
+        .session-detail{
+            margin-top:8px;
+            border:1px solid #dbe7f2;
+            border-radius:12px;
+            background:#f8fbff;
+            padding:10px;
+            display:grid;
+            gap:8px;
+        }
+
+        .session-detail-grid{
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+            gap:8px;
+        }
+
+        .session-checklist{
+            display:flex;
+            gap:6px;
+            flex-wrap:wrap;
+        }
+
+        .session-chip{
+            display:inline-flex;
+            align-items:center;
+            min-height:24px;
+            padding:0 9px;
+            border-radius:999px;
+            font-size:10px;
+            font-weight:800;
+            letter-spacing:.02em;
+            text-transform:uppercase;
+            background:#eef2ff;
+            color:#3730a3;
+        }
+
+        .session-chip.checked{
+            background:#ecfdf5;
+            color:#166534;
+        }
+
+        .session-images{
+            display:flex;
+            gap:6px;
+            flex-wrap:wrap;
+        }
+
+        .badge{
+            display:inline-flex;
+            align-items:center;
+            min-height:24px;
+            border-radius:999px;
+            padding:0 9px;
+            font-size:10px;
+            font-weight:800;
+            letter-spacing:.02em;
+            text-transform:uppercase;
+        }
+
+        .badge.draft{ background:#fef3c7; color:#92400e; }
+        .badge.saved{ background:#fef3c7; color:#92400e; }
+        .badge.acknowledged{ background:var(--ok-bg); color:var(--ok); }
+        .badge.replied{ background:#e0f2fe; color:#0c4a6e; }
+        .badge.approved{ background:var(--ok-bg); color:var(--ok); }
+        .badge.rejected{ background:var(--bad-bg); color:var(--bad); }
+
+        .permissions{
+            margin-top:8px;
+            font-size:12px;
+            color:var(--muted);
+        }
+
+        .muted{ color:var(--muted); font-size:12px; }
+
+        @media (max-width: 1120px){
+            .grid{
+                grid-template-columns:1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+{% include "partials/app_header.html" %}
+<div class="app-frame">
+    {% include "partials/app_sidebar.html" with current_nav="qc" %}
+    <main class="app-main">
+        <div class="page">
+            <section class="hero">
+                <div>
+                    <h1>QC Review: {{ exam.accession_number }}</h1>
+                    <p>Complete the QC checklist and notes, capture annotated evidence when needed, then save the issue. Supervisor workflow is acknowledge and reply only.</p>
+                </div>
+                <div class="hero-actions">
+                    <a class="btn btn-secondary" href="{% url 'quality-control' %}">Back to QC Worklist</a>
+                    {% if pacs_exam_link %}
+                        <a class="btn btn-secondary" href="{{ pacs_exam_link }}" target="_blank" rel="noopener noreferrer">PACS Exam</a>
+                    {% endif %}
+                    {% if pacs_patient_link %}
+                        <a class="btn btn-secondary" href="{{ pacs_patient_link }}" target="_blank" rel="noopener noreferrer">PACS Patient</a>
+                    {% endif %}
+                </div>
+            </section>
+
+            <div class="grid">
+                <section class="panel">
+                    <h2>Study Context</h2>
+                    <div class="meta-grid">
+                        <article class="meta-item">
+                            <small>MRN</small>
+                            <strong>{{ exam.mrn|default:"-" }}</strong>
+                        </article>
+                        <article class="meta-item">
+                            <small>Accession No</small>
+                            <strong>{{ exam.accession_number|default:"-" }}</strong>
+                        </article>
+                        <article class="meta-item">
+                            <small>Modality</small>
+                            <strong>{{ exam.modality.code }} - {{ exam.modality.name }}</strong>
+                        </article>
+                        <article class="meta-item">
+                            <small>Study</small>
+                            <strong>{{ exam.procedure_name|default:"-" }}</strong>
+                        </article>
+                    </div>
+
+                    <div class="permissions">
+                        Save QC: {% if can_save_session %}Yes{% else %}No{% endif %} |
+                        Capture evidence: {% if can_capture_evidence %}Yes{% else %}No{% endif %} |
+                        Supervisor acknowledge/reply: {% if can_acknowledge_or_reply %}Yes{% else %}No{% endif %}
+                    </div>
+
+                    <div class="launch-links">
+                        <div class="launch-line">
+                            <small>PACS exam URL (by accession)</small>
+                            <code id="pacs-exam-link">{{ pacs_exam_link|default:"-" }}</code>
+                            <button class="btn btn-secondary" type="button" data-copy-target="pacs-exam-link">Copy Link</button>
+                        </div>
+                        <div class="launch-line">
+                            <small>PACS patient URL (by MRN)</small>
+                            <code id="pacs-patient-link">{{ pacs_patient_link|default:"-" }}</code>
+                            <button class="btn btn-secondary" type="button" data-copy-target="pacs-patient-link">Copy Link</button>
+                        </div>
+                        <div class="launch-line">
+                            <small>PACS/RIS launch URL by accession</small>
+                            <code id="launch-accession-link">{{ launch_by_accession_url }}</code>
+                            <button class="btn btn-secondary" type="button" data-copy-target="launch-accession-link">Copy Link</button>
+                        </div>
+                        <div class="launch-line">
+                            <small>PACS/RIS launch URL by order ID</small>
+                            <code id="launch-order-link">{{ launch_by_order_url }}</code>
+                            <button class="btn btn-secondary" type="button" data-copy-target="launch-order-link">Copy Link</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <h2>QC Capture Tool</h2>
+                    <div class="capture-tools">
+                        {% if can_capture_evidence %}
+                            <label class="btn btn-secondary" for="image-upload">Add Image</label>
+                            <button class="btn btn-secondary" type="button" id="screen-snap-btn">Snap Screen</button>
+                            <input id="image-upload" type="file" accept="image/*" multiple hidden>
+                            <button class="btn btn-secondary tool-btn active" type="button" data-tool="FREE_DRAW">Free Draw</button>
+                            <button class="btn btn-secondary tool-btn" type="button" data-tool="ARROW">Arrow</button>
+                            <button class="btn btn-secondary tool-btn" type="button" data-tool="CIRCLE">Circle</button>
+                            <button class="btn btn-secondary tool-btn" type="button" data-tool="TEXT">Text</button>
+                            <button class="btn btn-secondary" type="button" id="undo-btn">Undo</button>
+                            <button class="btn btn-secondary" type="button" id="clear-btn">Clear</button>
+                        {% else %}
+                            <small class="muted">Evidence capture is disabled in supervisor acknowledge/reply mode.</small>
+                        {% endif %}
+                    </div>
+
+                    <div class="capture-shell">
+                        <div class="capture-header">
+                            <small>Snipping-tool-like flow: upload or paste screenshots, annotate, then save as PNG.</small>
+                            <small id="active-image-label">No image selected</small>
+                        </div>
+                        <div class="canvas-wrap">
+                            <canvas id="qc-canvas" hidden></canvas>
+                            <div id="canvas-empty" class="canvas-empty">
+                                Add or paste an image to start QC capture.
+                            </div>
+                        </div>
+                        <div class="image-strip" id="image-strip"></div>
+                    </div>
+
+                    <div class="checklist-block">
+                        <h3>Checklist ({{ exam.modality.code }})</h3>
+                        <div class="checklist">
+                            {% for item in checklist_items %}
+                                <label class="check-item">
+                                    <input type="checkbox" data-check-key="{{ item.key }}" {% if is_supervisor_user %}disabled{% endif %}>
+                                    <span>
+                                        <strong>{{ item.label }}</strong>
+                                        {% if item.help_text %}
+                                            <p>{{ item.help_text }}</p>
+                                        {% endif %}
+                                    </span>
+                                </label>
+                            {% empty %}
+                                <div class="check-item">
+                                    <span>
+                                        <strong>No checklist template configured.</strong>
+                                        <p>Configure QC checklist items for this modality in admin.</p>
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="notes">
+                        <label for="qc-notes">QC Notes</label>
+                        <textarea id="qc-notes" placeholder="Optional notes for the QC session..." {% if is_supervisor_user %}disabled{% endif %}>{{ latest_session.notes|default_if_none:"" }}</textarea>
+                        {% if not is_supervisor_user %}
+                            <label class="concern-box">
+                                <input id="concern-raised" type="checkbox" {% if latest_session and latest_session.concern_raised %}checked{% endif %}>
+                                <span>
+                                    <strong>Raise concern for supervisor follow-up</strong>
+                                    <small>Use this when findings need dedicated QC escalation.</small>
+                                </span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    {% if is_supervisor_user %}
+                        <div class="reply-box">
+                            <label for="supervisor-reply">Supervisor Reply</label>
+                            <textarea id="supervisor-reply" placeholder="Reply back to the raised QC issue..."></textarea>
+                        </div>
+                    {% endif %}
+
+                    <section class="direct-message">
+                        <h3>Direct User Message</h3>
+                        <p>Optional: send a direct message from this QC case to any active user.</p>
+                        <div class="direct-message-grid">
+                            <div class="field">
+                                <label for="dm-recipient">Recipient</label>
+                                <select id="dm-recipient">
+                                    <option value="">Select recipient</option>
+                                    {% for recipient in user_message_recipients %}
+                                        <option value="{{ recipient.id }}" {% if issue_owner_id and recipient.id|stringformat:"s" == issue_owner_id %}selected{% endif %}>
+                                            {{ recipient.get_full_name|default:recipient.username|default:recipient.email }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="dm-title">Message Title</label>
+                                <input id="dm-title" type="text" placeholder="QC update for {{ exam.accession_number }}" value="QC update: {{ exam.accession_number }}">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="dm-body">Message Body</label>
+                            <textarea id="dm-body" placeholder="Type the direct user message (optional)..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="action-row">
+                        {% if is_supervisor_user %}
+                            <button class="btn btn-ack" id="acknowledge-btn" type="button" {% if not can_acknowledge_or_reply %}disabled{% endif %}>Acknowledge</button>
+                            <button class="btn btn-reply" id="reply-btn" type="button" {% if not can_acknowledge_or_reply %}disabled{% endif %}>Reply</button>
+                        {% else %}
+                            <button class="btn btn-primary" id="save-btn" type="button" {% if not can_save_session %}disabled{% endif %}>Save</button>
+                        {% endif %}
+                        <a class="btn btn-secondary" href="{% url 'quality-control' %}">Cancel</a>
+                        <span class="status-note" id="save-status"></span>
+                    </div>
+                </section>
+            </div>
+
+            <section class="panel">
+                <h2>Recent QC Sessions</h2>
+                <div class="history">
+                    {% for session in recent_sessions %}
+                        <article class="history-item">
+                            <div class="history-row">
+                                <strong>{{ session.created_at|date:"Y-m-d H:i" }}</strong>
+                                <span class="badge {{ session.status|lower }}">{{ session.status }}</span>
+                            </div>
+                            <div class="history-row" style="margin-top:4px;">
+                                <span class="muted">Reviewer: {{ session.reviewer.get_full_name|default:session.reviewer.username|default:"-" }}</span>
+                                <span class="muted">Images: {{ session.images.count }}</span>
+                            </div>
+                            {% if session.concern_raised %}
+                                <div class="muted" style="margin-top:4px;">Concern was raised for this session.</div>
+                            {% endif %}
+                            {% if session.notes %}
+                                <div class="muted" style="margin-top:6px;">{{ session.notes }}</div>
+                            {% endif %}
+                            <details class="session-view">
+                                <summary class="btn btn-secondary btn-mini">View</summary>
+                                <div class="session-detail">
+                                    <div class="session-detail-grid">
+                                        <div>
+                                            <small class="muted">Submitted</small>
+                                            <div class="muted">{{ session.submitted_at|date:"Y-m-d H:i"|default:"-" }}</div>
+                                        </div>
+                                        <div>
+                                            <small class="muted">Session ID</small>
+                                            <div class="muted">{{ session.id }}</div>
+                                        </div>
+                                    </div>
+                                    {% if session.checklist_state %}
+                                        <div>
+                                            <small class="muted">Checklist Snapshot</small>
+                                            <div class="session-checklist">
+                                                {% for key, value in session.checklist_state.items %}
+                                                    <span class="session-chip {% if value %}checked{% endif %}">
+                                                        {{ key|title }}: {% if value %}Yes{% else %}No{% endif %}
+                                                    </span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <small class="muted">Captured Images</small>
+                                        <div class="session-images">
+                                            {% for image in session.images.all %}
+                                                <a class="btn btn-secondary btn-mini" href="{{ image.image.url }}" target="_blank" rel="noopener noreferrer">
+                                                    Image {{ forloop.counter }}
+                                                </a>
+                                            {% empty %}
+                                                <span class="muted">No images captured in this session.</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+                        </article>
+                    {% empty %}
+                        <div class="history-item">
+                            <div class="muted">No QC sessions recorded for this study yet.</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+{{ latest_checklist_state|json_script:"latest-checklist-state" }}
+
+<script>
+const SESSION_API_URL = "{{ session_api_url }}";
+const CAN_CAPTURE_EVIDENCE = {{ can_capture_evidence|yesno:"true,false" }};
+const IS_SUPERVISOR_USER = {{ is_supervisor_user|yesno:"true,false" }};
+const CAN_SAVE_SESSION = {{ can_save_session|yesno:"true,false" }};
+const CAN_ACKNOWLEDGE_OR_REPLY = {{ can_acknowledge_or_reply|yesno:"true,false" }};
+
+const state = {
+    images: [],
+    selectedId: null,
+    tool: "FREE_DRAW",
+    color: "#dc2626",
+    strokeWidth: 3,
+    isDrawing: false,
+    startPoint: null,
+    workingPoints: [],
+    previewAnnotation: null,
+};
+
+const canvas = document.getElementById("qc-canvas");
+const canvasEmpty = document.getElementById("canvas-empty");
+const imageStrip = document.getElementById("image-strip");
+const activeImageLabel = document.getElementById("active-image-label");
+const saveStatus = document.getElementById("save-status");
+const ctx = canvas.getContext("2d");
+const latestChecklistNode = document.getElementById("latest-checklist-state");
+let latestChecklistState = {};
+if (latestChecklistNode) {
+    try {
+        latestChecklistState = JSON.parse(latestChecklistNode.textContent || "{}");
+    } catch (error) {
+        latestChecklistState = {};
+    }
+}
+
+function createId(){
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+    }
+    return `img-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function currentImage(){
+    return state.images.find((image) => image.id === state.selectedId) || null;
+}
+
+function canvasPoint(event){
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+        return { x: 0, y: 0 };
+    }
+
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+        x: (event.clientX - rect.left) * scaleX,
+        y: (event.clientY - rect.top) * scaleY,
+    };
+}
+
+function getCsrfToken(){
+    const cookie = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("csrftoken="));
+    return cookie ? decodeURIComponent(cookie.split("=")[1]) : "";
+}
+
+function setSaveStatus(message, isError){
+    saveStatus.innerText = message || "";
+    saveStatus.style.color = isError ? "#b91c1c" : "#6c8194";
+}
+
+function loadImageBitmap(imageEntry){
+    return new Promise((resolve, reject) => {
+        if (imageEntry.bitmap) {
+            resolve(imageEntry.bitmap);
+            return;
+        }
+
+        const img = new Image();
+        img.onload = () => {
+            imageEntry.bitmap = img;
+            resolve(img);
+        };
+        img.onerror = () => reject(new Error("Unable to load image."));
+        img.src = imageEntry.source;
+    });
+}
+
+function drawArrow(context, annotation){
+    const start = annotation.start || { x: 0, y: 0 };
+    const end = annotation.end || start;
+    const color = annotation.color || "#dc2626";
+    const strokeWidth = annotation.strokeWidth || 3;
+
+    context.save();
+    context.strokeStyle = color;
+    context.fillStyle = color;
+    context.lineWidth = strokeWidth;
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.beginPath();
+    context.moveTo(start.x, start.y);
+    context.lineTo(end.x, end.y);
+    context.stroke();
+
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
+    const headLength = 12 + strokeWidth;
+    context.beginPath();
+    context.moveTo(end.x, end.y);
+    context.lineTo(
+        end.x - headLength * Math.cos(angle - Math.PI / 7),
+        end.y - headLength * Math.sin(angle - Math.PI / 7)
+    );
+    context.lineTo(
+        end.x - headLength * Math.cos(angle + Math.PI / 7),
+        end.y - headLength * Math.sin(angle + Math.PI / 7)
+    );
+    context.closePath();
+    context.fill();
+    context.restore();
+}
+
+function drawCircle(context, annotation){
+    const start = annotation.start || { x: 0, y: 0 };
+    const end = annotation.end || start;
+    const radius = Math.hypot(end.x - start.x, end.y - start.y);
+
+    context.save();
+    context.strokeStyle = annotation.color || "#dc2626";
+    context.lineWidth = annotation.strokeWidth || 3;
+    context.beginPath();
+    context.arc(start.x, start.y, radius, 0, 2 * Math.PI);
+    context.stroke();
+    context.restore();
+}
+
+function drawFree(context, annotation){
+    const points = annotation.points || [];
+    if (!points.length) {
+        return;
+    }
+
+    context.save();
+    context.strokeStyle = annotation.color || "#dc2626";
+    context.lineWidth = annotation.strokeWidth || 3;
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.beginPath();
+    context.moveTo(points[0].x, points[0].y);
+    for (let index = 1; index < points.length; index += 1) {
+        context.lineTo(points[index].x, points[index].y);
+    }
+    context.stroke();
+    context.restore();
+}
+
+function drawText(context, annotation){
+    const text = String(annotation.text || "").trim();
+    if (!text) {
+        return;
+    }
+
+    context.save();
+    context.fillStyle = annotation.color || "#dc2626";
+    context.font = "20px Trebuchet MS";
+    context.textBaseline = "top";
+    context.fillText(text, annotation.x || 0, annotation.y || 0);
+    context.restore();
+}
+
+function drawAnnotation(context, annotation){
+    const tool = String(annotation.tool || "").toUpperCase();
+    if (tool === "ARROW") {
+        drawArrow(context, annotation);
+        return;
+    }
+    if (tool === "CIRCLE") {
+        drawCircle(context, annotation);
+        return;
+    }
+    if (tool === "TEXT") {
+        drawText(context, annotation);
+        return;
+    }
+    drawFree(context, annotation);
+}
+
+async function drawCanvas(previewAnnotation){
+    const imageEntry = currentImage();
+    if (!imageEntry) {
+        canvas.hidden = true;
+        canvasEmpty.hidden = false;
+        canvasEmpty.innerText = "Add or paste an image to start QC capture.";
+        activeImageLabel.innerText = "No image selected";
+        return;
+    }
+
+    const bitmap = await loadImageBitmap(imageEntry);
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    canvas.hidden = false;
+    canvasEmpty.hidden = true;
+    activeImageLabel.innerText = imageEntry.name;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, 0, 0);
+
+    imageEntry.annotations.forEach((annotation) => drawAnnotation(ctx, annotation));
+    if (previewAnnotation) {
+        drawAnnotation(ctx, previewAnnotation);
+    }
+}
+
+function renderImageStrip(){
+    imageStrip.innerHTML = "";
+    state.images.forEach((image) => {
+        const activeClass = image.id === state.selectedId ? "active" : "";
+        imageStrip.innerHTML += `
+            <article class="image-chip ${activeClass}">
+                <strong>${image.name}</strong>
+                <div class="chip-meta">${image.annotations.length} annotation(s)</div>
+                <div class="chip-actions">
+                    <button class="btn btn-secondary" type="button" onclick="selectImage('${image.id}')">Select</button>
+                    <button class="btn btn-secondary" type="button" onclick="removeImage('${image.id}')">Remove</button>
+                </div>
+            </article>
+        `;
+    });
+}
+
+function selectImage(imageId){
+    state.selectedId = imageId;
+    renderImageStrip();
+    drawCanvas();
+}
+
+function removeImage(imageId){
+    const index = state.images.findIndex((image) => image.id === imageId);
+    if (index === -1) {
+        return;
+    }
+
+    state.images.splice(index, 1);
+    if (state.selectedId === imageId) {
+        state.selectedId = state.images.length ? state.images[0].id : null;
+    }
+    renderImageStrip();
+    drawCanvas();
+}
+
+function addImage(name, source){
+    const imageEntry = {
+        id: createId(),
+        name: String(name || "QC Capture").trim(),
+        source,
+        bitmap: null,
+        annotations: [],
+    };
+    state.images.push(imageEntry);
+    state.selectedId = imageEntry.id;
+    renderImageStrip();
+    drawCanvas();
+}
+
+function readFileAsDataUrl(file){
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("Unable to read file."));
+        reader.readAsDataURL(file);
+    });
+}
+
+async function handleFiles(fileList){
+    const files = Array.from(fileList || []);
+    for (const file of files) {
+        if (!file.type.startsWith("image/")) {
+            continue;
+        }
+        const dataUrl = await readFileAsDataUrl(file);
+        addImage(file.name, dataUrl);
+    }
+}
+
+async function captureScreenSnapshot(){
+    if (!CAN_CAPTURE_EVIDENCE) {
+        setSaveStatus("You do not have permission to capture evidence.", true);
+        return;
+    }
+    if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) {
+        setSaveStatus("Screen capture is not supported in this browser.", true);
+        return;
+    }
+
+    try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+            video: {
+                frameRate: 1,
+            },
+            audio: false,
+        });
+
+        const video = document.createElement("video");
+        video.srcObject = stream;
+        video.muted = true;
+        await video.play();
+
+        const shotCanvas = document.createElement("canvas");
+        shotCanvas.width = video.videoWidth || 1920;
+        shotCanvas.height = video.videoHeight || 1080;
+        const shotCtx = shotCanvas.getContext("2d");
+        shotCtx.drawImage(video, 0, 0, shotCanvas.width, shotCanvas.height);
+
+        stream.getTracks().forEach((track) => track.stop());
+        video.srcObject = null;
+
+        const timestamp = new Date().toISOString().replace(/[^\d]/g, "").slice(0, 14);
+        addImage(`pacs-snapshot-${timestamp}.png`, shotCanvas.toDataURL("image/png"));
+        setSaveStatus("Screen snapshot captured.", false);
+    } catch (error) {
+        if (String(error && error.name) === "NotAllowedError") {
+            setSaveStatus("Screen capture permission was not granted.", true);
+            return;
+        }
+        setSaveStatus("Unable to capture screen snapshot.", true);
+    }
+}
+
+async function copyTextById(targetId){
+    const target = document.getElementById(targetId);
+    if (!target) {
+        return;
+    }
+
+    const value = String(target.innerText || target.textContent || "").trim();
+    if (!value) {
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(value);
+        setSaveStatus("Launch link copied.", false);
+    } catch (error) {
+        setSaveStatus("Unable to copy launch link.", true);
+    }
+}
+
+function activateTool(tool){
+    state.tool = tool;
+    document.querySelectorAll(".tool-btn").forEach((button) => {
+        button.classList.toggle("active", button.dataset.tool === tool);
+    });
+}
+
+function beginDraw(event){
+    const imageEntry = currentImage();
+    if (!imageEntry) {
+        return;
+    }
+
+    const point = canvasPoint(event);
+    if (state.tool === "TEXT") {
+        const text = window.prompt("Text note");
+        if (!text) {
+            return;
+        }
+        imageEntry.annotations.push({
+            tool: "TEXT",
+            text,
+            x: point.x,
+            y: point.y,
+            color: state.color,
+            strokeWidth: state.strokeWidth,
+        });
+        renderImageStrip();
+        drawCanvas();
+        return;
+    }
+
+    state.isDrawing = true;
+    state.startPoint = point;
+    state.workingPoints = [point];
+    state.previewAnnotation = null;
+    canvas.setPointerCapture(event.pointerId);
+}
+
+function continueDraw(event){
+    if (!state.isDrawing) {
+        return;
+    }
+
+    const point = canvasPoint(event);
+    if (state.tool === "FREE_DRAW") {
+        state.workingPoints.push(point);
+        state.previewAnnotation = {
+            tool: "FREE_DRAW",
+            points: [...state.workingPoints],
+            color: state.color,
+            strokeWidth: state.strokeWidth,
+        };
+    } else {
+        state.previewAnnotation = {
+            tool: state.tool,
+            start: state.startPoint,
+            end: point,
+            color: state.color,
+            strokeWidth: state.strokeWidth,
+        };
+    }
+    drawCanvas(state.previewAnnotation);
+}
+
+function endDraw(event){
+    if (!state.isDrawing) {
+        return;
+    }
+
+    const imageEntry = currentImage();
+    if (!imageEntry) {
+        state.isDrawing = false;
+        state.previewAnnotation = null;
+        return;
+    }
+
+    const point = canvasPoint(event);
+    let annotation = null;
+
+    if (state.tool === "FREE_DRAW") {
+        annotation = {
+            tool: "FREE_DRAW",
+            points: [...state.workingPoints, point],
+            color: state.color,
+            strokeWidth: state.strokeWidth,
+        };
+    } else {
+        annotation = {
+            tool: state.tool,
+            start: state.startPoint,
+            end: point,
+            color: state.color,
+            strokeWidth: state.strokeWidth,
+        };
+    }
+
+    imageEntry.annotations.push(annotation);
+    state.isDrawing = false;
+    state.previewAnnotation = null;
+    state.workingPoints = [];
+    renderImageStrip();
+    drawCanvas();
+}
+
+function undoAnnotation(){
+    const imageEntry = currentImage();
+    if (!imageEntry || !imageEntry.annotations.length) {
+        return;
+    }
+    imageEntry.annotations.pop();
+    renderImageStrip();
+    drawCanvas();
+}
+
+function clearAnnotations(){
+    const imageEntry = currentImage();
+    if (!imageEntry || !imageEntry.annotations.length) {
+        return;
+    }
+    if (!window.confirm("Clear all annotations on the selected image?")) {
+        return;
+    }
+    imageEntry.annotations = [];
+    renderImageStrip();
+    drawCanvas();
+}
+
+async function renderAnnotatedPng(imageEntry){
+    const bitmap = await loadImageBitmap(imageEntry);
+    const exportCanvas = document.createElement("canvas");
+    const exportCtx = exportCanvas.getContext("2d");
+    exportCanvas.width = bitmap.width;
+    exportCanvas.height = bitmap.height;
+    exportCtx.drawImage(bitmap, 0, 0);
+    imageEntry.annotations.forEach((annotation) => drawAnnotation(exportCtx, annotation));
+    return exportCanvas.toDataURL("image/png");
+}
+
+function checklistState(){
+    const stateMap = {};
+    document.querySelectorAll("[data-check-key]").forEach((checkbox) => {
+        stateMap[checkbox.dataset.checkKey] = Boolean(checkbox.checked);
+    });
+    return stateMap;
+}
+
+function refreshChecklistVisualState(){
+    document.querySelectorAll(".check-item").forEach((item) => {
+        const checkbox = item.querySelector("[data-check-key]");
+        item.classList.toggle("active", Boolean(checkbox && checkbox.checked));
+    });
+}
+
+function initializeChecklistState(){
+    document.querySelectorAll("[data-check-key]").forEach((checkbox) => {
+        const key = checkbox.dataset.checkKey;
+        if (!Object.prototype.hasOwnProperty.call(latestChecklistState, key)) {
+            return;
+        }
+        checkbox.checked = Boolean(latestChecklistState[key]);
+    });
+    refreshChecklistVisualState();
+    document.querySelectorAll("[data-check-key]").forEach((checkbox) => {
+        checkbox.addEventListener("change", refreshChecklistVisualState);
+    });
+}
+
+function toggleActionButtons(disabled){
+    const saveButton = document.getElementById("save-btn");
+    const acknowledgeButton = document.getElementById("acknowledge-btn");
+    const replyButton = document.getElementById("reply-btn");
+    if (saveButton) {
+        saveButton.disabled = disabled || !CAN_SAVE_SESSION;
+    }
+    if (acknowledgeButton) {
+        acknowledgeButton.disabled = disabled || !CAN_ACKNOWLEDGE_OR_REPLY;
+    }
+    if (replyButton) {
+        replyButton.disabled = disabled || !CAN_ACKNOWLEDGE_OR_REPLY;
+    }
+}
+
+async function submitQc(action){
+    if (!CAN_CAPTURE_EVIDENCE && state.images.length) {
+        setSaveStatus("You do not have permission to capture evidence.", true);
+        return;
+    }
+
+    const notesNode = document.getElementById("qc-notes");
+    const concernNode = document.getElementById("concern-raised");
+    const supervisorReplyNode = document.getElementById("supervisor-reply");
+    const dmRecipientNode = document.getElementById("dm-recipient");
+    const dmTitleNode = document.getElementById("dm-title");
+    const dmBodyNode = document.getElementById("dm-body");
+
+    const notes = notesNode ? notesNode.value.trim() : "";
+    const checklist = checklistState();
+    const concernRaised = Boolean(concernNode && concernNode.checked);
+    const supervisorReply = supervisorReplyNode ? supervisorReplyNode.value.trim() : "";
+    const dmRecipient = dmRecipientNode ? String(dmRecipientNode.value || "").trim() : "";
+    const dmTitle = dmTitleNode ? dmTitleNode.value.trim() : "";
+    const dmBody = dmBodyNode ? dmBodyNode.value.trim() : "";
+
+    if (action === "reply" && !supervisorReply) {
+        setSaveStatus("Supervisor reply text is required.", true);
+        return;
+    }
+    if (dmRecipient && !dmBody) {
+        setSaveStatus("Direct message body is required when recipient is selected.", true);
+        return;
+    }
+
+    setSaveStatus("Saving...", false);
+    toggleActionButtons(true);
+
+    try {
+        const imagesPayload = [];
+        for (const imageEntry of state.images) {
+            imagesPayload.push({
+                name: imageEntry.name,
+                data_url: await renderAnnotatedPng(imageEntry),
+                annotations: imageEntry.annotations,
+            });
+        }
+
+        const payload = {
+            action,
+            checklist,
+            notes,
+            concern_raised: concernRaised,
+            supervisor_reply: supervisorReply,
+            direct_message: {
+                recipient_id: dmRecipient,
+                title: dmTitle,
+                message: dmBody,
+            },
+            images: imagesPayload,
+        };
+
+        const response = await fetch(SESSION_API_URL, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCsrfToken(),
+            },
+            body: JSON.stringify(payload),
+        });
+
+        let body = {};
+        try {
+            body = await response.json();
+        } catch (error) {
+            body = {};
+        }
+
+        if (!response.ok) {
+            throw new Error(body.error || "Unable to save QC session.");
+        }
+
+        const actionLabel = (
+            action === "acknowledge"
+                ? "Issue acknowledged"
+                : (action === "reply" ? "Reply sent" : "QC saved")
+        );
+        setSaveStatus(`${actionLabel}.`, false);
+        window.setTimeout(() => {
+            location.href = body.review_url || location.href;
+        }, 550);
+    } catch (error) {
+        setSaveStatus(error.message || "Unable to save QC session.", true);
+        toggleActionButtons(false);
+    }
+}
+
+const imageUploadInput = document.getElementById("image-upload");
+if (imageUploadInput) {
+    imageUploadInput.addEventListener("change", async (event) => {
+        await handleFiles(event.target.files);
+        event.target.value = "";
+    });
+}
+const screenSnapButton = document.getElementById("screen-snap-btn");
+if (screenSnapButton) {
+    screenSnapButton.addEventListener("click", captureScreenSnapshot);
+}
+
+window.addEventListener("paste", async (event) => {
+    if (!CAN_CAPTURE_EVIDENCE) {
+        return;
+    }
+    const items = Array.from((event.clipboardData && event.clipboardData.items) || []);
+    const imageFiles = items
+        .filter((item) => item.type.startsWith("image/"))
+        .map((item) => item.getAsFile())
+        .filter(Boolean);
+
+    if (!imageFiles.length) {
+        return;
+    }
+
+    event.preventDefault();
+    await handleFiles(imageFiles);
+});
+
+document.querySelectorAll(".tool-btn").forEach((button) => {
+    button.addEventListener("click", () => activateTool(button.dataset.tool));
+});
+
+const undoButton = document.getElementById("undo-btn");
+if (undoButton) {
+    undoButton.addEventListener("click", undoAnnotation);
+}
+const clearButton = document.getElementById("clear-btn");
+if (clearButton) {
+    clearButton.addEventListener("click", clearAnnotations);
+}
+const saveButton = document.getElementById("save-btn");
+if (saveButton) {
+    saveButton.addEventListener("click", () => submitQc("save"));
+}
+const acknowledgeButton = document.getElementById("acknowledge-btn");
+if (acknowledgeButton) {
+    acknowledgeButton.addEventListener("click", () => submitQc("acknowledge"));
+}
+const replyButton = document.getElementById("reply-btn");
+if (replyButton) {
+    replyButton.addEventListener("click", () => submitQc("reply"));
+}
+
+document.querySelectorAll("[data-copy-target]").forEach((button) => {
+    button.addEventListener("click", () => copyTextById(button.dataset.copyTarget));
+});
+
+canvas.addEventListener("pointerdown", beginDraw);
+canvas.addEventListener("pointermove", continueDraw);
+canvas.addEventListener("pointerup", endDraw);
+canvas.addEventListener("pointerleave", endDraw);
+
+initializeChecklistState();
+renderImageStrip();
+drawCanvas();
+</script>
+</body>
+</html>

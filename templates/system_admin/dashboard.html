@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Internal Admin Console</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% include "partials/app_shell_styles.html" %}
+    <style>
+        :root {
+            --ink-900: #0f172a;
+            --ink-700: #334155;
+            --ink-500: #64748b;
+            --line: rgba(148, 163, 184, 0.25);
+            --panel: rgba(255, 255, 255, 0.9);
+            --panel-strong: #ffffff;
+            --brand: #145d8d;
+            --brand-dark: #0f4b72;
+            --accent: #de541a;
+            --surface: #eef4f8;
+            --surface-alt: #dbe7ef;
+            --ok: #0f766e;
+            --shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
+            --radius-xl: 24px;
+            --radius-lg: 18px;
+            --radius-md: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            color: var(--ink-900);
+            background:
+                radial-gradient(circle at top right, rgba(20, 93, 141, 0.12), transparent 30%),
+                radial-gradient(circle at bottom left, rgba(222, 84, 26, 0.12), transparent 32%),
+                linear-gradient(135deg, var(--surface), #f8fafc 48%, var(--surface-alt));
+        }
+
+        .page {
+            display:grid;
+            gap:18px;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.3fr 0.7fr;
+            gap: 18px;
+            margin-bottom: 22px;
+        }
+
+        .hero-panel,
+        .shortcut-panel,
+        .section {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(8px);
+        }
+
+        .hero-panel {
+            padding: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-panel::after {
+            content: "";
+            position: absolute;
+            inset: auto -80px -100px auto;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(20, 93, 141, 0.2), rgba(222, 84, 26, 0.22));
+        }
+
+        .eyebrow {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(20, 93, 141, 0.1);
+            color: var(--brand);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: clamp(30px, 4vw, 44px);
+            line-height: 1.05;
+        }
+
+        .hero-copy {
+            margin: 0;
+            max-width: 680px;
+            color: var(--ink-700);
+            line-height: 1.6;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 22px;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 44px;
+            padding: 0 16px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+        }
+
+        .button-primary {
+            background: var(--brand);
+            color: #fff;
+            box-shadow: 0 14px 28px rgba(20, 93, 141, 0.24);
+        }
+
+        .button-primary:hover {
+            background: var(--brand-dark);
+        }
+
+        .button-secondary {
+            background: rgba(255, 255, 255, 0.84);
+            border: 1px solid var(--line);
+            color: var(--ink-900);
+        }
+
+        .shortcut-panel {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .shortcut-panel h2 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+
+        .shortcut-panel p {
+            margin: 0;
+            color: var(--ink-500);
+            line-height: 1.5;
+        }
+
+        .shortcut-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .shortcut-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            background: var(--panel-strong);
+            color: var(--ink-900);
+            border: 1px solid var(--line);
+            font-weight: 700;
+        }
+
+        .shortcut-link span {
+            color: var(--ink-500);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.84);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+        }
+
+        .stat-label {
+            margin: 0 0 8px;
+            color: var(--ink-500);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .stat-value {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .stat-detail {
+            margin: 8px 0 0;
+            color: var(--ok);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .section {
+            padding: 24px;
+            margin-bottom: 18px;
+        }
+
+        .section-head {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .section-head h2 {
+            margin: 0 0 6px;
+            font-size: 22px;
+        }
+
+        .section-head p {
+            margin: 0;
+            color: var(--ink-500);
+        }
+
+        .section-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 14px;
+        }
+
+        .resource-card {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding: 18px;
+            border-radius: var(--radius-lg);
+            background: var(--panel-strong);
+            border: 1px solid var(--line);
+        }
+
+        .resource-top {
+            display: flex;
+            align-items: start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .resource-title {
+            margin: 0 0 6px;
+            font-size: 17px;
+        }
+
+        .resource-copy {
+            margin: 0;
+            color: var(--ink-500);
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .count-badge {
+            min-width: 54px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            background: rgba(20, 93, 141, 0.08);
+            color: var(--brand);
+            text-align: center;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .resource-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .resource-actions a {
+            color: var(--brand);
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .resource-actions a:last-child {
+            color: var(--accent);
+        }
+
+        @media (max-width: 880px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    {% include "partials/system_admin_match_worklist_styles.html" %}
+</head>
+<body>
+    {% include "partials/app_header.html" %}
+    <div class="app-frame">
+        {% include "partials/app_sidebar.html" with current_nav="admin" %}
+        <main class="app-main">
+    <div class="page system-admin-page">
+        <section class="hero">
+            <div class="hero-panel">
+                <div class="eyebrow">System Control</div>
+                <h1>Internal Admin Console</h1>
+                <p class="hero-copy">
+                    This is the system-native admin surface for operational staff. User, group, workflow,
+                    and reference-data management stay inside the application without exposing Django admin.
+                </p>
+                <div class="hero-actions">
+                    <a href="/protocoling/" class="button button-primary">Open Protocol Worklist</a>
+                    <a href="{{ primary_admin_url }}" class="button button-secondary">Open User Management</a>
+                </div>
+            </div>
+
+            <aside class="shortcut-panel">
+                <div>
+                    <h2>Quick Access</h2>
+                    <p>Fast paths to the areas that usually need intervention first.</p>
+                </div>
+                <div class="shortcut-list">
+                    {% for link in quick_links %}
+                        <a class="shortcut-link" href="{{ link.url }}">
+                            {{ link.label }}
+                            <span>{{ link.description }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </aside>
+        </section>
+
+        <section class="stats">
+            {% for card in summary_cards %}
+                <article class="stat">
+                    <p class="stat-label">{{ card.label }}</p>
+                    <p class="stat-value">{{ card.value }}</p>
+                    <p class="stat-detail">{{ card.detail }}</p>
+                </article>
+            {% endfor %}
+        </section>
+
+        {% for section in admin_sections %}
+            <section class="section">
+                <div class="section-head">
+                    <div>
+                        <h2>{{ section.title }}</h2>
+                        <p>{{ section.description }}</p>
+                    </div>
+                </div>
+
+                <div class="section-grid">
+                    {% for link in section.links %}
+                        <article class="resource-card">
+                            <div class="resource-top">
+                                <div>
+                                    <h3 class="resource-title">{{ link.label }}</h3>
+                                    <p class="resource-copy">{{ link.description }}</p>
+                                </div>
+                                <div class="count-badge">{{ link.count }}</div>
+                            </div>
+
+                            <div class="resource-actions">
+                                <a href="{{ link.manage_url }}">Manage records</a>
+                                {% if link.add_url %}
+                                    <a href="{{ link.add_url }}">Add new</a>
+                                {% else %}
+                                    <a href="{{ link.manage_url }}">View details</a>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endfor %}
+    </div>
+        </main>
+    </div>
+</body>
+</html>
