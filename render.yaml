@@ -5,7 +5,8 @@ services:
     plan: free
     branch: main
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    startCommand: python manage.py migrate && gunicorn config.wsgi:application --log-file -
+    preDeployCommand: python manage.py repair_migration_sequence && python manage.py migrate && python manage.py collectstatic --noinput
+    startCommand: gunicorn config.wsgi:application --log-file -
     healthCheckPath: /login/
     envVars:
       - key: DJANGO_SETTINGS_MODULE
