@@ -4,8 +4,8 @@ services:
     env: python
     plan: free
     branch: main
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    preDeployCommand: python manage.py repair_migration_sequence && python manage.py migrate && python manage.py collectstatic --noinput
+    buildCommand: pip install -r requirements.txt
+    preDeployCommand: python manage.py prepare_deploy
     startCommand: gunicorn config.wsgi:application --log-file -
     healthCheckPath: /login/
     envVars:
