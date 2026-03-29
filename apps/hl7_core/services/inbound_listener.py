@@ -11,6 +11,7 @@ from apps.core.models import Exam
 from apps.core.services.hl7_message_log import create_hl7_message_log
 from apps.core.services.hl7_orm import _extract_preface_identifiers, _first_component, ingest_orm_message
 from apps.core.services.hl7_orr import ingest_orr_message
+from apps.core.services.hl7_siu import ingest_siu_message
 from apps.hl7_core.models import HL7Message
 from apps.hl7_core.parsers.orm_parser import ORMParser
 
@@ -21,7 +22,7 @@ MLLP_START_BLOCK = b"\x0b"
 MLLP_END_BLOCK = b"\x1c"
 MLLP_CARRIAGE_RETURN = b"\x0d"
 
-HL7_RESPONSE_ORDER_CONTROLS = {"SC", "OK", "XO", "CM"}
+HL7_RESPONSE_ORDER_CONTROLS = {"SC", "OK", "XO", "IP", "CM", "CA"}
 
 
 def wrap_mllp_message(raw_message: str) -> bytes:
@@ -99,9 +100,14 @@ def inspect_inbound_hl7_message(raw_message: str) -> dict[str, Any]:
     message_info = parsed.get("message_info") or {}
     order = parsed.get("order") or {}
     observation = parsed.get("observation_request") or {}
+    schedule = parsed.get("schedule") or {}
 
     message_type = (message_info.get("message_type") or "").strip().upper()
-    order_control = (order.get("order_control") or "").strip().upper()
+    order_control = (
+        order.get("order_control")
+        or schedule.get("appointment_status")
+        or ""
+    ).strip().upper()
     message_control_id = (message_info.get("message_control_id") or "").strip()
     order_id = _first_component(
         order_hint
@@ -109,6 +115,8 @@ def inspect_inbound_hl7_message(raw_message: str) -> dict[str, Any]:
         or observation.get("placer_order_number")
         or observation.get("filler_order_number")
         or order.get("filler_order_number")
+        or schedule.get("placer_appointment_id")
+        or schedule.get("filler_appointment_id")
         or accession_hint
         or ""
     )
@@ -150,9 +158,18 @@ def _has_inbound_log_for_message_control_id(message_control_id: str) -> bool:
     if not normalized:
         return False
 
-    return HL7Message.objects.filter(
+    logs = HL7Message.objects.filter(
         direction="INBOUND",
         message_control_id=normalized,
+    )
+    if not logs.exists():
+        return False
+
+    # Allow retransmission when the only existing entry is a deferred ORR placeholder.
+    # This lets the same message control ID be reprocessed after workflow changes.
+    return logs.exclude(
+        status="RECEIVED",
+        error_message__startswith="Deferred ORR update waiting for ORM order ",
     ).exists()
 
 
@@ -168,6 +185,8 @@ def evaluate_inbound_hl7_receipt(raw_message: str) -> tuple[dict[str, Any] | Non
     if context["message_type"] == "ORM^O01" and context["order_control"] == "NW":
         pass
     elif context["message_type"] in {"ORM^O01", "ORR^O02"} and context["order_control"] in HL7_RESPONSE_ORDER_CONTROLS:
+        pass
+    elif context["message_type"].startswith("SIU^"):
         pass
     else:
         error_message = (
@@ -275,6 +294,16 @@ def dispatch_inbound_hl7_message(raw_message: str) -> dict[str, Any]:
             "created": created,
             "order_id": exam.order_id or order_id,
             "accession_number": exam.accession_number or accession_number,
+        }
+
+    if message_type.startswith("SIU^"):
+        exam, created, _ = ingest_siu_message(raw_message)
+        return {
+            "handler": "SIU",
+            "exam_id": str(exam.id),
+            "created": created,
+            "order_id": exam.order_id,
+            "accession_number": exam.accession_number,
         }
 
     raise ValueError(

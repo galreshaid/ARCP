@@ -3,7 +3,8 @@ Core Views
 """
 import csv
 import json
-from datetime import datetime
+from collections import Counter
+from datetime import datetime, time, timedelta
 from urllib.parse import quote, urlencode
 
 from django.contrib import messages
@@ -35,6 +36,17 @@ from apps.core.models import (
     ProcedureMaterialBundle,
     ProcedureMaterialBundleItem,
     Procedure,
+)
+from apps.core.services.subspeciality import (
+    append_subspeciality_change_event,
+    normalize_subspeciality,
+    resolve_exam_subspeciality,
+)
+from apps.core.services.subspeciality import SUBSPECIALITY_POOL
+from apps.core.services.facility_scope import (
+    apply_facility_scope,
+    can_access_facility,
+    scoped_facility_ids,
 )
 from apps.hl7_core.parsers.orm_parser import ORMParser
 from apps.hl7_core.models import HL7Message
@@ -250,7 +262,7 @@ SYSTEM_ADMIN_RESOURCES = {
     'facilities': {
         'label': 'Facilities',
         'model': Facility,
-        'list_fields': ('code', 'name', 'hl7_facility_id', 'is_active'),
+        'list_fields': ('code', 'name', 'hl7_facility_id', 'qc_service_desk_email', 'is_active'),
         'form_fields': (
             'code',
             'name',
@@ -258,6 +270,7 @@ SYSTEM_ADMIN_RESOURCES = {
             'address',
             'contact_email',
             'contact_phone',
+            'qc_service_desk_email',
             'is_active',
             'config_json',
         ),
@@ -336,7 +349,7 @@ SYSTEM_ADMIN_RESOURCES = {
         'label': 'Users',
         'model': User,
         'list_fields': ('email', 'username', 'role', 'professional_id', 'nid', 'is_active', 'is_staff'),
-        'search_fields': ('email', 'username', 'first_name', 'last_name', 'professional_id', 'nid'),
+        'search_fields': ('email', 'username', 'first_name', 'last_name', 'professional_id', 'nid', 'specialty'),
         'ordering': ('email',),
         'description': 'User accounts, access, and role configuration.',
         'form_class': SystemAdminUserForm,
@@ -713,6 +726,146 @@ def _hl7_segment_interpretation(message):
     return interpretations
 
 
+def _hl7_issue_reason_context_values(status_value: str, technical_reason: str):
+    technical_reason = str(technical_reason or "").strip()
+    status_value = str(status_value or "").strip().upper()
+    normalized_reason = technical_reason.casefold()
+
+    if "duplicate message control id" in normalized_reason:
+        return {
+            "category": "Duplicate Message Control ID",
+            "plain_reason": (
+                "The same HL7 message was already imported earlier, so this copy was ignored "
+                "to prevent duplicate exams."
+            ),
+            "next_step": "No action needed unless the source system should send a corrected message ID.",
+            "technical_reason": technical_reason,
+        }
+
+    if "duplicate order id" in normalized_reason:
+        return {
+            "category": "Duplicate Order ID",
+            "plain_reason": (
+                "An exam with this order number already exists, so the system rejected this message "
+                "to avoid creating a second exam."
+            ),
+            "next_step": "No action needed unless this was intended to be a new order with a unique order ID.",
+            "technical_reason": technical_reason,
+        }
+
+    if "unsupported inbound hl7 flow" in normalized_reason:
+        return {
+            "category": "Unsupported HL7 Flow",
+            "plain_reason": (
+                "This HL7 message pattern is outside the supported workflow. "
+                "Only ORM with order control NW (new order), ORM/ORR with IP/CM/CA "
+                "(status updates), and SIU scheduling are processed."
+            ),
+            "next_step": (
+                "If the order control is SC, it is intentionally ignored. "
+                "Otherwise check interface mapping in the source system or integration engine."
+            ),
+            "technical_reason": technical_reason,
+        }
+
+    if status_value == "ERROR":
+        return {
+            "category": "Processing Error",
+            "plain_reason": (
+                "The message was accepted by transport but failed during internal processing."
+            ),
+            "next_step": "Open HL7 message detail and review parsed fields and raw payload.",
+            "technical_reason": technical_reason or "Message processing failed.",
+        }
+
+    return {
+        "category": "Rejected",
+        "plain_reason": "The message was rejected by validation rules.",
+        "next_step": "Open HL7 message detail for full payload and validation context.",
+        "technical_reason": technical_reason or "Message rejected.",
+    }
+
+
+def _hl7_issue_reason_context(message):
+    return _hl7_issue_reason_context_values(
+        getattr(message, "status", ""),
+        getattr(message, "error_message", ""),
+    )
+
+
+def _hl7_message_plain_summary(message):
+    parsed = dict(getattr(message, "parsed_data", {}) or {})
+    order = dict(parsed.get("order") or {})
+    observation = dict(parsed.get("observation_request") or {})
+    patient = dict(parsed.get("patient") or {})
+    patient_name_map = dict(patient.get("patient_name") or {})
+
+    order_id = (
+        getattr(message, "exam_order_number", lambda: "")()
+        or str(order.get("placer_order_number") or "").strip()
+        or str(observation.get("placer_order_number") or "").strip()
+        or "—"
+    )
+    accession = (
+        getattr(message, "exam_accession_number", lambda: "")()
+        or str(order.get("filler_order_number") or "").strip()
+        or str(observation.get("filler_order_number") or "").strip()
+        or "—"
+    )
+    procedure = (
+        str(observation.get("procedure_name") or "").strip()
+        or str(getattr(getattr(message, "exam", None), "procedure_name", "") or "").strip()
+        or "procedure not provided"
+    )
+    patient_name = (
+        " ".join(
+            part
+            for part in (
+                patient_name_map.get("given"),
+                patient_name_map.get("middle"),
+                patient_name_map.get("family"),
+            )
+            if str(part or "").strip()
+        ).strip()
+        or str(getattr(getattr(message, "exam", None), "patient_name", "") or "").strip()
+        or "patient name not provided"
+    )
+    facility = (
+        str(getattr(message, "sending_facility", "") or "").strip()
+        or str(((parsed.get("message_info") or {}).get("sending_facility") or "")).strip()
+        or "unknown facility"
+    )
+
+    return (
+        f"{message.message_type} from {facility}: order {order_id}, accession {accession}, "
+        f"procedure {procedure}, patient {patient_name}."
+    )
+
+
+def _hl7_reporting_window(range_key: str):
+    selected = str(range_key or "").strip().lower() or "yesterday"
+    today = timezone.localdate()
+
+    if selected == "today":
+        start_date = today
+        end_date = today
+    elif selected == "last7":
+        start_date = today - timedelta(days=6)
+        end_date = today
+    elif selected == "last30":
+        start_date = today - timedelta(days=29)
+        end_date = today
+    else:
+        selected = "yesterday"
+        start_date = today - timedelta(days=1)
+        end_date = start_date
+
+    tz = timezone.get_current_timezone()
+    start_dt = timezone.make_aware(datetime.combine(start_date, time.min), tz)
+    end_dt = timezone.make_aware(datetime.combine(end_date, time.max), tz)
+    return selected, start_date, end_date, start_dt, end_dt
+
+
 def _singular_label(label):
     irregular = {
         'Facilities': 'Facility',
@@ -751,6 +904,10 @@ def _is_exam_visible_in_protocol_workflow(
 
 def _role(user):
     return getattr(user, 'role', '') or ''
+
+
+def _user_default_subspeciality(user):
+    return normalize_subspeciality(getattr(user, 'specialty', '') or '')
 
 
 def _can_access_radiologist_review(user):
@@ -792,21 +949,13 @@ def _contrast_exam_queryset_for_user(user):
         modality__requires_contrast=True,
         modality__is_active=True,
         status__in=(
-            ExamStatus.ORDER,
-            ExamStatus.SCHEDULED,
             ExamStatus.IN_PROGRESS,
             ExamStatus.COMPLETED,
             ExamStatus.CANCELLED,
         ),
     )
 
-    try:
-        has_restrictions = not user.is_superuser and user.facilities.exists()
-    except Exception:
-        has_restrictions = False
-
-    if has_restrictions:
-        queryset = queryset.filter(facility__in=user.facilities.all())
+    queryset = apply_facility_scope(queryset, user)
 
     return queryset.annotate(
         contrast_entry_count=Count("contrast_usages", distinct=True),
@@ -832,6 +981,7 @@ def _effective_exam_status(exam: Exam) -> str:
             order_control=order_control,
             order_status=order_status,
             fallback=exam.status,
+            actionable_response_only=True,
         )
     except Exception:
         return exam.status
@@ -849,17 +999,14 @@ def _exam_status_label(status_value: str) -> str:
 
 
 def _can_access_contrast_exam(user, exam) -> bool:
+    if not can_access_facility(user, exam.facility_id):
+        return False
+
     if user.is_superuser:
         return True
 
     if _role(user) == UserRole.ADMIN:
         return True
-
-    try:
-        if user.facilities.exists() and not user.facilities.filter(id=exam.facility_id).exists():
-            return False
-    except Exception:
-        pass
 
     return user.has_permission(Permission.CONTRAST_VIEW)
 
@@ -1248,6 +1395,35 @@ def _json_payload(request):
     return payload
 
 
+def _optional_numeric_input(raw_value):
+    if raw_value is None:
+        return None
+    if isinstance(raw_value, str):
+        value = raw_value.strip()
+        return value or None
+    return raw_value
+
+
+def _validation_error_text(exc: ValidationError) -> str:
+    if hasattr(exc, "message_dict") and isinstance(exc.message_dict, dict):
+        parts = []
+        for field_name, field_errors in exc.message_dict.items():
+            if isinstance(field_errors, (list, tuple)):
+                field_text = ", ".join(str(item) for item in field_errors if str(item).strip())
+            else:
+                field_text = str(field_errors or "").strip()
+            if field_text:
+                parts.append(f"{field_name}: {field_text}")
+        if parts:
+            return "; ".join(parts)
+
+    messages = getattr(exc, "messages", None)
+    if messages:
+        return ", ".join(str(item) for item in messages if str(item).strip())
+
+    return "Invalid input."
+
+
 @login_required
 def home(request):
     """Home page"""
@@ -1294,6 +1470,164 @@ def health_check(request):
         'service': 'AAML RadCore Platform',
         'version': '1.0.0'
     })
+
+
+WORKLIST_FILTER_CONTEXTS = {
+    "protocol": {
+        "permission": Permission.PROTOCOL_VIEW,
+        "allowed_keys": {
+            "modality",
+            "body_part",
+            "subspeciality",
+            "patient_class",
+            "status",
+            "exam_status",
+            "query",
+            "order_date_query",
+            "schedule_date_query",
+            "search_date",
+            "search_date_mode",
+            "schedule_date",
+            "schedule_date_mode",
+            "sort_by",
+            "facilities",
+        },
+        "list_keys": {
+            "modality",
+            "body_part",
+            "subspeciality",
+            "patient_class",
+            "status",
+            "exam_status",
+            "facilities",
+        },
+    },
+    "qc": {
+        "permission": Permission.QC_VIEW,
+        "allowed_keys": {
+            "modality",
+            "query",
+        },
+        "list_keys": set(),
+    },
+    "contrast": {
+        "permission": Permission.CONTRAST_VIEW,
+        "allowed_keys": {
+            "query",
+        },
+        "list_keys": set(),
+    },
+}
+WORKLIST_FILTER_PREFERENCE_TYPE = "display"
+WORKLIST_FILTER_PREFERENCE_KEY_PREFIX = "worklist_filters."
+
+
+def _sanitize_worklist_filter_value(value, *, max_length=120):
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    return text[:max_length]
+
+
+def _sanitize_worklist_filters(context_key: str, raw_filters):
+    context = WORKLIST_FILTER_CONTEXTS.get(context_key) or {}
+    allowed_keys = set(context.get("allowed_keys") or set())
+    list_keys = set(context.get("list_keys") or set())
+
+    if not isinstance(raw_filters, dict):
+        return {}
+
+    cleaned = {}
+    for key in allowed_keys:
+        raw_value = raw_filters.get(key)
+        if raw_value in (None, ""):
+            continue
+
+        if key in list_keys:
+            if isinstance(raw_value, str):
+                raw_values = [raw_value]
+            elif isinstance(raw_value, (list, tuple, set)):
+                raw_values = raw_value
+            else:
+                continue
+            values = []
+            for item in raw_values:
+                normalized = _sanitize_worklist_filter_value(item, max_length=64)
+                if not normalized:
+                    continue
+                values.append(normalized)
+                if len(values) >= 50:
+                    break
+            if values:
+                cleaned[key] = values
+            continue
+
+        max_length = 200 if key == "query" else 80
+        normalized = _sanitize_worklist_filter_value(raw_value, max_length=max_length)
+        if normalized:
+            cleaned[key] = normalized
+
+    return cleaned
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def worklist_filter_preferences_api(request, context_key):
+    context = WORKLIST_FILTER_CONTEXTS.get(context_key)
+    if context is None:
+        return JsonResponse({"error": "Unknown worklist context."}, status=404)
+
+    required_permission = context["permission"]
+    if not request.user.has_permission(required_permission):
+        return JsonResponse({"error": f"Missing permission: {required_permission}"}, status=403)
+
+    preference_key = f"{WORKLIST_FILTER_PREFERENCE_KEY_PREFIX}{context_key}"
+
+    if request.method == "GET":
+        preference = UserPreference.objects.filter(
+            user=request.user,
+            preference_type=WORKLIST_FILTER_PREFERENCE_TYPE,
+            preference_key=preference_key,
+        ).first()
+        stored_filters = {}
+        if preference and isinstance(preference.preference_value, dict):
+            stored_filters = preference.preference_value
+
+        return JsonResponse(
+            {
+                "context": context_key,
+                "has_saved": bool(preference),
+                "filters": _sanitize_worklist_filters(context_key, stored_filters),
+            }
+        )
+
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+
+    if not isinstance(payload, dict):
+        return JsonResponse({"error": "Payload must be a JSON object."}, status=400)
+
+    incoming_filters = payload.get("filters", payload)
+    if not isinstance(incoming_filters, dict):
+        return JsonResponse({"error": "filters must be a JSON object."}, status=400)
+
+    normalized_filters = _sanitize_worklist_filters(context_key, incoming_filters)
+    UserPreference.objects.update_or_create(
+        user=request.user,
+        preference_type=WORKLIST_FILTER_PREFERENCE_TYPE,
+        preference_key=preference_key,
+        defaults={"preference_value": normalized_filters},
+    )
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "context": context_key,
+            "filters": normalized_filters,
+        }
+    )
 
 
 @app_permission_required(Permission.PROTOCOL_VIEW)
@@ -1395,7 +1729,7 @@ def contrast_materials_exams_api(request):
             | Q(procedure_name__icontains=query)
         )
 
-    exams = list(exams_qs.order_by("-updated_at", "-scheduled_datetime", "-exam_datetime")[:300])
+    exams = list(exams_qs.order_by("-updated_at", "-scheduled_datetime", "-exam_datetime")[:1000])
     rows = []
     for exam in exams:
         effective_status = _effective_exam_status(exam)
@@ -1749,35 +2083,42 @@ def contrast_materials_session_api(request, exam_id):
     created_material = 0
 
     with transaction.atomic():
-        for item in contrast_entries:
+        for index, item in enumerate(contrast_entries, start=1):
             if not isinstance(item, dict):
                 continue
             contrast_name = str(item.get("contrast_name") or "").strip()
-            concentration = item.get("concentration_mg_ml")
-            volume = item.get("volume_ml")
-            if not contrast_name or concentration in (None, "") or volume in (None, ""):
+            concentration = _optional_numeric_input(item.get("concentration_mg_ml"))
+            volume = _optional_numeric_input(item.get("volume_ml"))
+            if not contrast_name or concentration is None or volume is None:
                 continue
 
-            ContrastUsage.objects.create(
-                exam=exam,
-                pec_number=str(item.get("pec_number") or exam.order_id or "").strip(),
-                contrast_name=contrast_name,
-                concentration_mg_ml=concentration,
-                volume_ml=volume,
-                injection_rate_ml_s=item.get("injection_rate_ml_s"),
-                route=str(item.get("route") or "IV").strip().upper() or "IV",
-                lot_number=str(item.get("lot_number") or "").strip(),
-                expiry_date=item.get("expiry_date") or None,
-                patient_weight_kg=item.get("patient_weight_kg"),
-                metadata=dict(item.get("metadata") or {}),
-            )
+            try:
+                ContrastUsage.objects.create(
+                    exam=exam,
+                    pec_number=str(item.get("pec_number") or exam.order_id or "").strip(),
+                    contrast_name=contrast_name,
+                    concentration_mg_ml=concentration,
+                    volume_ml=volume,
+                    injection_rate_ml_s=_optional_numeric_input(item.get("injection_rate_ml_s")),
+                    route=str(item.get("route") or "IV").strip().upper() or "IV",
+                    lot_number=str(item.get("lot_number") or "").strip(),
+                    expiry_date=item.get("expiry_date") or None,
+                    patient_weight_kg=_optional_numeric_input(item.get("patient_weight_kg")),
+                    metadata=dict(item.get("metadata") or {}),
+                )
+            except ValidationError as exc:
+                error_text = _validation_error_text(exc)
+                return JsonResponse(
+                    {"error": f"Invalid contrast row #{index}. {error_text}"},
+                    status=400,
+                )
             created_contrast += 1
 
-        for item in material_entries:
+        for index, item in enumerate(material_entries, start=1):
             if not isinstance(item, dict):
                 continue
-            quantity = item.get("quantity")
-            if quantity in (None, ""):
+            quantity = _optional_numeric_input(item.get("quantity"))
+            if quantity is None:
                 continue
 
             material_item = None
@@ -1801,23 +2142,30 @@ def contrast_materials_session_api(request, exam_id):
             if material_code:
                 material_metadata["material_code"] = material_code
 
-            MaterialUsage.objects.create(
-                exam=exam,
-                pec_number=str(item.get("pec_number") or exam.order_id or "").strip(),
-                material_item=material_item,
-                material_name=(
-                    str(item.get("material_name") or "").strip()
-                    or str(getattr(material_item, "name", "") or "").strip()
-                ),
-                measurement=measurement,
-                unit=(
-                    str(item.get("unit") or "").strip()
-                    or str(getattr(measurement, "code", "") or "").strip()
-                    or str(getattr(material_item, "unit", "") or "").strip()
-                ),
-                quantity=quantity,
-                metadata=material_metadata,
-            )
+            try:
+                MaterialUsage.objects.create(
+                    exam=exam,
+                    pec_number=str(item.get("pec_number") or exam.order_id or "").strip(),
+                    material_item=material_item,
+                    material_name=(
+                        str(item.get("material_name") or "").strip()
+                        or str(getattr(material_item, "name", "") or "").strip()
+                    ),
+                    measurement=measurement,
+                    unit=(
+                        str(item.get("unit") or "").strip()
+                        or str(getattr(measurement, "code", "") or "").strip()
+                        or str(getattr(material_item, "unit", "") or "").strip()
+                    ),
+                    quantity=quantity,
+                    metadata=material_metadata,
+                )
+            except ValidationError as exc:
+                error_text = _validation_error_text(exc)
+                return JsonResponse(
+                    {"error": f"Invalid material row #{index}. {error_text}"},
+                    status=400,
+                )
             created_material += 1
 
     if created_contrast == 0 and created_material == 0:
@@ -2205,12 +2553,16 @@ def system_admin_page(request):
         for resource_key in resource_keys:
             config = _get_resource_config(resource_key)
             urls = _resource_urls(resource_key)
+            issues_url = None
+            if resource_key == 'hl7_messages':
+                issues_url = reverse('system-admin-hl7-issues')
             links.append({
                 'label': config['label'],
                 'description': config['description'],
                 'count': config['model'].objects.count(),
                 'manage_url': urls['list_url'],
                 'add_url': urls['create_url'] if config.get('allow_create', True) else None,
+                'issues_url': issues_url,
             })
 
         admin_sections.append({
@@ -2274,6 +2626,13 @@ def system_admin_resource_list(request, resource_key):
             else None
         ),
     }
+    if resource_key == 'hl7_messages':
+        context['extra_actions'] = [
+            {
+                'label': 'Rejected & Errors',
+                'url': reverse('system-admin-hl7-issues'),
+            }
+        ]
     return render(request, 'system_admin/resource_list.html', context)
 
 
@@ -2376,6 +2735,90 @@ def system_admin_hl7_message_detail(request, object_id):
     return render(request, 'system_admin/hl7_message_detail.html', context)
 
 
+@app_permission_required(Permission.ADMIN_ACCESS)
+def system_admin_hl7_issues(request):
+    selected_range, start_date, end_date, start_dt, end_dt = _hl7_reporting_window(
+        request.GET.get("range")
+    )
+
+    inbound_qs = HL7Message.objects.filter(
+        direction='INBOUND',
+        created_at__gte=start_dt,
+        created_at__lte=end_dt,
+    )
+    candidate_qs = inbound_qs.filter(
+        Q(message_type__iexact='ORM^O01')
+        | Q(message_type__iexact='ORR^O02')
+        | Q(message_type__istartswith='SIU^')
+    )
+    issues_qs = (
+        candidate_qs
+        .filter(status__in=('REJECTED', 'ERROR'))
+        .select_related('exam')
+        .order_by('-created_at')
+    )
+
+    category_counter = Counter()
+    for status_value, technical_reason in issues_qs.values_list("status", "error_message"):
+        reason_context = _hl7_issue_reason_context_values(status_value, technical_reason)
+        category_counter[reason_context["category"]] += 1
+
+    rows = []
+    for item in issues_qs[:500]:
+        reason_context = _hl7_issue_reason_context(item)
+        rows.append(
+            {
+                "message": item,
+                "status": item.status,
+                "category": reason_context["category"],
+                "technical_reason": reason_context["technical_reason"],
+                "plain_reason": reason_context["plain_reason"],
+                "next_step": reason_context["next_step"],
+                "summary": _hl7_message_plain_summary(item),
+                "detail_url": reverse('system-admin-hl7-message-detail', args=[item.id]),
+            }
+        )
+
+    top_reasons = list(
+        issues_qs
+        .exclude(error_message__isnull=True)
+        .exclude(error_message__exact="")
+        .values("error_message")
+        .annotate(total=Count("id"))
+        .order_by("-total", "error_message")[:8]
+    )
+
+    category_breakdown = [
+        {"label": label, "count": count}
+        for label, count in category_counter.most_common()
+    ]
+
+    summary = {
+        "parsed_blocks": inbound_qs.count(),
+        "candidate_messages": candidate_qs.count(),
+        "processed_count": candidate_qs.filter(status='PROCESSED').count(),
+        "rejected_count": candidate_qs.filter(status='REJECTED').count(),
+        "error_count": candidate_qs.filter(status='ERROR').count(),
+        "duplicate_count": candidate_qs.filter(
+            status='REJECTED',
+            error_message__icontains='duplicate',
+        ).count(),
+    }
+
+    context = {
+        "rows": rows,
+        "summary": summary,
+        "category_breakdown": category_breakdown,
+        "top_reasons": top_reasons,
+        "selected_range": selected_range,
+        "range_start": start_date,
+        "range_end": end_date,
+        "dashboard_url": reverse('system-admin'),
+        "hl7_list_url": reverse('system-admin-resource-list', args=['hl7_messages']),
+    }
+    return render(request, 'system_admin/hl7_issues.html', context)
+
+
 @app_permission_required(Permission.PROTOCOL_VIEW)
 def exams_api(request):
     """API endpoint for exams list"""
@@ -2392,7 +2835,7 @@ def exams_api(request):
         return full_name or getattr(user, 'username', '') or ''
     
     try:
-        exams = list(
+        exams_qs = (
             Exam.objects.select_related(
                 'modality',
                 'facility',
@@ -2402,8 +2845,12 @@ def exams_api(request):
             ).filter(
                 modality__code__in=PROTOCOL_REQUIRED_MODALITY_CODES,
                 modality__is_active=True,
-            ).order_by('-exam_datetime')[:50]
+            )
         )
+
+        exams_qs = apply_facility_scope(exams_qs, request.user)
+
+        exams = list(exams_qs.order_by('-exam_datetime')[:1000])
         visible_procedure_codes = set(
             Procedure.objects.filter(
                 is_active=True,
@@ -2423,6 +2870,40 @@ def exams_api(request):
                 configured_procedure_codes=configured_procedure_codes,
             )
         ]
+        procedure_code_map = {
+            str(code or '').strip().upper(): str(body_region or '').strip()
+            for code, body_region in Procedure.objects.filter(
+                code__in={
+                    str(getattr(exam, 'procedure_code', '') or '').strip()
+                    for exam in exams
+                    if str(getattr(exam, 'procedure_code', '') or '').strip()
+                }
+            ).values_list('code', 'body_region')
+        }
+
+        def exam_body_part(exam):
+            metadata = dict(getattr(exam, 'metadata', {}) or {})
+            explicit_body_part = (
+                str(metadata.get('body_part') or metadata.get('body_region') or '').strip()
+            )
+            if explicit_body_part:
+                return explicit_body_part
+            return procedure_code_map.get(str(getattr(exam, 'procedure_code', '') or '').strip().upper(), '')
+
+        def exam_order_datetime(exam):
+            metadata = dict(getattr(exam, 'metadata', {}) or {})
+            candidates = [
+                metadata.get('hl7_order_datetime'),
+                ((metadata.get('hl7_payload') or {}).get('order') or {}).get('order_datetime'),
+                ((metadata.get('hl7_response_payload') or {}).get('order') or {}).get('order_datetime'),
+            ]
+
+            for candidate in candidates:
+                value = str(candidate or '').strip()
+                if value:
+                    return value
+
+            return None
 
         viewer = {
             'role': _role(request.user),
@@ -2431,17 +2912,29 @@ def exams_api(request):
             'can_view_protocol': _can_access_technologist_review(request.user),
             'can_confirm_protocol': _can_access_technologist_review(request.user),
             'can_view_contrast': request.user.has_permission(Permission.CONTRAST_VIEW),
+            'default_subspeciality': _user_default_subspeciality(request.user),
+            'subspeciality_pool': list(SUBSPECIALITY_POOL),
         }
         
-        data = {
-            'viewer': viewer,
-            'results': [
+        results = []
+        for exam in exams:
+            resolved_body_part = exam_body_part(exam)
+            subspeciality, inferred_subspeciality = resolve_exam_subspeciality(
+                exam,
+                body_region=resolved_body_part,
+            )
+            effective_exam_status = _effective_exam_status(exam)
+
+            results.append(
                 {
                     'id': str(exam.id),
                     'order_id': exam.order_id,
+                    'order_datetime': exam_order_datetime(exam),
                     'accession_number': exam.accession_number,
                     'patient_name': exam.patient_name,
+                    'patient_dob': exam.patient_dob.isoformat() if exam.patient_dob else None,
                     'patient_class': exam.patient_class,
+                    'patient_class_label': exam.patient_class_display,
                     'mrn': exam.mrn,
                     'clinical_history': exam.clinical_history,
                     'modality': {
@@ -2449,8 +2942,15 @@ def exams_api(request):
                         'name': exam.modality.name
                     },
                     'procedure_name': exam.procedure_name,
+                    'body_part': resolved_body_part,
+                    'subspeciality': subspeciality,
+                    'inferred_subspeciality': inferred_subspeciality,
+                    'scheduled_datetime': (
+                        exam.scheduled_datetime.isoformat()
+                        if exam.scheduled_datetime else None
+                    ),
                     'exam_datetime': exam.exam_datetime.isoformat() if exam.exam_datetime else None,
-                    'exam_status': (effective_exam_status := _effective_exam_status(exam)),
+                    'exam_status': effective_exam_status,
                     'exam_status_label': _exam_status_label(effective_exam_status),
                     'facility': {
                         'code': exam.facility.code,
@@ -2506,8 +3006,11 @@ def exams_api(request):
                     'can_open_contrast': _can_access_contrast_exam(request.user, exam),
                     'contrast_review_url': reverse('contrast-materials-review', args=[exam.id]),
                 }
-                for exam in exams
-            ]
+            )
+
+        data = {
+            'viewer': viewer,
+            'results': results,
         }
         
         return JsonResponse(data)
@@ -2520,6 +3023,8 @@ def exams_api(request):
 @require_http_methods(["POST"])
 def mark_exam_protocol_not_required(request, exam_id):
     exam = get_object_or_404(Exam, id=exam_id)
+    if not can_access_facility(request.user, exam.facility_id):
+        return JsonResponse({'error': 'You do not have access to this exam facility.'}, status=403)
 
     if exam.has_protocol:
         return JsonResponse(
@@ -2555,5 +3060,92 @@ def mark_exam_protocol_not_required(request, exam_id):
             'status': 'NOT_REQUIRED',
             'marked_at': metadata['protocol_not_required_at'],
             'marked_by': metadata['protocol_not_required_by'],
+        }
+    )
+
+
+@app_permission_required(Permission.PROTOCOL_ASSIGN)
+@require_http_methods(["POST"])
+def set_exam_subspeciality(request, exam_id):
+    exam = get_object_or_404(Exam, id=exam_id)
+
+    if exam.has_protocol:
+        return JsonResponse(
+            {'error': 'Subspeciality can only be changed before protocol assignment.'},
+            status=409,
+        )
+
+    if not can_access_facility(request.user, exam.facility_id):
+        return JsonResponse({'error': 'You do not have access to this exam facility.'}, status=403)
+
+    raw_value = str(
+        request.POST.get('subspeciality')
+        or request.POST.get('subspecialty')
+        or ''
+    ).strip()
+
+    if not raw_value and request.body:
+        try:
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+            raw_value = str(
+                payload.get('subspeciality')
+                or payload.get('subspecialty')
+                or ''
+            ).strip()
+        except Exception:
+            raw_value = ''
+
+    value = normalize_subspeciality(raw_value)
+    if not value:
+        return JsonResponse(
+            {
+                'error': 'Invalid subspeciality value.',
+                'allowed_values': list(SUBSPECIALITY_POOL),
+            },
+            status=400,
+        )
+
+    procedure_body_region = ""
+    procedure_code = str(getattr(exam, "procedure_code", "") or "").strip()
+    if procedure_code:
+        procedure_body_region = (
+            Procedure.objects.filter(code__iexact=procedure_code)
+            .values_list("body_region", flat=True)
+            .first()
+            or ""
+        )
+
+    metadata = dict(exam.metadata or {})
+    resolved_body_region = (
+        str(metadata.get("body_part") or metadata.get("body_region") or "").strip()
+        or str(procedure_body_region or "").strip()
+    )
+    current_subspeciality, _ = resolve_exam_subspeciality(
+        exam,
+        body_region=resolved_body_region,
+    )
+
+    actor_name = ""
+    if hasattr(request.user, "get_full_name"):
+        actor_name = (request.user.get_full_name() or "").strip()
+    actor_name = actor_name or getattr(request.user, "username", "") or "System"
+
+    metadata = append_subspeciality_change_event(
+        metadata,
+        previous_subspeciality=current_subspeciality,
+        new_subspeciality=value,
+        changed_by=actor_name,
+        changed_at=timezone.now(),
+    )
+    metadata['subspeciality'] = value
+    metadata['subspecialty'] = value
+    exam.metadata = metadata
+    exam.save(update_fields=['metadata'])
+
+    return JsonResponse(
+        {
+            'ok': True,
+            'exam_id': str(exam.id),
+            'subspeciality': value,
         }
     )

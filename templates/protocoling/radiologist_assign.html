@@ -425,6 +425,19 @@ tbody tr:hover{
             <div class="detail-value">{{ exam.procedure_code }} - {{ exam.procedure_name }}</div>
           </div>
           <div class="detail">
+            <div class="detail-label">Body Region</div>
+            <div class="detail-value">{{ exam_body_region|default:"—" }}</div>
+          </div>
+          <div class="detail">
+            <div class="detail-label">Subspeciality</div>
+            <div class="detail-value">
+              {{ current_subspeciality|default:"—" }}
+              {% if inferred_subspeciality and inferred_subspeciality != current_subspeciality %}
+                <span class="small">(Default: {{ inferred_subspeciality }})</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="detail">
             <div class="detail-label">Ordering Provider</div>
             <div class="detail-value">{{ exam.ordering_provider|default:"—" }}</div>
           </div>
@@ -536,6 +549,12 @@ tbody tr:hover{
         {% if form_error %}
           <div class="alert error">{{ form_error }}</div>
         {% endif %}
+        {% if direct_message_error %}
+          <div class="alert error">{{ direct_message_error }}</div>
+        {% endif %}
+        {% if message_sent %}
+          <div class="alert success">Protocol and direct message saved together.</div>
+        {% endif %}
 
         <form method="post" onsubmit="return confirm('Save this protocol decision and notes?');">
           {% csrf_token %}
@@ -544,7 +563,7 @@ tbody tr:hover{
           <div class="decision-flow">
             <div class="step-pill active">1. Choose protocol</div>
             <div class="step-pill active">2. Add handoff note</div>
-            <div class="step-pill">3. Save to technologist</div>
+            <div class="step-pill active">3. Save protocol + note + message</div>
           </div>
 
           <div class="selection-summary">
@@ -662,6 +681,20 @@ tbody tr:hover{
 
             <div class="stack-panel">
               <div class="field">
+                <label for="subspeciality_select">Subspeciality Pool</label>
+                <select id="subspeciality_select" name="subspeciality">
+                  {% for option in subspeciality_pool %}
+                    <option value="{{ option }}" {% if option == current_subspeciality %}selected{% endif %}>
+                      {{ option }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <div class="field-helper">
+                  Radiologist can override exam subspeciality for routing. Default classification: {{ inferred_subspeciality }}.
+                </div>
+              </div>
+
+              <div class="field">
                 <label for="manual_protocol_select">Manual Protocol List ({{ exam.modality.code }})</label>
                 <select id="manual_protocol_select" name="manual_protocol_id" onchange="selectManualProtocol()">
                   <option value="">-- Select protocol --</option>
@@ -703,6 +736,36 @@ tbody tr:hover{
                   <button class="chip-btn" type="button" onclick="appendToTextarea('comment', 'Protocol preserved and notes updated without changing the selected template.')">Notes Updated Only</button>
                 </div>
               </div>
+
+              <div class="field">
+                <label for="message_recipient_id">Direct Message Recipient (Optional)</label>
+                <select id="message_recipient_id" name="message_recipient_id">
+                  <option value="">-- No direct message --</option>
+                  {% for recipient in message_recipients %}
+                    <option value="{{ recipient.id }}" {% if message_recipient_id == recipient.id|stringformat:"s" %}selected{% endif %}>
+                      {{ recipient.get_full_name|default:recipient.username }}{% if recipient.role %} ({{ recipient.role }}){% endif %}
+                    </option>
+                  {% endfor %}
+                </select>
+                <div class="field-helper">If selected, the message below will be sent in the same Save click.</div>
+              </div>
+
+              <div class="field">
+                <label for="message_title">Direct Message Title</label>
+                <input id="message_title" name="message_title" type="text" value="{{ message_title }}" placeholder="Protocol question, review request, or workflow update">
+              </div>
+
+              <div class="field">
+                <label for="message_body">Direct Message Body</label>
+                <textarea id="message_body" name="message_body" rows="4" placeholder="Write the direct message for the selected user...">{{ message_body }}</textarea>
+                <div class="field-helper">This message is sent to inbox/email when you click Save.</div>
+                <div class="quick-actions">
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('message_body', 'Please review this exam and respond when available.')">Review Request</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('message_body', 'Technologist follow-up is needed before the exam proceeds.')">Tech Follow-up</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('message_body', 'Please call me regarding this protocol decision.')">Call Me</button>
+                  <button class="chip-btn" type="button" onclick="appendToTextarea('message_body', 'Urgent workflow update for this exam. Please check immediately.')">Urgent Update</button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -717,6 +780,18 @@ tbody tr:hover{
             Saving here keeps the assignment inside the system. The technologist page is where the protocol is reviewed and confirmed.
           </div>
         </form>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Selected Protocol Preview</h2>
+            <div class="card-copy">Content and sequences update instantly when you select an AI suggestion or manual protocol.</div>
+          </div>
+        </div>
+        <div id="protocol-preview-content" class="command-grid">
+          <div class="command-empty">Select a protocol to preview its full content.</div>
+        </div>
       </div>
 
       {% if current_protocol %}
@@ -847,69 +922,27 @@ tbody tr:hover{
           {% endfor %}
         </div>
       </div>
-
-      <div class="card">
-        <div class="card-head">
-          <div>
-            <h2>Direct User Message</h2>
-            <div class="card-copy">Send an internal inbox message and email directly to another user without leaving the radiologist workflow page.</div>
-          </div>
-        </div>
-
-        {% if message_sent %}
-          <div class="alert success">Direct message sent. The recipient will receive it in the internal inbox and by email when email delivery is available.</div>
-        {% endif %}
-        {% if direct_message_error %}
-          <div class="alert error">{{ direct_message_error }}</div>
-        {% endif %}
-
-        <form method="post">
-          {% csrf_token %}
-          <input type="hidden" name="form_action" value="send_message">
-
-          <div class="field">
-            <label for="message_recipient_id">Send To User</label>
-            <select id="message_recipient_id" name="message_recipient_id">
-              <option value="">-- Select user --</option>
-              {% for recipient in message_recipients %}
-                <option value="{{ recipient.id }}" {% if message_recipient_id == recipient.id|stringformat:"s" %}selected{% endif %}>
-                  {{ recipient.get_full_name|default:recipient.username }}{% if recipient.role %} ({{ recipient.role }}){% endif %}
-                </option>
-              {% endfor %}
-            </select>
-            <div class="field-helper">Choose any active user who should receive this workflow message.</div>
-          </div>
-
-          <div class="field">
-            <label for="message_title">Message Title</label>
-            <input id="message_title" name="message_title" type="text" value="{{ message_title }}" placeholder="Protocol question, review request, or workflow update">
-            <div class="field-helper">Leave blank to use an automatic protocol message title for this exam.</div>
-          </div>
-
-          <div class="field">
-            <label for="message_body">Message Body</label>
-            <textarea id="message_body" name="message_body" rows="4" placeholder="Write the direct message for the selected user...">{{ message_body }}</textarea>
-            <div class="field-helper">The message will appear in the user inbox and will also be sent by email when email delivery is configured.</div>
-            <div class="quick-actions">
-              <button class="chip-btn" type="button" onclick="appendToTextarea('message_body', 'Please review this exam and respond when available.')">Review Request</button>
-              <button class="chip-btn" type="button" onclick="appendToTextarea('message_body', 'Technologist follow-up is needed before the exam proceeds.')">Tech Follow-up</button>
-              <button class="chip-btn" type="button" onclick="appendToTextarea('message_body', 'Please call me regarding this protocol decision.')">Call Me</button>
-              <button class="chip-btn" type="button" onclick="appendToTextarea('message_body', 'Urgent workflow update for this exam. Please check immediately.')">Urgent Update</button>
-            </div>
-          </div>
-
-          <div class="btn-row">
-            <button class="btn btn-secondary" type="submit">Send Direct Message</button>
-          </div>
-        </form>
-      </div>
         </div>
       </div>
       </div>
     </main>
 </div>
 
+  {{ protocol_preview_map|json_script:"protocol-preview-data" }}
   <script>
+  const protocolPreviewMap = (() => {
+    const payload = document.getElementById('protocol-preview-data');
+    if (!payload) {
+      return {};
+    }
+    try {
+      return JSON.parse(payload.textContent || '{}');
+    } catch (error) {
+      return {};
+    }
+  })();
+  const initialPreviewProtocolId = '{{ initial_preview_protocol_id|default:"" }}';
+
   function setAI(value){
     document.getElementById("ai_selected").value = value ? "1" : "0";
   }
@@ -923,6 +956,119 @@ tbody tr:hover{
       const input = card.querySelector('input[name="suggested_protocol_id"]');
       card.classList.toggle('selected', Boolean(input && input.checked));
     });
+  }
+
+  function escapeHtml(value){
+    const text = String(value || '');
+    return text
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function selectedProtocolId(){
+    const selectedAI = getSelectedAISuggestion();
+    if (selectedAI && selectedAI.value) {
+      return selectedAI.value;
+    }
+    const manualSelect = document.getElementById('manual_protocol_select');
+    if (manualSelect && manualSelect.value) {
+      return manualSelect.value;
+    }
+    const currentProtocolId = document.getElementById('current_protocol_id');
+    if (currentProtocolId && currentProtocolId.value) {
+      return currentProtocolId.value;
+    }
+    return initialPreviewProtocolId;
+  }
+
+  function listSection(title, items, subtitle){
+    const cleaned = Array.isArray(items)
+      ? items.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+    if (!cleaned.length) {
+      return '';
+    }
+    return `
+      <section class="command-block">
+        <div class="command-block-header">
+          <h3>${escapeHtml(title)}</h3>
+          <div class="small">${escapeHtml(subtitle)}</div>
+        </div>
+        <ul class="command-list">
+          ${cleaned.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}
+        </ul>
+      </section>
+    `;
+  }
+
+  function renderProtocolPreview(){
+    const target = document.getElementById('protocol-preview-content');
+    if (!target) {
+      return;
+    }
+    const protocolId = selectedProtocolId();
+    const protocol = protocolPreviewMap[String(protocolId || '')];
+    if (!protocol) {
+      target.innerHTML = '<div class="command-empty">Select a protocol to preview its full content.</div>';
+      return;
+    }
+
+    const sections = [
+      listSection('Indications', protocol.indications, 'Why this protocol is selected.'),
+      listSection('Patient Preparation', protocol.patient_prep, 'Pre-scan preparation and setup.'),
+      listSection('Safety Notes', protocol.safety_notes, 'Required safety checks and cautions.'),
+      listSection('Operational Notes', protocol.general_notes, 'Execution guidance for the scanner team.'),
+    ].filter(Boolean);
+
+    const sequences = Array.isArray(protocol.sequences) ? protocol.sequences : [];
+    const sequenceRows = sequences.length
+      ? sequences.map((row) => `
+          <tr>
+            <td>${escapeHtml(row.ser)}</td>
+            <td>${escapeHtml(row.coil || '—')}</td>
+            <td>${escapeHtml(row.phase_array || '—')}</td>
+            <td>${escapeHtml(row.scan_plane || '—')}</td>
+            <td>${escapeHtml(row.pulse_sequence || '—')}</td>
+            <td>${escapeHtml(row.options || '—')}</td>
+            <td>${escapeHtml(row.comments || '—')}</td>
+          </tr>
+        `).join('')
+      : '<tr><td colspan="7" class="cell-muted">No sequence rows are stored for this protocol.</td></tr>';
+
+    target.innerHTML = `
+      <section class="command-block" style="grid-column: 1 / -1;">
+        <div class="command-block-header">
+          <h3>${escapeHtml(protocol.code)} — ${escapeHtml(protocol.name)}</h3>
+          <div class="small">Live preview of the selected protocol.</div>
+        </div>
+      </section>
+      ${sections.join('') || '<div class="command-empty">No command notes were stored for this protocol.</div>'}
+      <section class="command-block" style="grid-column: 1 / -1;">
+        <div class="command-block-header">
+          <h3>Sequences</h3>
+          <div class="small">Sequence-level steps for the selected protocol.</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>SER</th>
+                <th>COIL</th>
+                <th>PH. ARRAY</th>
+                <th>Scan Plane</th>
+                <th>Pulse Seq.</th>
+                <th>Options</th>
+                <th>Comments</th>
+              </tr>
+            </thead>
+            <tbody>${sequenceRows}</tbody>
+          </table>
+        </div>
+      </section>
+    `;
   }
 
   function updateDecisionPanel(){
@@ -975,7 +1121,8 @@ tbody tr:hover{
     submitButton.disabled = !hasSelection;
     submitButton.textContent = hasSelection && currentProtocolId && selectedId === currentProtocolId
       ? 'Save Comment / Keep Protocol'
-      : '{% if assignment %}Save Change / Comment{% else %}Save Assignment{% endif %}';
+      : '{% if assignment %}Save Protocol / Note / Message{% else %}Save Assignment / Message{% endif %}';
+    renderProtocolPreview();
   }
 
   function appendToTextarea(id, snippet){
@@ -1011,6 +1158,7 @@ tbody tr:hover{
 
   syncSelectionStates();
   updateDecisionPanel();
+  renderProtocolPreview();
   </script>
 </body>
 </html>

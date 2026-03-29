@@ -442,6 +442,7 @@ class TechnologistProtocolViewTests(TestCase):
             last_name='Logist',
             role=UserRole.RADIOLOGIST,
         )
+        self.radiologist.groups.add(Group.objects.get(name='Radiologist'))
 
         self.facility = Facility.objects.create(
             code='TECH',
@@ -590,6 +591,26 @@ class TechnologistProtocolViewTests(TestCase):
         self.assertTrue(notification.email_sent)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, [self.user.email])
+
+    def test_radiologist_can_override_exam_subspeciality(self):
+        self.client.force_login(self.radiologist)
+
+        response = self.client.post(
+            reverse('protocoling-radiologist-review', args=[self.exam.id]),
+            {
+                'manual_protocol_id': str(self.protocol.id),
+                'ai_selected': '0',
+                'subspeciality': 'Body',
+                'radiologist_note': 'Subspeciality override for routing.',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('?saved=1', response['Location'])
+
+        self.exam.refresh_from_db()
+        self.assertEqual(self.exam.metadata.get('subspeciality'), 'Body')
+        self.assertEqual(self.exam.metadata.get('subspecialty'), 'Body')
 
     def test_technologist_can_send_direct_message_from_review_page(self):
         self.client.force_login(self.user)

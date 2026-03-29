@@ -1,6 +1,7 @@
 from django.urls import path
 
 from apps.users.views import (
+    force_password_change_view,
     UserLoginView,
     UserLogoutView,
     notification_delete_view,
@@ -15,6 +16,7 @@ from apps.users.views import (
 urlpatterns = [
     path('login/', UserLoginView.as_view(), name='login'),
     path('logout/', UserLogoutView.as_view(), name='logout'),
+    path('password/change-required/', force_password_change_view, name='user-force-password-change'),
     path('inbox/', inbox_view, name='user-inbox'),
     path('inbox/read-all/', notification_mark_all_read_view, name='user-inbox-read-all'),
     path('inbox/send/', notification_send_view, name='user-notification-send'),

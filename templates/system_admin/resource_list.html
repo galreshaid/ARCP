@@ -216,6 +216,11 @@
                     {% if create_url %}
                         <a href="{{ create_url }}" class="btn btn-primary">Add New</a>
                     {% endif %}
+                    {% if extra_actions %}
+                        {% for action in extra_actions %}
+                            <a href="{{ action.url }}" class="btn btn-secondary">{{ action.label }}</a>
+                        {% endfor %}
+                    {% endif %}
                     <a href="{{ dashboard_url }}" class="btn btn-secondary">Back to Dashboard</a>
                 </div>
             </div>

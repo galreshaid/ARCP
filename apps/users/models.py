@@ -20,6 +20,9 @@ DOMAIN_PERMISSION_TO_DJANGO_PERMISSION = {
     AppPermission.QC_APPROVE: 'users.qc_approve',
     AppPermission.QC_EVIDENCE_CAPTURE: 'users.qc_evidence_capture',
     AppPermission.QC_EVIDENCE_VIEW: 'users.qc_evidence_view',
+    AppPermission.QC_NOTIFY_MODALITY_SUPERVISOR: 'users.qc_notify_modality_supervisor',
+    AppPermission.QC_NOTIFY_MODALITY_QC_SUPERVISOR: 'users.qc_notify_modality_qc_supervisor',
+    AppPermission.QC_NOTIFY_OFFICER: 'users.qc_notify_officer',
     AppPermission.PROTOCOL_VIEW: 'users.protocol_view',
     AppPermission.PROTOCOL_ASSIGN: 'users.protocol_assign',
     AppPermission.PROTOCOL_EDIT: 'users.protocol_edit',
@@ -62,6 +65,8 @@ DEFAULT_GROUP_PERMISSIONS = {
         AppPermission.QC_APPROVE,
         AppPermission.QC_EVIDENCE_CAPTURE,
         AppPermission.QC_EVIDENCE_VIEW,
+        AppPermission.QC_NOTIFY_MODALITY_SUPERVISOR,
+        AppPermission.QC_NOTIFY_MODALITY_QC_SUPERVISOR,
         AppPermission.PROTOCOL_VIEW,
         AppPermission.CONTRAST_VIEW,
         AppPermission.CONTRAST_APPROVE,
@@ -146,13 +151,14 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     # Professional Info
     professional_id = models.CharField(_('Employee ID'), max_length=100, blank=True)
     nid = models.CharField(_('NID'), max_length=30, blank=True, db_index=True)
-    specialty = models.CharField(_('Specialty'), max_length=100, blank=True)
+    specialty = models.CharField(_('Default Subspecialty'), max_length=100, blank=True)
     department = models.CharField(_('Department'), max_length=100, blank=True)
     
     # System flags
     is_active = models.BooleanField(_('Active'), default=True)
     is_staff = models.BooleanField(_('Staff Status'), default=False)
     email_verified = models.BooleanField(_('Email Verified'), default=False)
+    must_change_password = models.BooleanField(_('Must Change Password'), default=False, db_index=True)
     
     # Preferences
     preferences = models.JSONField(_('User Preferences'), default=dict, blank=True)
@@ -176,6 +182,9 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
             ('qc_approve', 'Can approve QC records'),
             ('qc_evidence_capture', 'Can capture QC evidence'),
             ('qc_evidence_view', 'Can view QC evidence'),
+            ('qc_notify_modality_supervisor', 'Can receive QC notifications as modality supervisor'),
+            ('qc_notify_modality_qc_supervisor', 'Can receive QC notifications as modality QC supervisor'),
+            ('qc_notify_officer', 'Can receive QC concern notifications as QC officer'),
             ('protocol_view', 'Can view protocol workflows'),
             ('protocol_assign', 'Can assign protocols'),
             ('protocol_edit', 'Can edit protocols'),
@@ -222,16 +231,19 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
         """
         Check if user has access to specific facility
         """
-        if self.is_superuser:
-            return True
-        
-        # Check if facility is in user's facilities
+        allowed_ids = set(self.facilities.values_list('id', flat=True))
+        if self.primary_facility_id:
+            allowed_ids.add(self.primary_facility_id)
+
+        if not allowed_ids:
+            return bool(self.is_superuser)
+
         from apps.core.models import Facility
         if isinstance(facility, str):
             # Facility code provided
-            return self.facilities.filter(code=facility).exists()
+            return Facility.objects.filter(id__in=allowed_ids, code=facility).exists()
         elif isinstance(facility, Facility):
-            return self.facilities.filter(id=facility.id).exists()
+            return facility.id in allowed_ids
         
         return False
 

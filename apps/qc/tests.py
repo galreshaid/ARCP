@@ -2,12 +2,13 @@ import json
 from tempfile import TemporaryDirectory
 
 from django.contrib.auth.models import Permission
+from django.core import mail
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.core.constants import UserRole
 from apps.core.models import Exam, Facility, Modality
-from apps.qc.models import QCAnnotation, QCImage, QCResult, QCSession, QCSessionStatus
+from apps.qc.models import QCAnnotation, QCChecklist, QCImage, QCResult, QCSession, QCSessionStatus
 from apps.users.models import User, UserNotification
 
 
@@ -31,6 +32,7 @@ class QCWorkflowTests(TestCase):
         self.override = override_settings(
             MEDIA_ROOT=self.media_dir.name,
             PACS_STUDY_URL_TEMPLATE="https://pacs.example/study/{accession}",
+            QC_SERVICE_DESK_EMAIL="helpdesk@Aaml.com.sa",
         )
         self.override.enable()
 
@@ -59,7 +61,7 @@ class QCWorkflowTests(TestCase):
             procedure_code="CTHEAD",
             procedure_name="CT HEAD",
             patient_name="QC Patient",
-            status="SCHEDULED",
+            status="COMPLETED",
         )
         self.xr_modality = Modality.objects.create(
             code="XR",
@@ -77,7 +79,7 @@ class QCWorkflowTests(TestCase):
             procedure_code="XR-PA",
             procedure_name="XR CHEST PA",
             patient_name="QC XR Patient",
-            status="SCHEDULED",
+            status="COMPLETED",
         )
         self.radiologist = User.objects.create_user(
             email="qc-radiologist@example.com",
@@ -127,7 +129,26 @@ class QCWorkflowTests(TestCase):
             },
         )
         self.ct_supervisor.facilities.add(self.facility)
-        self._grant_user_permissions(self.ct_supervisor, ["qc_view", "qc_approve"])
+        self._grant_user_permissions(
+            self.ct_supervisor,
+            ["qc_view", "qc_approve", "qc_notify_modality_supervisor"],
+        )
+        self.ct_qc_supervisor = User.objects.create_user(
+            email="qc-ct-qc-supervisor@example.com",
+            password="password123",
+            username="qcctqcsupervisor",
+            first_name="QC",
+            last_name="CT QC Supervisor",
+            role=UserRole.SUPERVISOR,
+            preferences={
+                "qc_modalities": ["CT"],
+            },
+        )
+        self.ct_qc_supervisor.facilities.add(self.facility)
+        self._grant_user_permissions(
+            self.ct_qc_supervisor,
+            ["qc_view", "qc_approve", "qc_notify_modality_qc_supervisor"],
+        )
         self.quality_officer = User.objects.create_user(
             email="qc-quality@example.com",
             password="password123",
@@ -138,7 +159,7 @@ class QCWorkflowTests(TestCase):
             department="Quality Department",
         )
         self.quality_officer.facilities.add(self.facility)
-        self._grant_user_permissions(self.quality_officer, ["qc_view"])
+        self._grant_user_permissions(self.quality_officer, ["qc_view", "qc_notify_officer"])
         self.report_viewer = User.objects.create_user(
             email="qc-report@example.com",
             password="password123",
@@ -149,6 +170,19 @@ class QCWorkflowTests(TestCase):
         )
         self.report_viewer.facilities.add(self.facility)
         self._grant_user_permissions(self.report_viewer, ["qc_view", "report_view"])
+        self.admin_qc_editor = User.objects.create_user(
+            email="qc-admin-editor@example.com",
+            password="password123",
+            username="qcadmineditor",
+            first_name="QC",
+            last_name="Admin Editor",
+            role=UserRole.ADMIN,
+        )
+        self.admin_qc_editor.facilities.add(self.facility)
+        self._grant_user_permissions(
+            self.admin_qc_editor,
+            ["qc_view", "qc_create", "qc_edit", "qc_evidence_capture", "qc_evidence_view"],
+        )
 
     def tearDown(self):
         self.override.disable()
@@ -165,8 +199,84 @@ class QCWorkflowTests(TestCase):
         row = payload["results"][0]
         self.assertEqual(row["accession_number"], "QC-ACC-002")
         self.assertEqual(row["modality"]["code"], "XR")
-        self.assertEqual(row["exam_status"], "SCHEDULED")
-        self.assertEqual(row["exam_status_label"], "Scheduled")
+        self.assertEqual(row["exam_status"], "COMPLETED")
+        self.assertEqual(row["exam_status_label"], "Completed")
+
+    def test_qc_worklist_api_enforces_user_facility_scope(self):
+        other_facility = Facility.objects.create(
+            code="QC2",
+            name="QC Facility 2",
+            is_active=True,
+        )
+        hidden_exam = Exam.objects.create(
+            accession_number="QC-ACC-999",
+            order_id="QC-ORD-999",
+            mrn="MRN-999",
+            facility=other_facility,
+            modality=self.modality,
+            procedure_code="CTCHEST",
+            procedure_name="CT CHEST",
+            patient_name="Hidden QC Patient",
+            status="COMPLETED",
+        )
+
+        admin_user = User.objects.create_user(
+            email="qc-admin-scope@example.com",
+            password="password123",
+            username="qcadminscope",
+            first_name="QC",
+            last_name="Admin Scope",
+            role=UserRole.ADMIN,
+        )
+        admin_user.facilities.add(self.facility)
+        self._grant_user_permissions(admin_user, ["qc_view"])
+
+        self.client.force_login(admin_user)
+        response = self.client.get(reverse("qc:exams-api"))
+
+        self.assertEqual(response.status_code, 200)
+        result_ids = {row["id"] for row in response.json()["results"]}
+        self.assertIn(str(self.exam.id), result_ids)
+        self.assertIn(str(self.xr_exam.id), result_ids)
+        self.assertNotIn(str(hidden_exam.id), result_ids)
+
+    def test_qc_worklist_api_uses_primary_facility_scope_when_user_facilities_empty(self):
+        other_facility = Facility.objects.create(
+            code="QC3",
+            name="QC Facility 3",
+            is_active=True,
+        )
+        hidden_exam = Exam.objects.create(
+            accession_number="QC-ACC-910",
+            order_id="QC-ORD-910",
+            mrn="MRN-910",
+            facility=other_facility,
+            modality=self.modality,
+            procedure_code="CTHEAD",
+            procedure_name="CT HEAD",
+            patient_name="Primary Hidden QC Patient",
+            status="COMPLETED",
+        )
+
+        admin_user = User.objects.create_user(
+            email="qc-primary-scope@example.com",
+            password="password123",
+            username="qcprimaryscope",
+            first_name="QC",
+            last_name="Primary Scope",
+            role=UserRole.ADMIN,
+            primary_facility=self.facility,
+        )
+        self._grant_user_permissions(admin_user, ["qc_view"])
+
+        self.client.force_login(admin_user)
+        response = self.client.get(reverse("qc:exams-api"))
+
+        self.assertEqual(response.status_code, 200)
+        result_ids = {row["id"] for row in response.json()["results"]}
+        self.assertIn(str(self.exam.id), result_ids)
+        self.assertIn(str(self.xr_exam.id), result_ids)
+        self.assertNotIn(str(hidden_exam.id), result_ids)
 
     def test_qc_worklist_api_radiologist_sees_own_cases_including_non_concern(self):
         QCSession.objects.create(
@@ -203,6 +313,37 @@ class QCWorkflowTests(TestCase):
         self.assertIn("QC-ACC-002", result_map)
         self.assertTrue(result_map["QC-ACC-001"]["concern_raised"])
         self.assertFalse(result_map["QC-ACC-002"]["concern_raised"])
+
+    def test_qc_worklist_api_excludes_non_completed_exam_statuses(self):
+        pending_exam = Exam.objects.create(
+            accession_number="QC-ACC-777",
+            order_id="QC-ORD-777",
+            mrn="MRN-777",
+            facility=self.facility,
+            modality=self.modality,
+            procedure_code="CTPEND",
+            procedure_name="CT Pending",
+            patient_name="Pending Patient",
+            status="SCHEDULED",
+        )
+        QCSession.objects.create(
+            exam=pending_exam,
+            reviewer=self.radiologist,
+            accession_number=pending_exam.accession_number,
+            mrn=pending_exam.mrn,
+            modality_code=pending_exam.modality.code,
+            study_name=pending_exam.procedure_name,
+            notes="",
+            concern_raised=False,
+            status=QCSessionStatus.DRAFT,
+        )
+
+        self.client.force_login(self.radiologist)
+        response = self.client.get(reverse("qc:exams-api"))
+
+        self.assertEqual(response.status_code, 200)
+        result_ids = {row["id"] for row in response.json()["results"]}
+        self.assertNotIn(str(pending_exam.id), result_ids)
 
     def test_qc_session_save_saves_png_image_and_annotations(self):
         self.client.force_login(self.radiologist)
@@ -287,6 +428,38 @@ class QCWorkflowTests(TestCase):
                 title__icontains="Acknowledge",
             ).exists()
         )
+
+    def test_supervisor_acknowledge_works_when_concern_was_saved_by_admin(self):
+        QCSession.objects.create(
+            exam=self.exam,
+            reviewer=self.admin_qc_editor,
+            accession_number=self.exam.accession_number,
+            mrn=self.exam.mrn,
+            modality_code=self.exam.modality.code,
+            study_name=self.exam.procedure_name,
+            notes="Admin raised concern",
+            concern_raised=True,
+            status=QCSessionStatus.SAVED,
+        )
+
+        self.client.force_login(self.ct_supervisor)
+        payload = {
+            "action": "acknowledge",
+            "checklist": {"positioning": True},
+            "notes": "",
+            "images": [],
+        }
+
+        response = self.client.post(
+            reverse("qc:session-api", args=[self.exam.id]),
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        latest = QCSession.objects.filter(exam=self.exam).order_by("-created_at").first()
+        self.assertIsNotNone(latest)
+        self.assertEqual(latest.status, QCSessionStatus.ACKNOWLEDGED)
 
     def test_technologist_cannot_save_qc_fields_even_with_edit_permission(self):
         self._grant_user_permissions(self.technologist, ["qc_edit", "qc_evidence_capture"])
@@ -402,6 +575,31 @@ class QCWorkflowTests(TestCase):
             ).exists()
         )
 
+    def test_supervisor_review_prefills_direct_message_recipient_and_search(self):
+        QCSession.objects.create(
+            exam=self.exam,
+            reviewer=self.radiologist,
+            accession_number=self.exam.accession_number,
+            mrn=self.exam.mrn,
+            modality_code=self.exam.modality.code,
+            study_name=self.exam.procedure_name,
+            notes="Need follow-up",
+            concern_raised=True,
+            status=QCSessionStatus.SAVED,
+        )
+
+        self.client.force_login(self.ct_supervisor)
+        response = self.client.get(reverse("qc:review", args=[self.exam.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="dm-recipient-search"', html=False)
+        self.assertContains(response, self.radiologist.get_full_name(), html=False)
+        self.assertContains(
+            response,
+            f'value="{self.radiologist.id}" selected',
+            html=False,
+        )
+
     def test_supervisor_can_escalate_to_quality_department_representative(self):
         QCSession.objects.create(
             exam=self.exam,
@@ -494,7 +692,63 @@ class QCWorkflowTests(TestCase):
         self.assertContains(response, "Missing Images in PACS")
         self.assertContains(response, "Wrong Tech Markers")
 
-    def test_qc_concern_sends_notification_to_supervisor(self):
+    def test_modality_checklist_rows_still_include_shared_default_items(self):
+        QCChecklist.objects.create(
+            modality=self.xr_modality,
+            key="positioning",
+            label="Positioning",
+            is_required=True,
+            is_active=True,
+            sort_order=1,
+        )
+
+        self.client.force_login(self.radiologist)
+        response = self.client.get(reverse("qc:review", args=[self.xr_exam.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Positioning")
+        self.assertContains(response, "Missing Images in PACS")
+        self.assertContains(response, "Wrong Tech Markers")
+
+    def test_qc_save_with_checklist_or_note_sends_notification_to_modality_supervisors(self):
+        self.client.force_login(self.radiologist)
+        payload = {
+            "action": "save",
+            "checklist": {
+                "positioning": True,
+            },
+            "notes": "QC checklist recorded",
+            "concern_raised": False,
+            "images": [],
+        }
+
+        response = self.client.post(
+            reverse("qc:session-api", args=[self.exam.id]),
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            UserNotification.objects.filter(
+                recipient=self.ct_supervisor,
+                category="QC_CHECKLIST_UPDATE",
+            ).exists()
+        )
+        self.assertTrue(
+            UserNotification.objects.filter(
+                recipient=self.ct_qc_supervisor,
+                category="QC_CHECKLIST_UPDATE",
+            ).exists()
+        )
+        self.assertFalse(
+            UserNotification.objects.filter(
+                recipient=self.quality_officer,
+                category="QC_CHECKLIST_UPDATE",
+            ).exists()
+        )
+
+    def test_qc_concern_sends_notification_to_supervisors_and_qc_officer_and_service_desk(self):
         self.client.force_login(self.radiologist)
         payload = {
             "action": "save",
@@ -518,6 +772,25 @@ class QCWorkflowTests(TestCase):
                 recipient=self.ct_supervisor,
                 category="QC_CONCERN",
             ).exists()
+        )
+        self.assertTrue(
+            UserNotification.objects.filter(
+                recipient=self.ct_qc_supervisor,
+                category="QC_CONCERN",
+            ).exists()
+        )
+        self.assertTrue(
+            UserNotification.objects.filter(
+                recipient=self.quality_officer,
+                category="QC_CONCERN",
+            ).exists()
+        )
+        self.assertTrue(
+            any(
+                "helpdesk@Aaml.com.sa" in message.to
+                and "QC Service Desk Ticket" in message.subject
+                for message in mail.outbox
+            )
         )
 
     def test_qc_analytics_page_loads_all_sections(self):

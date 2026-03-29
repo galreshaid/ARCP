@@ -1253,6 +1253,18 @@ function getCsrfToken(){
     return cookie ? decodeURIComponent(cookie.split("=")[1]) : "";
 }
 
+async function parseJsonResponse(response){
+    const raw = await response.text();
+    if (!String(raw || "").trim()) {
+        return {};
+    }
+    try {
+        return JSON.parse(raw);
+    } catch (error) {
+        throw new Error("Server returned an unexpected response. Please refresh and try again.");
+    }
+}
+
 function setStatus(message, isError){
     const node = document.getElementById("save-status");
     node.innerText = message || "";
@@ -1283,7 +1295,7 @@ async function postSavedEntryUpdate(entryType, entryId, data){
             data,
         }),
     });
-    const body = await response.json();
+    const body = await parseJsonResponse(response);
     if (!response.ok) {
         if (typeof body.error === "string") {
             throw new Error(body.error);
@@ -1659,7 +1671,7 @@ async function submitEntries(){
                 material_entries: pendingMaterial,
             }),
         });
-        const body = await response.json();
+        const body = await parseJsonResponse(response);
         if (!response.ok) {
             throw new Error(body.error || "Unable to save entries.");
         }

@@ -1,13 +1,16 @@
 import json
+from datetime import date, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from decimal import Decimal
 from tempfile import NamedTemporaryFile
 
+from django.contrib.auth.models import Group, Permission
 from django.core.management import call_command
 from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.core.constants import UserRole
 from apps.core.models import (
@@ -26,9 +29,10 @@ from apps.core.models import (
 from apps.core.services.icd10_lookup import lookup_icd10_description
 from apps.core.services.hl7_orm import ingest_orm_message
 from apps.core.services.hl7_orr import ingest_orr_message
+from apps.core.services.hl7_siu import ingest_siu_message
 from apps.hl7_core.models import HL7Message
 from apps.protocols.models import ProtocolAssignment, ProtocolTemplate
-from apps.users.models import User
+from apps.users.models import User, UserPreference
 
 
 class ICD10LookupTests(SimpleTestCase):
@@ -119,6 +123,36 @@ class SystemAdminPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'HL7 Message Logs')
         self.assertContains(response, 'TEST-001')
+        self.assertContains(response, 'Rejected &amp; Errors')
+
+    def test_admin_user_can_access_hl7_issues_page_with_plain_explanations(self):
+        self.client.force_login(self.staff_user)
+        HL7Message.objects.create(
+            direction='INBOUND',
+            message_type='ORM^O01',
+            message_control_id='DUP-001',
+            raw_message='MSH|^~\\&|TEST',
+            status='REJECTED',
+            error_message='Duplicate message control ID DUP-001.',
+        )
+        HL7Message.objects.create(
+            direction='INBOUND',
+            message_type='SIU^S12',
+            message_control_id='ERR-001',
+            raw_message='MSH|^~\\&|TEST',
+            status='ERROR',
+            error_message='Failed to process inbound HL7 message after ACK.',
+        )
+
+        response = self.client.get(
+            reverse('system-admin-hl7-issues'),
+            {'range': 'today'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'HL7 Rejected &amp; Error Messages')
+        self.assertContains(response, 'Duplicate Message Control ID')
+        self.assertContains(response, 'prevent duplicate exams')
 
     def test_admin_user_can_open_hl7_message_detail_view(self):
         self.client.force_login(self.staff_user)
@@ -360,17 +394,17 @@ class ContrastWorkflowViewsTests(TestCase):
             status=ExamStatus.IN_PROGRESS,
             metadata={"hl7_order_status": "IP"},
         )
-        self.exam_scheduled = Exam.objects.create(
+        self.exam_cancelled = Exam.objects.create(
             accession_number="CM-300",
             order_id="PEC-CM-300",
             mrn="MRN-CM-300",
             facility=self.facility,
             modality=self.modality,
             procedure_code="CTA",
-            procedure_name="CT ABDOMEN",
-            patient_name="Scheduled Patient",
-            status=ExamStatus.ORDER,
-            metadata={"hl7_order_status": "NW"},
+            procedure_name="CT Canceled Study",
+            patient_name="Canceled Patient",
+            status=ExamStatus.CANCELLED,
+            metadata={"hl7_order_status": "CA"},
         )
 
         self.measurement_ml = MaterialMeasurement.objects.create(code="ml", label="Milliliter", is_active=True)
@@ -389,7 +423,7 @@ class ContrastWorkflowViewsTests(TestCase):
             quantity=Decimal("1"),
         )
 
-    def test_contrast_exams_api_returns_order_in_progress_and_completed(self):
+    def test_contrast_exams_api_returns_in_progress_completed_and_cancelled(self):
         self.client.force_login(self.technologist)
         response = self.client.get(reverse("contrast-materials-api-exams"))
 
@@ -399,7 +433,7 @@ class ContrastWorkflowViewsTests(TestCase):
         rows_by_accession = {row["accession_number"]: row for row in payload["results"]}
         self.assertEqual(rows_by_accession["CM-100"]["exam_status"], ExamStatus.COMPLETED)
         self.assertEqual(rows_by_accession["CM-200"]["exam_status"], ExamStatus.IN_PROGRESS)
-        self.assertEqual(rows_by_accession["CM-300"]["exam_status"], ExamStatus.ORDER)
+        self.assertEqual(rows_by_accession["CM-300"]["exam_status"], ExamStatus.CANCELLED)
         self.assertEqual(rows_by_accession["CM-100"]["material_status"], "Documented")
         self.assertEqual(rows_by_accession["CM-200"]["material_status"], "Pending")
         self.assertTrue(rows_by_accession["CM-100"]["can_open"])
@@ -429,8 +463,29 @@ class ContrastWorkflowViewsTests(TestCase):
         }
         self.assertIn("CM-400", rows_by_accession)
         self.assertEqual(rows_by_accession["CM-400"]["id"], str(stale_exam.id))
-        self.assertEqual(rows_by_accession["CM-400"]["exam_status"], ExamStatus.SCHEDULED)
-        self.assertEqual(rows_by_accession["CM-400"]["exam_status_label"], "Scheduled")
+        self.assertEqual(rows_by_accession["CM-400"]["exam_status"], ExamStatus.IN_PROGRESS)
+        self.assertEqual(rows_by_accession["CM-400"]["exam_status_label"], "In Progress")
+
+    def test_contrast_exams_api_excludes_order_status_rows(self):
+        order_exam = Exam.objects.create(
+            accession_number="CM-450",
+            order_id="PEC-CM-450",
+            mrn="MRN-CM-450",
+            facility=self.facility,
+            modality=self.modality,
+            procedure_code="CTN",
+            procedure_name="CT ORDER",
+            patient_name="Order Contrast Patient",
+            status=ExamStatus.ORDER,
+            metadata={"hl7_order_status": "NW"},
+        )
+
+        self.client.force_login(self.technologist)
+        response = self.client.get(reverse("contrast-materials-api-exams"))
+
+        self.assertEqual(response.status_code, 200)
+        result_ids = {row["id"] for row in response.json()["results"]}
+        self.assertNotIn(str(order_exam.id), result_ids)
 
     def test_contrast_exams_api_hides_modalities_with_contrast_disabled(self):
         modality_without_contrast = Modality.objects.create(
@@ -448,11 +503,70 @@ class ContrastWorkflowViewsTests(TestCase):
             procedure_code="XR-HIDE",
             procedure_name="XR Hidden Exam",
             patient_name="Hidden Contrast Patient",
-            status=ExamStatus.SCHEDULED,
-            metadata={"hl7_order_status": "NW"},
+            status=ExamStatus.IN_PROGRESS,
+            metadata={"hl7_order_status": "IP"},
         )
 
         self.client.force_login(self.technologist)
+        response = self.client.get(reverse("contrast-materials-api-exams"))
+
+        self.assertEqual(response.status_code, 200)
+        result_ids = {row["id"] for row in response.json()["results"]}
+        self.assertIn(str(self.exam_cm.id), result_ids)
+        self.assertNotIn(str(hidden_exam.id), result_ids)
+
+    def test_contrast_exams_api_enforces_user_facility_scope(self):
+        other_facility = Facility.objects.create(code="CWF2", name="Contrast Workflow Facility 2", is_active=True)
+        hidden_exam = Exam.objects.create(
+            accession_number="CM-401",
+            order_id="PEC-CM-401",
+            mrn="MRN-CM-401",
+            facility=other_facility,
+            modality=self.modality,
+            procedure_code="CTA",
+            procedure_name="CT CHEST",
+            patient_name="Other Facility Contrast Patient",
+            status=ExamStatus.IN_PROGRESS,
+            metadata={"hl7_order_status": "IP"},
+        )
+
+        self.client.force_login(self.admin_user)
+        response = self.client.get(reverse("contrast-materials-api-exams"))
+
+        self.assertEqual(response.status_code, 200)
+        result_ids = {row["id"] for row in response.json()["results"]}
+        self.assertIn(str(self.exam_cm.id), result_ids)
+        self.assertNotIn(str(hidden_exam.id), result_ids)
+
+    def test_contrast_exams_api_uses_primary_facility_scope_when_user_facilities_empty(self):
+        other_facility = Facility.objects.create(code="CWF3", name="Contrast Workflow Facility 3", is_active=True)
+        hidden_exam = Exam.objects.create(
+            accession_number="CM-402",
+            order_id="PEC-CM-402",
+            mrn="MRN-CM-402",
+            facility=other_facility,
+            modality=self.modality,
+            procedure_code="CTA",
+            procedure_name="CT CHEST",
+            patient_name="Other Primary Contrast Patient",
+            status=ExamStatus.IN_PROGRESS,
+            metadata={"hl7_order_status": "IP"},
+        )
+
+        scoped_user = User.objects.create_user(
+            email="contrast-primary-scope@example.com",
+            password="password123",
+            username="contrastprimaryscope",
+            first_name="Primary",
+            last_name="Contrast Scope",
+            role=UserRole.ADMIN,
+            primary_facility=self.facility,
+        )
+        scoped_user.user_permissions.add(
+            Permission.objects.get(content_type__app_label='users', codename='contrast_view')
+        )
+
+        self.client.force_login(scoped_user)
         response = self.client.get(reverse("contrast-materials-api-exams"))
 
         self.assertEqual(response.status_code, 200)
@@ -532,6 +646,57 @@ class ContrastWorkflowViewsTests(TestCase):
         self.assertEqual(str(contrast.total_mg), "21000.000")
         self.assertEqual(material.unit, "ml")
         self.assertEqual(material.material_item_id, self.catalog_syringe.id)
+
+    def test_contrast_session_api_accepts_blank_optional_numeric_fields(self):
+        self.client.force_login(self.technologist)
+        response = self.client.post(
+            reverse("contrast-materials-api-session", args=[self.exam_in_progress.id]),
+            data=json.dumps(
+                {
+                    "contrast_entries": [
+                        {
+                            "contrast_name": "Omni",
+                            "concentration_mg_ml": "300",
+                            "volume_ml": "50",
+                            "injection_rate_ml_s": "",
+                            "patient_weight_kg": "   ",
+                            "route": "IV",
+                        }
+                    ],
+                    "material_entries": [],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        entry = ContrastUsage.objects.get(exam=self.exam_in_progress, contrast_name="Omni")
+        self.assertIsNone(entry.injection_rate_ml_s)
+        self.assertIsNone(entry.patient_weight_kg)
+
+    def test_contrast_session_api_returns_json_error_for_invalid_decimal_value(self):
+        self.client.force_login(self.technologist)
+        response = self.client.post(
+            reverse("contrast-materials-api-session", args=[self.exam_in_progress.id]),
+            data=json.dumps(
+                {
+                    "contrast_entries": [
+                        {
+                            "contrast_name": "Omni",
+                            "concentration_mg_ml": "abc",
+                            "volume_ml": "50",
+                            "route": "IV",
+                        }
+                    ],
+                    "material_entries": [],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Invalid contrast row #1", response.json().get("error", ""))
+        self.assertEqual(ContrastUsage.objects.filter(exam=self.exam_in_progress).count(), 0)
 
     def test_contrast_session_api_rejects_non_technologist_even_with_admin_permissions(self):
         self.client.force_login(self.admin_user)
@@ -1000,6 +1165,7 @@ OBR||RKF-206453463^RKF-206453463|21860732|XCHES^XR Chest||||||||||||||||21860732
         self.assertEqual(exam.modality.code, 'XR')
         self.assertEqual(exam.metadata['hl7_accession_number'], '21860732')
         self.assertEqual(exam.metadata['hl7_order_control'], 'SC')
+        self.assertEqual(exam.metadata['hl7_response_order_status_raw'], 'SC')
         self.assertEqual(exam.status, 'SCHEDULED')
         self.assertEqual(exam.raw_hl7_message, 'ORM PLACEHOLDER')
         self.assertEqual(parsed['message_info']['message_control_id'], '172064370')
@@ -1025,6 +1191,23 @@ OBR||RKF-206453463^RKF-206453463|21860732|XCHES^XR Chest||||||||||||||||21860732
             'Deferred ORR update waiting for ORM order RKF-206453463.',
         )
 
+    def test_ingest_orr_message_creates_exam_for_actionable_status_when_order_missing(self):
+        actionable_orr = self.SAMPLE_ORR.replace('||SC||', '||IP||', 1)
+
+        exam, created, parsed = ingest_orr_message(actionable_orr)
+
+        self.assertTrue(created)
+        self.assertIsNotNone(exam)
+        self.assertEqual(parsed['order']['placer_order_number'], 'RKF-206453463')
+        self.assertEqual(exam.order_id, 'RKF-206453463')
+        self.assertEqual(exam.accession_number, '21860732')
+        self.assertEqual(exam.status, ExamStatus.IN_PROGRESS)
+        self.assertEqual(exam.metadata['hl7_order_status'], 'IP')
+        self.assertEqual(HL7Message.objects.count(), 1)
+        hl7_log = HL7Message.objects.get()
+        self.assertEqual(hl7_log.status, 'PROCESSED')
+        self.assertEqual(hl7_log.exam_id, exam.id)
+
     def test_ingest_orm_replays_deferred_orr_update(self):
         deferred_exam, deferred_created, _ = ingest_orr_message(self.SAMPLE_ORR)
         self.assertIsNone(deferred_exam)
@@ -1039,8 +1222,9 @@ OBR||RKF-206453463^RKF-206453463|21860732|XCHES^XR Chest||||||||||||||||21860732
 
         self.assertEqual(exam.order_id, 'RKF-206453463')
         self.assertEqual(exam.accession_number, '21860732')
-        self.assertEqual(exam.status, 'SCHEDULED')
-        self.assertEqual(exam.metadata['hl7_order_status'], 'SC')
+        self.assertEqual(exam.status, 'ORDER')
+        self.assertEqual(exam.metadata['hl7_order_status'], 'NW')
+        self.assertEqual(exam.metadata['hl7_response_order_status_raw'], 'SC')
         self.assertEqual(deferred_log.status, 'PROCESSED')
         self.assertEqual(deferred_log.exam_id, exam.id)
         self.assertEqual(HL7Message.objects.filter(status='PROCESSED').count(), 2)
@@ -1089,6 +1273,7 @@ OBR||RKF-206453463^RKF-206453463|21860732|XCHES^XR Chest||||||||||||||||21860732
         self.assertEqual(exam.status, 'CANCELLED')
         self.assertEqual(exam.get_status_display(), 'Canceled')
         self.assertEqual(exam.metadata['hl7_order_status'], 'CA')
+        self.assertEqual(exam.metadata['hl7_response_order_status_raw'], 'CA')
 
     def test_ingest_orr_message_marks_completed_without_protocol_as_closed(self):
         existing_exam = Exam.objects.create(
@@ -1159,6 +1344,70 @@ OBR||RKF-206453463^RKF-206453463|21860732|XCHES^XR Chest||||||||||||||||21860732
         self.assertEqual(exam.metadata['protocol_workflow_status'], 'DONE')
 
 
+class HL7SIUIngestionTests(TestCase):
+    SAMPLE_SIU = """MSH|^~\\&|CRIS|AAML|HIS|DGH|20260327113326|ALBOGMAI|SIU^S12|176459897|P|2.3.1|||AL||||
+SCH|DGH-426030007681|21996245|DWMIXR03|10000000000187|DGH|^^^|XKNEL||30^^^min||20260327113236^^^^|||||10000000000187^^^^^||||A0191^ALBOGMAI^MOHAMMED^^^^RADIOLOGY TECHNOLOGIST|||||BOOKED
+PID|||1851272^^^MPI&2.16.840.1.113883.3.3731.1.2.2.200.3.1.1.1.11&ISO~40000030260^^^DGH-MRNPID&2.16.840.1.113883.3.3731.1.2.2.100.4.1.10000000000187.11&ISO||Alotaibi^Sharaa^SARAB^Jahaz^^||19661015|W|||^^Unknown^^00000^||0503775659^^^^^^0503775659^CP|||||||||||||SAU||SAU|
+PV1||E|^^^10000000000187||||10000000000187^^^^^|10000000000187^^^^^|10000000000187^^^^^||||||||10000000000187^^^^^||DGH-4EM2603012170^^^|UNK|||||||||||||||||||||||||||||||
+AIS|||XKNEL|20260327113236|||30^^^min||||||||||"""
+
+    def setUp(self):
+        self.facility = Facility.objects.create(
+            code='DGH',
+            name='DGH',
+            is_active=True,
+        )
+        self.modality = Modality.objects.create(
+            code='XR',
+            name='X-Ray',
+            is_active=True,
+        )
+        Procedure.objects.create(
+            code='XKNEL',
+            name='XR Knee Lt',
+            modality=self.modality,
+            body_region='Lower Extremity',
+            is_active=True,
+        )
+
+    def test_ingest_siu_message_creates_scheduled_exam(self):
+        exam, created, parsed = ingest_siu_message(self.SAMPLE_SIU)
+
+        self.assertTrue(created)
+        self.assertEqual(exam.order_id, 'DGH-426030007681')
+        self.assertEqual(exam.accession_number, '21996245')
+        self.assertEqual(exam.status, ExamStatus.SCHEDULED)
+        self.assertEqual(exam.modality.code, 'XR')
+        self.assertEqual(exam.procedure_code, 'XKNEL')
+        self.assertIsNotNone(exam.scheduled_datetime)
+        self.assertEqual(exam.metadata['hl7_order_status'], 'SC')
+        self.assertEqual(exam.metadata['hl7_schedule_status'], 'BOOKED')
+        self.assertEqual(parsed['message_info']['message_type'], 'SIU^S12')
+
+    def test_ingest_siu_message_updates_existing_order_to_scheduled(self):
+        existing_exam = Exam.objects.create(
+            accession_number='DGH-426030007681',
+            order_id='DGH-426030007681',
+            mrn='40000030260',
+            facility=self.facility,
+            modality=self.modality,
+            procedure_code='XKNEL',
+            procedure_name='XR Knee Lt',
+            patient_name='Existing Patient',
+            status=ExamStatus.ORDER,
+            metadata={'hl7_order_status': 'NW'},
+        )
+
+        exam, created, _ = ingest_siu_message(self.SAMPLE_SIU)
+
+        self.assertFalse(created)
+        self.assertEqual(exam.pk, existing_exam.pk)
+        self.assertEqual(exam.accession_number, '21996245')
+        self.assertEqual(exam.status, ExamStatus.SCHEDULED)
+        self.assertEqual(exam.metadata['hl7_order_status'], 'SC')
+        self.assertEqual(exam.metadata['hl7_schedule_status'], 'BOOKED')
+
+
 class ExamsApiWorkflowTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_superuser(
@@ -1167,17 +1416,27 @@ class ExamsApiWorkflowTests(TestCase):
             username='reviewer',
             first_name='Review',
             last_name='User',
+            specialty='Neuro',
         )
         self.facility = Facility.objects.create(
             code='API',
             name='API Facility',
             is_active=True,
         )
+        self.user.facilities.add(self.facility)
         self.modality = Modality.objects.create(
             code='CT',
             name='Computed Tomography',
             is_active=True,
         )
+        self.procedure = Procedure.objects.create(
+            code='CTHEAD',
+            name='CT Head',
+            modality=self.modality,
+            body_region='Head',
+            is_active=True,
+        )
+        self.scheduled_datetime = timezone.now().replace(microsecond=0)
         self.exam = Exam.objects.create(
             accession_number='API-100',
             order_id='API-100',
@@ -1188,6 +1447,7 @@ class ExamsApiWorkflowTests(TestCase):
             procedure_name='CT HEAD',
             patient_name='API Patient',
             status='SCHEDULED',
+            scheduled_datetime=self.scheduled_datetime,
             metadata={'hl7_patient_class': 'E'},
         )
         self.protocol = ProtocolTemplate.objects.create(
@@ -1216,8 +1476,15 @@ class ExamsApiWorkflowTests(TestCase):
         self.assertTrue(payload['viewer']['can_review_protocol'])
         self.assertTrue(payload['viewer']['can_view_protocol'])
         self.assertTrue(payload['viewer']['can_view_contrast'])
+        self.assertEqual(payload['viewer']['default_subspeciality'], 'Neuro')
         self.assertEqual(payload['results'][0]['order_id'], self.exam.order_id)
+        self.assertIn('order_datetime', payload['results'][0])
         self.assertEqual(payload['results'][0]['patient_class'], 'E')
+        self.assertEqual(payload['results'][0]['patient_class_label'], 'Emergency')
+        self.assertIn('patient_dob', payload['results'][0])
+        self.assertEqual(payload['results'][0]['body_part'], 'Head')
+        self.assertEqual(payload['results'][0]['subspeciality'], 'Neuro')
+        self.assertEqual(payload['results'][0]['scheduled_datetime'], self.scheduled_datetime.isoformat())
         self.assertEqual(payload['results'][0]['exam_status'], 'SCHEDULED')
         self.assertEqual(payload['results'][0]['exam_status_label'], 'Scheduled')
         self.assertEqual(payload['results'][0]['workflow_status'], 'PENDING')
@@ -1262,6 +1529,8 @@ class ExamsApiWorkflowTests(TestCase):
             last_name='Logist',
             role=UserRole.RADIOLOGIST,
         )
+        radiologist.groups.add(Group.objects.get(name='Radiologist'))
+        radiologist.facilities.add(self.facility)
 
         self.client.force_login(radiologist)
 
@@ -1283,6 +1552,8 @@ class ExamsApiWorkflowTests(TestCase):
             last_name='Nologist',
             role=UserRole.TECHNOLOGIST,
         )
+        technologist.groups.add(Group.objects.get(name='Technologist'))
+        technologist.facilities.add(self.facility)
 
         self.client.force_login(technologist)
 
@@ -1294,3 +1565,344 @@ class ExamsApiWorkflowTests(TestCase):
         self.assertFalse(payload['viewer']['can_review_protocol'])
         self.assertTrue(payload['viewer']['can_view_protocol'])
         self.assertTrue(payload['viewer']['can_confirm_protocol'])
+
+    def test_exams_api_marks_chest_exam_as_pedia_for_age_14_or_younger(self):
+        pediatric_procedure = Procedure.objects.create(
+            code='CTCHESTPED',
+            name='CT Chest Pediatric',
+            modality=self.modality,
+            body_region='Chest',
+            is_active=True,
+        )
+        pediatric_exam = Exam.objects.create(
+            accession_number='API-300',
+            order_id='API-300',
+            mrn='88888',
+            facility=self.facility,
+            modality=self.modality,
+            procedure_code=pediatric_procedure.code,
+            procedure_name='CT CHEST',
+            patient_name='Pediatric Patient',
+            patient_dob=date.today() - timedelta(days=12 * 365),
+            status='SCHEDULED',
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('exams-api'))
+
+        self.assertEqual(response.status_code, 200)
+        rows = {row['id']: row for row in response.json()['results']}
+        self.assertIn(str(pediatric_exam.id), rows)
+        self.assertEqual(rows[str(pediatric_exam.id)]['subspeciality'], 'Pedia')
+
+    def test_exams_api_only_returns_exams_in_user_facilities(self):
+        other_facility = Facility.objects.create(
+            code='API2',
+            name='API Facility 2',
+            is_active=True,
+        )
+        hidden_exam = Exam.objects.create(
+            accession_number='API-400',
+            order_id='API-400',
+            mrn='99999',
+            facility=other_facility,
+            modality=self.modality,
+            procedure_code='CTHEAD',
+            procedure_name='CT HEAD',
+            patient_name='Other Facility Patient',
+            status='SCHEDULED',
+        )
+
+        radiologist = User.objects.create_user(
+            email='facility-scope@example.com',
+            password='password123',
+            username='facilityscope',
+            first_name='Facility',
+            last_name='Scoped',
+            role=UserRole.RADIOLOGIST,
+        )
+        radiologist.groups.add(Group.objects.get(name='Radiologist'))
+        radiologist.facilities.add(self.facility)
+
+        self.client.force_login(radiologist)
+        response = self.client.get(reverse('exams-api'))
+
+        self.assertEqual(response.status_code, 200)
+        result_ids = {item['id'] for item in response.json()['results']}
+        self.assertIn(str(self.exam.id), result_ids)
+        self.assertNotIn(str(hidden_exam.id), result_ids)
+
+    def test_exams_api_uses_primary_facility_scope_when_user_facilities_empty(self):
+        other_facility = Facility.objects.create(
+            code='API3',
+            name='API Facility 3',
+            is_active=True,
+        )
+        hidden_exam = Exam.objects.create(
+            accession_number='API-410',
+            order_id='API-410',
+            mrn='99111',
+            facility=other_facility,
+            modality=self.modality,
+            procedure_code='CTHEAD',
+            procedure_name='CT HEAD',
+            patient_name='Other Primary Facility Patient',
+            status='SCHEDULED',
+        )
+
+        user = User.objects.create_user(
+            email='primary-facility-scope@example.com',
+            password='password123',
+            username='primaryfacilityscope',
+            first_name='Primary',
+            last_name='Scoped',
+            role=UserRole.RADIOLOGIST,
+            primary_facility=self.facility,
+        )
+        user.groups.add(Group.objects.get(name='Radiologist'))
+
+        self.client.force_login(user)
+        response = self.client.get(reverse('exams-api'))
+
+        self.assertEqual(response.status_code, 200)
+        result_ids = {item['id'] for item in response.json()['results']}
+        self.assertIn(str(self.exam.id), result_ids)
+        self.assertNotIn(str(hidden_exam.id), result_ids)
+
+    def test_set_exam_subspeciality_updates_exam_metadata(self):
+        unassigned_exam = Exam.objects.create(
+            accession_number='API-500',
+            order_id='API-500',
+            mrn='12345',
+            facility=self.facility,
+            modality=self.modality,
+            procedure_code='CTHEAD',
+            procedure_name='CT HEAD',
+            patient_name='Unassigned Patient',
+            status='SCHEDULED',
+        )
+
+        radiologist = User.objects.create_user(
+            email='subspeciality-editor@example.com',
+            password='password123',
+            username='subspecialityeditor',
+            first_name='Sub',
+            last_name='Speciality',
+            role=UserRole.RADIOLOGIST,
+        )
+        radiologist.groups.add(Group.objects.get(name='Radiologist'))
+        radiologist.facilities.add(self.facility)
+
+        self.client.force_login(radiologist)
+        response = self.client.post(
+            reverse('exam-set-subspeciality', args=[unassigned_exam.id]),
+            data={'subspeciality': 'MSK'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        unassigned_exam.refresh_from_db()
+        self.assertEqual(unassigned_exam.metadata.get('subspeciality'), 'MSK')
+        self.assertEqual(unassigned_exam.metadata.get('subspecialty'), 'MSK')
+
+    def test_set_exam_subspeciality_rejects_assigned_exam(self):
+        radiologist = User.objects.create_user(
+            email='subspeciality-assigned@example.com',
+            password='password123',
+            username='subspecialityassigned',
+            first_name='Sub',
+            last_name='Assigned',
+            role=UserRole.RADIOLOGIST,
+        )
+        radiologist.groups.add(Group.objects.get(name='Radiologist'))
+        radiologist.facilities.add(self.facility)
+
+        self.client.force_login(radiologist)
+        response = self.client.post(
+            reverse('exam-set-subspeciality', args=[self.exam.id]),
+            data={'subspeciality': 'MSK'},
+        )
+
+        self.assertEqual(response.status_code, 409)
+
+    def test_set_exam_subspeciality_allows_primary_facility_scope(self):
+        unassigned_exam = Exam.objects.create(
+            accession_number='API-501',
+            order_id='API-501',
+            mrn='12346',
+            facility=self.facility,
+            modality=self.modality,
+            procedure_code='CTHEAD',
+            procedure_name='CT HEAD',
+            patient_name='Primary Scope Patient',
+            status='SCHEDULED',
+        )
+
+        radiologist = User.objects.create_user(
+            email='subspeciality-primary@example.com',
+            password='password123',
+            username='subspecialityprimary',
+            first_name='Primary',
+            last_name='Scope',
+            role=UserRole.RADIOLOGIST,
+            primary_facility=self.facility,
+        )
+        radiologist.groups.add(Group.objects.get(name='Radiologist'))
+
+        self.client.force_login(radiologist)
+        response = self.client.post(
+            reverse('exam-set-subspeciality', args=[unassigned_exam.id]),
+            data={'subspeciality': 'MSK'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        unassigned_exam.refresh_from_db()
+        self.assertEqual(unassigned_exam.metadata.get('subspeciality'), 'MSK')
+
+
+class WorklistFilterPreferencesApiTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_superuser(
+            email='filter-admin@example.com',
+            password='password123',
+            username='filteradmin',
+            first_name='Filter',
+            last_name='Admin',
+        )
+        self.no_permission_user = User.objects.create_user(
+            email='filter-viewer@example.com',
+            password='password123',
+            username='filterviewer',
+            first_name='Filter',
+            last_name='Viewer',
+            role=UserRole.VIEWER,
+        )
+
+    def _url(self, context_key):
+        return reverse('worklist-filter-preferences-api', args=[context_key])
+
+    def test_get_returns_empty_filters_when_no_preference_exists(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self._url('protocol'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()['has_saved'])
+        self.assertEqual(response.json()['filters'], {})
+
+    def test_get_returns_has_saved_true_when_preference_exists_even_if_empty(self):
+        self.client.force_login(self.user)
+        UserPreference.objects.create(
+            user=self.user,
+            preference_type='display',
+            preference_key='worklist_filters.protocol',
+            preference_value={},
+        )
+
+        response = self.client.get(self._url('protocol'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['has_saved'])
+        self.assertEqual(response.json()['filters'], {})
+
+    def test_post_saves_and_returns_protocol_filters(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            self._url('protocol'),
+            data=json.dumps(
+                {
+                    'filters': {
+                        'modality': 'MR',
+                        'subspeciality': 'Neuro',
+                        'query': 'mri spine',
+                        'sort_by': 'exam-newest',
+                        'unexpected_key': 'drop-me',
+                    }
+                }
+            ),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['ok'])
+        self.assertEqual(
+            payload['filters'],
+            {
+                'modality': ['MR'],
+                'subspeciality': ['Neuro'],
+                'query': 'mri spine',
+                'sort_by': 'exam-newest',
+            },
+        )
+
+        preference = UserPreference.objects.get(
+            user=self.user,
+            preference_type='display',
+            preference_key='worklist_filters.protocol',
+        )
+        self.assertEqual(preference.preference_value, payload['filters'])
+
+    def test_post_saves_protocol_date_query_filters(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            self._url('protocol'),
+            data=json.dumps(
+                {
+                    'filters': {
+                        'order_date_query': '-7',
+                        'schedule_date_query': '2026-03-01 to 2026-03-31',
+                    }
+                }
+            ),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            payload['filters'],
+            {
+                'order_date_query': '-7',
+                'schedule_date_query': '2026-03-01 to 2026-03-31',
+            },
+        )
+
+    def test_post_allows_updating_existing_filters(self):
+        self.client.force_login(self.user)
+        UserPreference.objects.create(
+            user=self.user,
+            preference_type='display',
+            preference_key='worklist_filters.qc',
+            preference_value={'modality': 'CT'},
+        )
+
+        response = self.client.post(
+            self._url('qc'),
+            data=json.dumps({'filters': {'modality': 'XR', 'query': 'demo'}}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        stored = UserPreference.objects.get(
+            user=self.user,
+            preference_type='display',
+            preference_key='worklist_filters.qc',
+        )
+        self.assertEqual(stored.preference_value, {'modality': 'XR', 'query': 'demo'})
+
+    def test_context_permission_is_enforced(self):
+        self.client.force_login(self.no_permission_user)
+
+        response = self.client.get(self._url('qc'))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_rejects_unknown_context(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self._url('unknown'))
+
+        self.assertEqual(response.status_code, 404)

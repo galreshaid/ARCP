@@ -386,6 +386,9 @@
 
                             <div class="resource-actions">
                                 <a href="{{ link.manage_url }}">Manage records</a>
+                                {% if link.issues_url %}
+                                    <a href="{{ link.issues_url }}">Rejected &amp; Errors</a>
+                                {% endif %}
                                 {% if link.add_url %}
                                     <a href="{{ link.add_url }}">Add new</a>
                                 {% else %}

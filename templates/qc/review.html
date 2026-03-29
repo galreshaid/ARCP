@@ -786,6 +786,10 @@
                         <p>Optional: send a direct message from this QC case to any active user.</p>
                         <div class="direct-message-grid">
                             <div class="field">
+                                <label for="dm-recipient-search">Search Recipient</label>
+                                <input id="dm-recipient-search" type="text" placeholder="Search by name or username...">
+                            </div>
+                            <div class="field">
                                 <label for="dm-recipient">Recipient</label>
                                 <select id="dm-recipient">
                                     <option value="">Select recipient</option>
@@ -904,6 +908,7 @@ const IS_ACKNOWLEDGEMENT_USER = {{ is_acknowledgement_user|yesno:"true,false" }}
 const CAN_SAVE_SESSION = {{ can_save_session|yesno:"true,false" }};
 const CAN_ACKNOWLEDGE_OR_REPLY = {{ can_acknowledge_or_reply|yesno:"true,false" }};
 const CAN_ESCALATE_TO_QUALITY = {{ can_escalate_to_quality|yesno:"true,false" }};
+const ISSUE_OWNER_ID = "{{ issue_owner_id|default:''|escapejs }}";
 
 const state = {
     images: [],
@@ -1433,6 +1438,36 @@ function toggleActionButtons(disabled){
     }
 }
 
+function setupDirectMessageRecipientSearch(){
+    const dmRecipientNode = document.getElementById("dm-recipient");
+    const dmRecipientSearchNode = document.getElementById("dm-recipient-search");
+    if (!dmRecipientNode) {
+        return;
+    }
+
+    if (ISSUE_OWNER_ID && !dmRecipientNode.value) {
+        dmRecipientNode.value = ISSUE_OWNER_ID;
+    }
+
+    const filterRecipients = () => {
+        const query = String(dmRecipientSearchNode ? dmRecipientSearchNode.value : "").trim().toLowerCase();
+        Array.from(dmRecipientNode.options).forEach((option, index) => {
+            if (index === 0) {
+                option.hidden = false;
+                return;
+            }
+            const label = String(option.text || "").toLowerCase();
+            const matches = !query || label.includes(query);
+            option.hidden = !matches && !option.selected;
+        });
+    };
+
+    if (dmRecipientSearchNode) {
+        dmRecipientSearchNode.addEventListener("input", filterRecipients);
+    }
+    filterRecipients();
+}
+
 async function submitQc(action){
     if (!IS_QC_EDITOR_USER && state.images.length) {
         setSaveStatus("You do not have permission to capture evidence.", true);
@@ -1464,8 +1499,8 @@ async function submitQc(action){
         setSaveStatus("Escalation note is required before escalating to Quality Department.", true);
         return;
     }
-    if (dmRecipient && !dmBody) {
-        setSaveStatus("Direct message body is required when recipient is selected.", true);
+    if (dmBody && !dmRecipient) {
+        setSaveStatus("Select a direct-message recipient before sending a message body.", true);
         return;
     }
 
@@ -1481,6 +1516,7 @@ async function submitQc(action){
                 annotations: imageEntry.annotations,
             });
         }
+        const shouldSendDirectMessage = Boolean(dmRecipient && dmBody);
 
         const payload = {
             action,
@@ -1490,9 +1526,9 @@ async function submitQc(action){
             supervisor_reply: supervisorReply,
             quality_escalation_note: qualityEscalationNote,
             direct_message: {
-                recipient_id: dmRecipient,
-                title: dmTitle,
-                message: dmBody,
+                recipient_id: shouldSendDirectMessage ? dmRecipient : "",
+                title: shouldSendDirectMessage ? dmTitle : "",
+                message: shouldSendDirectMessage ? dmBody : "",
             },
             images: imagesPayload,
         };
@@ -1603,6 +1639,7 @@ canvas.addEventListener("pointermove", continueDraw);
 canvas.addEventListener("pointerup", endDraw);
 canvas.addEventListener("pointerleave", endDraw);
 
+setupDirectMessageRecipientSearch();
 initializeChecklistState();
 renderImageStrip();
 drawCanvas();

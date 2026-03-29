@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HL7 Rejected & Errors | System Admin</title>
+    {% include "partials/app_shell_styles.html" %}
+    <style>
+        :root {
+            --ink: #10243a;
+            --muted: #5f7288;
+            --line: #d6dee6;
+            --brand: #145d8d;
+            --brand-dark: #0f4b72;
+            --danger: #b91c1c;
+            --warn-bg: #fff7ed;
+            --warn-line: #fed7aa;
+            --surface: #eef4f8;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top right, rgba(20, 93, 141, 0.1), transparent 28%),
+                linear-gradient(135deg, #edf4f8, var(--surface));
+        }
+
+        .page { display: grid; gap: 18px; }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            box-shadow: 0 24px 60px rgba(16, 36, 58, 0.12);
+            padding: 24px;
+        }
+
+        .hero-actions,
+        .toolbar,
+        .stats {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        h1 {
+            margin: 10px 0 6px;
+            font-size: clamp(28px, 4vw, 38px);
+        }
+
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .btn {
+            min-height: 44px;
+            padding: 0 16px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--ink);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--brand);
+            border-color: var(--brand);
+            color: #fff;
+        }
+
+        .stats {
+            margin-top: 18px;
+        }
+
+        .stat {
+            min-width: 180px;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 14px 16px;
+        }
+
+        .stat .label {
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-size: 11px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .stat .value {
+            font-size: 30px;
+            line-height: 1;
+            font-weight: 800;
+        }
+
+        .toolbar { margin-top: 18px; }
+
+        select {
+            min-height: 44px;
+            padding: 0 12px;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: #fff;
+            font: inherit;
+        }
+
+        .hint {
+            margin-top: 12px;
+            border: 1px solid var(--warn-line);
+            background: var(--warn-bg);
+            border-radius: 14px;
+            padding: 12px 14px;
+            color: #9a3412;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            margin-top: 16px;
+            background: #fff;
+        }
+
+        table {
+            width: 100%;
+            min-width: 1360px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #eef2f7;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fbfd;
+            color: var(--muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            padding: 0 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .status.rejected {
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        .status.error {
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
+        .small-muted {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+    </style>
+    {% include "partials/system_admin_match_worklist_styles.html" %}
+</head>
+<body>
+    {% include "partials/app_header.html" %}
+    <div class="app-frame">
+        {% include "partials/app_sidebar.html" with current_nav="admin" %}
+        <main class="app-main">
+            <div class="page system-admin-page">
+                <section class="hero-panel">
+                    <div class="eyebrow">Integration & Messaging</div>
+                    <h1>HL7 Rejected &amp; Error Messages</h1>
+                    <p class="subtitle">
+                        Time window: <strong>{{ range_start|date:"Y-m-d" }}</strong> to <strong>{{ range_end|date:"Y-m-d" }}</strong>.
+                        This view explains each rejected/error HL7 message in plain language for non-integration users.
+                    </p>
+
+                    <div class="hero-actions" style="margin-top:14px;">
+                        <a href="{{ hl7_list_url }}" class="btn">HL7 Message Logs</a>
+                        <a href="{{ dashboard_url }}" class="btn">Back to Dashboard</a>
+                    </div>
+
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="label">Parsed Blocks</div>
+                            <div class="value">{{ summary.parsed_blocks }}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="label">Candidate HL7</div>
+                            <div class="value">{{ summary.candidate_messages }}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="label">Accepted + Processed</div>
+                            <div class="value">{{ summary.processed_count }}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="label">Rejected</div>
+                            <div class="value">{{ summary.rejected_count }}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="label">Errors</div>
+                            <div class="value">{{ summary.error_count }}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="label">Rejected Duplicates</div>
+                            <div class="value">{{ summary.duplicate_count }}</div>
+                        </div>
+                    </div>
+
+                    <form method="get" class="toolbar">
+                        <label for="range"><strong>Date range</strong></label>
+                        <select id="range" name="range">
+                            <option value="yesterday" {% if selected_range == "yesterday" %}selected{% endif %}>Yesterday</option>
+                            <option value="today" {% if selected_range == "today" %}selected{% endif %}>Today</option>
+                            <option value="last7" {% if selected_range == "last7" %}selected{% endif %}>Last 7 days</option>
+                            <option value="last30" {% if selected_range == "last30" %}selected{% endif %}>Last 30 days</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary">Apply</button>
+                    </form>
+
+                    <div class="hint">
+                        Why “Rejected (mostly duplicates)” can be high: duplicate messages are expected in some integrations when source systems retry.
+                        The platform rejects duplicates intentionally to prevent creating duplicate exams.
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2 style="margin:0;">Rejected &amp; Error Details</h2>
+                            <div class="panel-copy">Top 500 rows in the selected window with technical and non-technical explanations.</div>
+                        </div>
+                        <div class="record-count">{{ rows|length }} issue{{ rows|length|pluralize }}</div>
+                    </div>
+
+                    {% if category_breakdown %}
+                        <div class="stats" style="margin-top:16px;">
+                            {% for item in category_breakdown %}
+                                <div class="stat" style="min-width: 220px;">
+                                    <div class="label">Issue Category</div>
+                                    <div class="value" style="font-size:26px;">{{ item.count }}</div>
+                                    <div class="small-muted" style="margin-top:6px;">{{ item.label }}</div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    {% if top_reasons %}
+                        <div class="table-wrap">
+                            <table style="min-width: 820px;">
+                                <thead>
+                                    <tr>
+                                        <th>Top Technical Reason</th>
+                                        <th>Count</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for reason in top_reasons %}
+                                        <tr>
+                                            <td class="small-muted">{{ reason.error_message }}</td>
+                                            <td><strong>{{ reason.total }}</strong></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+
+                    <div class="table-wrap">
+                        {% if rows %}
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Status</th>
+                                        <th>Message</th>
+                                        <th>Context</th>
+                                        <th>Issue Category</th>
+                                        <th>Technical Reason</th>
+                                        <th>Plain Explanation</th>
+                                        <th>Recommended Action</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in rows %}
+                                        <tr>
+                                            <td>{{ row.message.created_at|date:"Y-m-d H:i:s" }}</td>
+                                            <td>
+                                                <span class="status {{ row.status|lower }}">{{ row.status }}</span>
+                                            </td>
+                                            <td>
+                                                <div><strong>{{ row.message.message_type }}</strong></div>
+                                                <div class="small-muted">Control ID: {{ row.message.message_control_id|default:"—" }}</div>
+                                            </td>
+                                            <td class="small-muted">{{ row.summary }}</td>
+                                            <td>{{ row.category }}</td>
+                                            <td class="small-muted">{{ row.technical_reason|default:"—" }}</td>
+                                            <td>{{ row.plain_reason }}</td>
+                                            <td>{{ row.next_step }}</td>
+                                            <td><a href="{{ row.detail_url }}">Open</a></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <div class="empty">No rejected or error messages in this date range.</div>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

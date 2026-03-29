@@ -117,6 +117,12 @@
             gap:10px;
             align-items:end;
         }
+        .toolbar-actions{
+            display:grid;
+            grid-template-columns:repeat(3, minmax(0, auto));
+            gap:8px;
+            justify-content:end;
+        }
         .field{ display:grid; gap:6px; }
         .field label{
             font-size:11px;
@@ -133,6 +139,15 @@
             font:inherit;
             background:#fbfdff;
             color:var(--ink);
+        }
+        .filter-save-state{
+            min-height:16px;
+            margin-top:8px;
+            font-size:11px;
+            color:var(--muted);
+        }
+        .filter-save-state.error{
+            color:#b91c1c;
         }
 
         .table-wrap{
@@ -215,8 +230,55 @@
         .action-group .btn{ min-height:32px; padding:0 10px; font-size:11px; width:100%; }
         .empty{ padding:44px 16px; text-align:center; color:var(--muted); }
 
+        .pagination-bar{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            flex-wrap:wrap;
+            margin-top:10px;
+        }
+        .pagination-summary{
+            font-size:12px;
+            color:var(--muted);
+        }
+        .pagination-controls{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            flex-wrap:wrap;
+        }
+        .pagination-controls label{
+            font-size:11px;
+            color:var(--muted);
+            font-weight:700;
+        }
+        .pagination-controls select{
+            min-height:32px;
+            padding:0 10px;
+            border-radius:10px;
+            border:1px solid var(--line-strong);
+            background:#fbfdff;
+            color:var(--ink);
+            font:inherit;
+            font-size:12px;
+        }
+        .pagination-btn{
+            min-height:32px;
+            padding:0 12px;
+            font-size:11px;
+        }
+        .pagination-info{
+            min-width:96px;
+            text-align:center;
+            font-size:12px;
+            color:var(--muted);
+            font-weight:700;
+        }
+
         @media (max-width: 900px){
             .toolbar{ grid-template-columns:1fr; }
+            .toolbar-actions{ grid-template-columns:1fr; }
         }
     </style>
 </head>
@@ -260,8 +322,13 @@
                         <label for="search-input">Search</label>
                         <input id="search-input" value="{{ initial_search_query }}" placeholder="Acc#, Order#, MRN, patient, procedure">
                     </div>
-                    <button class="btn btn-secondary" type="button" onclick="render()">Apply</button>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-secondary" type="button" onclick="render()">Apply</button>
+                        <button class="btn btn-secondary" type="button" onclick="saveFilters()">Save Filters</button>
+                        <button class="btn btn-secondary" type="button" onclick="clearFilters()">Clear</button>
+                    </div>
                 </div>
+                <div id="filter-save-state" class="filter-save-state" aria-live="polite"></div>
             </section>
 
             <section class="panel">
@@ -284,6 +351,21 @@
                     </table>
                     <div class="empty" id="contrast-empty">Loading exams...</div>
                 </div>
+                <div id="contrast-pagination" class="pagination-bar" hidden>
+                    <div id="contrast-pagination-summary" class="pagination-summary"></div>
+                    <div class="pagination-controls">
+                        <label for="contrast-page-size">Rows</label>
+                        <select id="contrast-page-size">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <button id="contrast-prev-page" class="btn btn-secondary pagination-btn" type="button">Previous</button>
+                        <span id="contrast-page-info" class="pagination-info">Page 1 / 1</span>
+                        <button id="contrast-next-page" class="btn btn-secondary pagination-btn" type="button">Next</button>
+                    </div>
+                </div>
             </section>
         </div>
     </main>
@@ -291,7 +373,10 @@
 
 <script>
 const WORKLIST_API_URL = "{{ worklist_api_url }}";
+const FILTER_PREFERENCES_API_URL = "/api/core/worklist-filters/contrast/";
 let allRows = [];
+let currentPage = 1;
+let rowsPerPage = 25;
 
 function normalizeText(value){
     return String(value || "").trim().toLowerCase();
@@ -306,6 +391,150 @@ function formatDate(value){
         return "-";
     }
     return date.toLocaleString();
+}
+
+function resetPagination(){
+    currentPage = 1;
+}
+
+function paginationMeta(items){
+    const totalCount = items.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage));
+    currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+
+    if (!totalCount) {
+        return {
+            rows: [],
+            totalCount: 0,
+            totalPages: 1,
+            startIndex: 0,
+            endIndex: 0,
+        };
+    }
+
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = Math.min(startIndex + rowsPerPage, totalCount);
+
+    return {
+        rows: items.slice(startIndex, endIndex),
+        totalCount,
+        totalPages,
+        startIndex,
+        endIndex,
+    };
+}
+
+function updatePagination(meta){
+    const bar = document.getElementById("contrast-pagination");
+    const summary = document.getElementById("contrast-pagination-summary");
+    const pageInfo = document.getElementById("contrast-page-info");
+    const prevButton = document.getElementById("contrast-prev-page");
+    const nextButton = document.getElementById("contrast-next-page");
+
+    if (!bar || !summary || !pageInfo || !prevButton || !nextButton) {
+        return;
+    }
+
+    if (!meta.totalCount) {
+        bar.hidden = true;
+        summary.textContent = "";
+        pageInfo.textContent = "Page 1 / 1";
+        prevButton.disabled = true;
+        nextButton.disabled = true;
+        return;
+    }
+
+    bar.hidden = false;
+    summary.textContent = `Showing ${meta.startIndex + 1}-${meta.endIndex} of ${meta.totalCount}`;
+    pageInfo.textContent = `Page ${currentPage} / ${meta.totalPages}`;
+    prevButton.disabled = currentPage <= 1;
+    nextButton.disabled = currentPage >= meta.totalPages;
+}
+
+function getCsrfToken(){
+    const cookie = document.cookie
+        .split("; ")
+        .find((item) => item.startsWith("csrftoken="));
+    return cookie ? decodeURIComponent(cookie.split("=")[1]) : "";
+}
+
+function setFilterSaveState(message, isError){
+    const stateNode = document.getElementById("filter-save-state");
+    if (!stateNode) {
+        return;
+    }
+    stateNode.textContent = message || "";
+    stateNode.classList.toggle("error", Boolean(isError));
+}
+
+function collectFilterState(){
+    return {
+        query: document.getElementById("search-input").value,
+    };
+}
+
+function applyFilterState(filters){
+    if (!filters || typeof filters !== "object") {
+        return;
+    }
+    if (typeof filters.query === "string") {
+        const searchNode = document.getElementById("search-input");
+        if (!searchNode.value.trim()) {
+            searchNode.value = filters.query;
+        }
+    }
+}
+
+async function loadSavedFilters(){
+    try {
+        const response = await fetch(FILTER_PREFERENCES_API_URL, {
+            credentials: "same-origin",
+        });
+        if (!response.ok) {
+            return;
+        }
+        const payload = await response.json();
+        applyFilterState(payload.filters || {});
+    } catch (error) {
+    }
+}
+
+async function saveFilters(){
+    setFilterSaveState("Saving filters...", false);
+    try {
+        const response = await fetch(FILTER_PREFERENCES_API_URL, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                "X-CSRFToken": getCsrfToken(),
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ filters: collectFilterState() }),
+        });
+
+        if (!response.ok) {
+            let payload = null;
+            try {
+                payload = await response.json();
+            } catch (error) {
+                payload = null;
+            }
+            const message = (payload && (payload.error || payload.detail)) || "Unable to save filters.";
+            setFilterSaveState(message, true);
+            return;
+        }
+
+        setFilterSaveState("Filters saved.", false);
+    } catch (error) {
+        setFilterSaveState("Unable to save filters.", true);
+    }
+}
+
+function clearFilters(){
+    document.getElementById("search-input").value = "";
+    setFilterSaveState("", false);
+    resetPagination();
+    render();
 }
 
 function filteredRows(){
@@ -362,21 +591,31 @@ function materialStatusClass(status){
     return "status-pending";
 }
 
+function materialStatusLabel(status){
+    const normalized = normalizeText(status);
+    if (normalized === "documented") {
+        return "Documented";
+    }
+    return "New";
+}
+
 function render(){
     const table = document.getElementById("contrast-table");
     const body = document.getElementById("contrast-body");
     const empty = document.getElementById("contrast-empty");
     body.innerHTML = "";
 
-    const rows = filteredRows();
-    if (!rows.length) {
+    const filtered = filteredRows();
+    const pageMeta = paginationMeta(filtered);
+    if (!filtered.length) {
         table.style.display = "none";
         empty.style.display = "block";
         empty.innerText = "No exams found for current filters.";
+        updatePagination(pageMeta);
         return;
     }
 
-    rows.forEach((row) => {
+    pageMeta.rows.forEach((row) => {
         body.innerHTML += `
             <tr>
                 <td>
@@ -395,7 +634,7 @@ function render(){
                     <span class="status ${statusClass(row.exam_status)}">${statusLabel(row)}</span>
                 </td>
                 <td>
-                    <span class="status ${materialStatusClass(row.material_status)}">${row.material_status || "Pending"}</span>
+                    <span class="status ${materialStatusClass(row.material_status)}">${materialStatusLabel(row.material_status)}</span>
                 </td>
                 <td>
                     <div>Contrast: ${row.contrast_count || 0}</div>
@@ -414,14 +653,19 @@ function render(){
 
     empty.style.display = "none";
     table.style.display = "table";
+    updatePagination(pageMeta);
 }
 
 async function loadExams(){
     const table = document.getElementById("contrast-table");
     const empty = document.getElementById("contrast-empty");
+    const paginationBar = document.getElementById("contrast-pagination");
     table.style.display = "none";
     empty.style.display = "block";
     empty.innerText = "Loading exams...";
+    if (paginationBar) {
+        paginationBar.hidden = true;
+    }
 
     try {
         const response = await fetch(WORKLIST_API_URL, { credentials: "same-origin" });
@@ -430,15 +674,60 @@ async function loadExams(){
         }
         const payload = await response.json();
         allRows = payload.results || [];
+        resetPagination();
         render();
     } catch (error) {
         allRows = [];
+        updatePagination({
+            rows: [],
+            totalCount: 0,
+            totalPages: 1,
+            startIndex: 0,
+            endIndex: 0,
+        });
         empty.innerText = "Unable to load exam list right now.";
     }
 }
 
-document.getElementById("search-input").addEventListener("input", render);
-loadExams();
+document.getElementById("search-input").addEventListener("input", () => {
+    resetPagination();
+    render();
+});
+
+async function initializeWorklist(){
+    await loadSavedFilters();
+
+    const pageSizeNode = document.getElementById("contrast-page-size");
+    if (pageSizeNode) {
+        rowsPerPage = Math.max(1, Number(pageSizeNode.value) || rowsPerPage);
+        pageSizeNode.addEventListener("change", () => {
+            rowsPerPage = Math.max(1, Number(pageSizeNode.value) || 25);
+            resetPagination();
+            render();
+        });
+    }
+
+    const prevPageNode = document.getElementById("contrast-prev-page");
+    const nextPageNode = document.getElementById("contrast-next-page");
+    if (prevPageNode) {
+        prevPageNode.addEventListener("click", () => {
+            if (currentPage > 1) {
+                currentPage -= 1;
+                render();
+            }
+        });
+    }
+    if (nextPageNode) {
+        nextPageNode.addEventListener("click", () => {
+            currentPage += 1;
+            render();
+        });
+    }
+
+    await loadExams();
+}
+
+initializeWorklist();
 </script>
 </body>
 </html>

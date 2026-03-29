@@ -39,6 +39,11 @@ _HL7_SCHEDULED_CODES = {'SC', 'SCHEDULED', 'SCHEDULE', 'SCH'}
 _HL7_ARRIVED_CODES = {'AR', 'ARRIVED'}
 _HL7_CANCELLED_CODES = {'CA', 'CANCEL', 'CANCELLED', 'DC', 'DISCONTINUED'}
 _HL7_NO_SHOW_CODES = {'NS', 'NOSHOW'}
+_HL7_RESPONSE_ACTIONABLE_CODES = (
+    _HL7_IN_PROGRESS_CODES
+    | _HL7_COMPLETED_CODES
+    | _HL7_CANCELLED_CODES
+)
 
 
 def _first_component(value: str) -> str:
@@ -54,10 +59,13 @@ def _map_exam_status_from_hl7(
     order_control: str | None,
     order_status: str | None,
     fallback: str = ExamStatus.SCHEDULED,
+    actionable_response_only: bool = False,
 ) -> str:
     for raw_code in (order_status, order_control):
         code = _normalize_hl7_status_code(raw_code)
         if not code:
+            continue
+        if actionable_response_only and code not in _HL7_RESPONSE_ACTIONABLE_CODES:
             continue
         if code in _HL7_ORDER_CODES:
             return ExamStatus.ORDER
@@ -95,7 +103,7 @@ def _extract_preface_identifiers(raw_message: str) -> tuple[str, str | None, str
             if lower_line.startswith('acc'):
                 accession_hint = line.split('#', 1)[-1].split(':', 1)[-1].strip()
                 continue
-            if lower_line in {'orm message', 'orr message'}:
+            if lower_line in {'orm message', 'orr message', 'siu message'}:
                 continue
 
         lines.append(line)

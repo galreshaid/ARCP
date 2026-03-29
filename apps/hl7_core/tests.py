@@ -26,6 +26,12 @@ class HL7InboundListenerTests(SimpleTestCase):
         "ORC|SC|RKF-10001|21860001^^^21860001||CM\r"
         "OBR||RKF-10001^RKF-10001|21860001|CKIDB^CT Renal"
     )
+    SAMPLE_SIU = (
+        "MSH|^~\\&|CRIS|AAML|HIS|DGH|20260327113326||SIU^S12|SIU123|P|2.3.1\r"
+        "SCH|DGH-426030007681|21996245||||||XKNEL||30^^^min||20260327113236^^^^|||||||||||||||||BOOKED\r"
+        "PID|1||12345^^^MPI||DOE^JANE\r"
+        "AIS|||XKNEL|20260327113236|||30^^^min"
+    )
 
     def test_wrap_and_extract_mllp_message(self):
         framed = wrap_mllp_message(self.SAMPLE_ORM)
@@ -80,6 +86,21 @@ class HL7InboundListenerTests(SimpleTestCase):
         self.assertIsNone(result["exam_id"])
         self.assertEqual(result["order_id"], "RKF-10001")
         self.assertEqual(result["accession_number"], "21860001")
+
+    @patch("apps.hl7_core.services.inbound_listener.ingest_siu_message")
+    def test_dispatch_routes_siu_to_siu_ingest(self, ingest_mock):
+        ingest_mock.return_value = (
+            type("ExamStub", (), {"id": "2", "order_id": "DGH-426030007681", "accession_number": "21996245"})(),
+            True,
+            {},
+        )
+
+        result = dispatch_inbound_hl7_message(self.SAMPLE_SIU)
+
+        ingest_mock.assert_called_once_with(self.SAMPLE_SIU)
+        self.assertEqual(result["handler"], "SIU")
+        self.assertEqual(result["order_id"], "DGH-426030007681")
+        self.assertEqual(result["accession_number"], "21996245")
 
     def test_dispatch_rejects_unknown_order_control(self):
         with self.assertRaisesMessage(ValueError, "Unsupported inbound HL7 flow"):
@@ -160,3 +181,25 @@ class HL7HttpEndpointTests(TestCase):
         ack = response.content.decode("utf-8")
         self.assertIn("MSA|AR|ORM123|Duplicate order ID RKF-10001.", ack)
         dispatch_mock.assert_not_called()
+
+    @patch("apps.hl7_core.views._start_inbound_hl7_processing")
+    def test_legacy_http_orm_endpoint_allows_retry_for_deferred_orr_log(self, dispatch_mock):
+        HL7Message.objects.create(
+            direction="INBOUND",
+            message_type="ORM^O01",
+            message_control_id="ORM123",
+            raw_message=HL7InboundListenerTests.SAMPLE_ORM,
+            status="RECEIVED",
+            error_message="Deferred ORR update waiting for ORM order RKF-10001.",
+        )
+
+        response = self.client.post(
+            reverse("hl7-http-orm"),
+            data=HL7InboundListenerTests.SAMPLE_ORM,
+            content_type="text/plain",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        ack = response.content.decode("utf-8")
+        self.assertIn("MSA|AA|ORM123|Accepted", ack)
+        dispatch_mock.assert_called_once()

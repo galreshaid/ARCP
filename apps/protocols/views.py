@@ -18,8 +18,16 @@ from django.utils import timezone
 from django.urls import reverse
 
 from apps.core.constants import Permission, UserRole
-from apps.core.models import Exam, Facility
+from apps.core.models import Exam, Facility, Procedure
 from apps.core.deeplinks.validator import deeplink_validator, DeepLinkValidationError
+from apps.core.services.facility_scope import can_access_facility, scoped_facility_ids
+from apps.core.services.subspeciality import (
+    append_subspeciality_change_event,
+    SUBSPECIALITY_POOL,
+    normalize_subspeciality,
+    resolve_exam_subspeciality,
+    subspeciality_change_events,
+)
 
 # ============================================================
 # DRF imports
@@ -123,11 +131,81 @@ def _message_recipients_for(user):
     ).exclude(pk=user.pk).order_by("first_name", "last_name", "username")
 
 
-def _build_assignment_timeline(assignment: ProtocolAssignment | None):
-    if not assignment:
-        return []
+def _protocol_note_lines(value) -> list[str]:
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+    lines = []
+    for raw_line in text.split("\n"):
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line[:1] in {"-", "*", "•"}:
+            line = line[1:].strip()
+        if line:
+            lines.append(line)
+    return lines
 
+
+def _protocol_preview_payload(protocol: ProtocolTemplate) -> dict:
+    sequences = [
+        {
+            "ser": sequence.ser,
+            "coil": str(sequence.coil or "").strip(),
+            "phase_array": str(sequence.phase_array or "").strip(),
+            "scan_plane": str(sequence.scan_plane or "").strip(),
+            "pulse_sequence": str(sequence.pulse_sequence or "").strip(),
+            "options": str(sequence.options or "").strip(),
+            "comments": str(sequence.comments or "").strip(),
+        }
+        for sequence in protocol.sequences.all().order_by("ser")
+    ]
+    return {
+        "id": str(protocol.id),
+        "code": str(protocol.code or "").strip(),
+        "name": str(protocol.name or "").strip(),
+        "indications": _protocol_note_lines(protocol.indications),
+        "patient_prep": _protocol_note_lines(protocol.patient_prep),
+        "safety_notes": _protocol_note_lines(protocol.safety_notes),
+        "general_notes": _protocol_note_lines(protocol.general_notes),
+        "sequences": sequences,
+    }
+
+
+def _parse_event_datetime(raw_value):
+    if not raw_value:
+        return None
+    value = str(raw_value).strip()
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if timezone.is_naive(parsed):
+        return timezone.make_aware(parsed, timezone.get_current_timezone())
+    return parsed
+
+
+def _build_assignment_timeline(assignment: ProtocolAssignment | None, *, exam: Exam | None = None):
     events = []
+    timeline_exam = exam or getattr(assignment, "exam", None)
+
+    if timeline_exam is not None:
+        metadata = dict(getattr(timeline_exam, "metadata", {}) or {})
+        for item in subspeciality_change_events(metadata):
+            events.append(
+                {
+                    "event_type": "subspeciality",
+                    "title": "Subspeciality pool changed",
+                    "actor": str(item.get("by") or "").strip() or "System",
+                    "occurred_at": _parse_event_datetime(item.get("at")) or getattr(timeline_exam, "updated_at", None),
+                    "body": str(item.get("summary") or "").strip() or "Subspeciality routing updated.",
+                }
+            )
+
+    if not assignment:
+        events.sort(key=lambda item: item.get("occurred_at") or timezone.now())
+        return events
+
     modifications = dict(assignment.modifications or {})
     history = modifications.get("history") or []
 
@@ -156,15 +234,7 @@ def _build_assignment_timeline(assignment: ProtocolAssignment | None):
     })
 
     for item in history:
-        occurred_at = None
-        raw_occurred_at = str(item.get("at") or "").strip()
-        if raw_occurred_at:
-            try:
-                occurred_at = datetime.fromisoformat(raw_occurred_at)
-                if timezone.is_naive(occurred_at):
-                    occurred_at = timezone.make_aware(occurred_at, timezone.get_current_timezone())
-            except ValueError:
-                occurred_at = None
+        occurred_at = _parse_event_datetime(item.get("at"))
 
         events.append({
             "event_type": "update",
@@ -271,11 +341,14 @@ class ProtocolTemplateViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         qs = ProtocolTemplate.objects.filter(is_active=True)
 
-        if not user.is_superuser:
+        scoped_ids = scoped_facility_ids(user)
+        if scoped_ids:
             qs = qs.filter(
                 Q(facility__isnull=True)
-                | Q(facility__in=user.facilities.all())
+                | Q(facility_id__in=scoped_ids)
             )
+        elif not user.is_superuser:
+            qs = qs.filter(facility__isnull=True)
 
         if modality := self.request.query_params.get("modality"):
             qs = qs.filter(modality__code=modality)
@@ -332,8 +405,11 @@ class ProtocolAssignmentViewSet(viewsets.ModelViewSet):
         )
 
         user = self.request.user
-        if not user.is_superuser:
-            qs = qs.filter(exam__facility__in=user.facilities.all())
+        scoped_ids = scoped_facility_ids(user)
+        if scoped_ids:
+            qs = qs.filter(exam__facility_id__in=scoped_ids)
+        elif not user.is_superuser:
+            qs = qs.none()
 
         if status_q := self.request.query_params.get("status"):
             qs = qs.filter(status=status_q)
@@ -358,6 +434,7 @@ class ProtocolAssignmentViewSet(viewsets.ModelViewSet):
     def stats(self, request):
         radiologist = None
         facility = None
+        scoped_ids = scoped_facility_ids(request.user)
 
         if rid := request.query_params.get("radiologist"):
             from django.contrib.auth import get_user_model
@@ -365,12 +442,29 @@ class ProtocolAssignmentViewSet(viewsets.ModelViewSet):
 
         if fcode := request.query_params.get("facility"):
             facility = get_object_or_404(Facility, code=fcode)
+            if scoped_ids and str(facility.id) not in scoped_ids:
+                return Response(
+                    {"error": "Not allowed for this facility."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            if not scoped_ids and not request.user.is_superuser:
+                return Response(
+                    {"error": "Not allowed for this facility."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
         days = int(request.query_params.get("days", 30))
+        facility_ids = None
+        if not facility:
+            if scoped_ids:
+                facility_ids = list(scoped_ids)
+            elif not request.user.is_superuser:
+                facility_ids = []
 
         stats = protocol_assignment_service.get_assignment_stats(
             radiologist=radiologist,
             facility=facility,
+            facility_ids=facility_ids,
             days=days,
         )
 
@@ -394,6 +488,8 @@ class ProtocolSuggestionViewSet(viewsets.ViewSet):
             )
 
         exam = get_object_or_404(Exam, id=exam_id)
+        if not can_access_facility(request.user, exam.facility_id):
+            return Response({"error": "Not allowed for this facility."}, status=status.HTTP_403_FORBIDDEN)
 
         suggestions = protocol_suggestion_service.suggest_protocols(
             exam=exam,
@@ -452,6 +548,8 @@ class ProtocolDeepLinkView(GenericAPIView):
 
             ctx = deeplink_validator.extract_exam_context(payload)
             exam = get_object_or_404(Exam, id=ctx["exam_id"])
+            if not can_access_facility(request.user, exam.facility_id):
+                return Response({"error": "Not allowed for this facility."}, status=403)
 
             assignment = getattr(exam, "protocol_assignment", None)
             suggestions = protocol_suggestion_service.suggest_protocols(
@@ -501,11 +599,38 @@ def radiologist_assign(request, exam_id):
 
     if not _can_access_radiologist_review(request.user):
         return HttpResponseForbidden("Not allowed")
+    if not can_access_facility(request.user, exam.facility_id):
+        return HttpResponseForbidden("Not allowed for this facility")
 
     assignment = getattr(exam, "protocol_assignment", None)
+    procedure_body_region = ""
+    procedure_code = str(getattr(exam, "procedure_code", "") or "").strip()
+    if procedure_code:
+        procedure_body_region = (
+            Procedure.objects.filter(code__iexact=procedure_code)
+            .values_list("body_region", flat=True)
+            .first()
+            or ""
+        )
+
+    exam_metadata = dict(getattr(exam, "metadata", {}) or {})
+    resolved_body_region = (
+        str(exam_metadata.get("body_part") or exam_metadata.get("body_region") or "").strip()
+        or str(procedure_body_region or "").strip()
+    )
+    current_subspeciality, inferred_subspeciality = resolve_exam_subspeciality(
+        exam,
+        body_region=resolved_body_region,
+    )
+    stored_subspeciality = normalize_subspeciality(
+        exam_metadata.get("subspeciality") or exam_metadata.get("subspecialty")
+    )
+
     candidates = ProtocolTemplate.objects.filter(
         is_active=True,
         modality=exam.modality,
+    ).filter(
+        Q(facility__isnull=True) | Q(facility=exam.facility),
     ).order_by("priority", "code")
 
     suggestions = protocol_suggestion_service.suggest_protocols(
@@ -524,6 +649,22 @@ def radiologist_assign(request, exam_id):
     message_title = ""
     message_body = ""
     message_recipient_id = ""
+    preview_protocol_ids = set(candidates.values_list("id", flat=True))
+    preview_protocol_ids.update(
+        suggestion.protocol.id
+        for suggestion in suggestions
+        if getattr(suggestion, "protocol", None) and getattr(suggestion.protocol, "id", None)
+    )
+    if current_protocol:
+        preview_protocol_ids.add(current_protocol.id)
+    preview_protocols = ProtocolTemplate.objects.filter(
+        id__in=preview_protocol_ids
+    ).prefetch_related("sequences")
+    protocol_preview_map = {
+        str(protocol.id): _protocol_preview_payload(protocol)
+        for protocol in preview_protocols
+    }
+    initial_preview_protocol_id = str(current_protocol.id) if current_protocol else ""
 
     if request.method == "POST":
         form_action = (request.POST.get("form_action") or "save_assignment").strip()
@@ -575,165 +716,264 @@ def radiologist_assign(request, exam_id):
                     )
         else:
             comment_text = request.POST.get("comment", "").strip()
+            message_title = request.POST.get("message_title", "").strip()
+            message_body = request.POST.get("message_body", "").strip()
+            message_recipient_id = request.POST.get("message_recipient_id", "").strip()
+            message_recipient = None
+            message_subject = ""
+            message_requested = bool(
+                message_title
+                or message_body
+                or message_recipient_id
+            )
             selected_protocol_id = (
                 request.POST.get("manual_protocol_id")
                 or request.POST.get("suggested_protocol_id")
             )
+            if selected_protocol_id:
+                initial_preview_protocol_id = str(selected_protocol_id)
 
-            if not selected_protocol_id:
+            if message_requested:
+                if not message_recipient_id:
+                    direct_message_error = "Select a user to send the direct message while saving."
+                elif not message_body:
+                    direct_message_error = "Enter a direct message body before saving."
+                else:
+                    message_recipient = get_object_or_404(
+                        user_model,
+                        id=message_recipient_id,
+                        is_active=True,
+                    )
+                    message_subject = (
+                        message_title
+                        or f"Protocol message for {exam.accession_number}"
+                    )
+
+            if not selected_protocol_id and not direct_message_error:
                 form_error = "Select a protocol before saving."
-            else:
+            elif not direct_message_error:
                 protocol = get_object_or_404(
                     ProtocolTemplate,
                     id=selected_protocol_id,
+                    is_active=True,
+                    modality=exam.modality,
                 )
-
-                method = (
-                    AssignmentMethod.AI
-                    if request.POST.get("ai_selected") == "1"
-                    else AssignmentMethod.MANUAL
-                )
-                radiologist_note = request.POST.get("radiologist_note", "").strip()
-                acknowledged_technologist = None
-                protocol_changed = False
-                method_changed = False
-                note_changed = False
-                comment_added = bool(comment_text)
-                notify_technologist_after_save = False
-
-                if assignment:
-                    now = timezone.now()
-                    change_descriptions = []
-                    acknowledged_technologist = assignment.acknowledged_by
-                    was_acknowledged = bool(assignment.acknowledged_at)
-                    protocol_changed = assignment.protocol_id != protocol.id
-                    method_changed = assignment.assignment_method != method
-                    note_changed = (assignment.radiologist_note or "").strip() != radiologist_note
-                    reopens_workflow = protocol_changed or method_changed or note_changed or comment_added
-
-                    if protocol_changed:
-                        change_descriptions.append(
-                            f"Protocol changed from {assignment.protocol.code} to {protocol.code}."
-                        )
-                    if method_changed:
-                        change_descriptions.append(
-                            f"Assignment method changed from {assignment.assignment_method} to {method}."
-                        )
-                    if note_changed:
-                        change_descriptions.append("Radiologist handoff note updated.")
-
-                    assignment.protocol = protocol
-                    assignment.assigned_by = request.user
-                    assignment.assignment_method = method
-                    assignment.radiologist_note = radiologist_note
-                    if reopens_workflow:
-                        assignment.status = AssignmentStatus.PENDING
-                    if protocol_changed or method_changed:
-                        assignment.assigned_at = now
-
-                    update_fields = [
-                        "protocol",
-                        "assigned_by",
-                        "assignment_method",
-                        "radiologist_note",
-                    ]
-                    if reopens_workflow:
-                        update_fields.append("status")
-                    if protocol_changed or method_changed:
-                        update_fields.append("assigned_at")
-
-                    if was_acknowledged and (protocol_changed or method_changed or note_changed or comment_added):
-                        assignment.acknowledged_by = None
-                        assignment.acknowledged_at = None
-                        change_descriptions.append("Technologist confirmation cleared; re-review required.")
-                        update_fields.extend([
-                            "acknowledged_by",
-                            "acknowledged_at",
-                        ])
-
-                    if change_descriptions:
-                        modifications = dict(assignment.modifications or {})
-                        history = list(modifications.get("history") or [])
-                        auto_update_comment = " ".join(change_descriptions)
-                        history.append({
-                            "at": now.isoformat(),
-                            "by": _display_name(request.user) or "System",
-                            "summary": auto_update_comment,
-                        })
-                        modifications["history"] = history
-                        modifications["changes"] = change_descriptions
-                        modifications["last_updated_at"] = now.isoformat()
-                        modifications["last_updated_by"] = _display_name(request.user) or "System"
-
-                        assignment.is_modified = True
-                        assignment.modifications = modifications
-                        assignment.modification_notes = auto_update_comment
-                        update_fields.extend([
-                            "is_modified",
-                            "modifications",
-                            "modification_notes",
-                        ])
-
-                    assignment.save(update_fields=update_fields)
-
-                    notify_technologist_after_save = (
-                        acknowledged_technologist
-                        and was_acknowledged
-                        and (protocol_changed or method_changed or note_changed or comment_added)
-                    )
-                else:
-                    assignment = ProtocolAssignment.objects.create(
-                        exam=exam,
-                        protocol=protocol,
-                        assigned_by=request.user,
-                        assignment_method=method,
-                        status=AssignmentStatus.PENDING,
-                        radiologist_note=radiologist_note,
-                    )
-
-                if comment_text:
-                    ProtocolComment.objects.create(
-                        assignment=assignment,
-                        author=request.user,
-                        author_role=_role(request.user),
-                        message=comment_text,
-                    )
-
-                if auto_update_comment:
-                    ProtocolComment.objects.create(
-                        assignment=assignment,
-                        author=request.user,
-                        author_role=_role(request.user),
-                        message=f"Update: {auto_update_comment}",
-                    )
-
-                if notify_technologist_after_save:
-                    notify_technologist_of_radiologist_revision(
-                        assignment=assignment,
-                        radiologist=request.user,
-                        technologist=acknowledged_technologist,
-                        protocol_changed=protocol_changed,
-                        note_changed=note_changed,
-                        method_changed=method_changed,
-                        comment_added=comment_added,
-                    )
-
-                try:
-                    preference_learning_service.update_preference(
-                        radiologist=request.user,
-                        exam=exam,
-                        selected_protocol=protocol,
-                        was_suggested=method == AssignmentMethod.AI,
-                    )
-                except Exception:
+                if protocol.facility_id and protocol.facility_id != exam.facility_id:
+                    form_error = "Selected protocol is not available for this exam facility."
+                    protocol = None
+                if protocol is None:
                     pass
+                else:
+                    method = (
+                        AssignmentMethod.AI
+                        if request.POST.get("ai_selected") == "1"
+                        else AssignmentMethod.MANUAL
+                    )
+                    radiologist_note = request.POST.get("radiologist_note", "").strip()
+                    selected_subspeciality = (
+                        normalize_subspeciality(request.POST.get("subspeciality", ""))
+                        or current_subspeciality
+                    )
+                    subspeciality_change_note = ""
+                    change_timestamp = timezone.now()
+                    if selected_subspeciality and selected_subspeciality != current_subspeciality:
+                        subspeciality_change_note = (
+                            f"Subspeciality changed from {current_subspeciality} to {selected_subspeciality}."
+                        )
+                    if selected_subspeciality and selected_subspeciality != stored_subspeciality:
+                        actor_name = _display_name(request.user) or getattr(request.user, "username", "") or "System"
+                        exam_metadata = append_subspeciality_change_event(
+                            exam_metadata,
+                            previous_subspeciality=current_subspeciality,
+                            new_subspeciality=selected_subspeciality,
+                            changed_by=actor_name,
+                            changed_at=change_timestamp,
+                        )
+                        exam_metadata["subspeciality"] = selected_subspeciality
+                        exam_metadata["subspecialty"] = selected_subspeciality
+                        exam.metadata = exam_metadata
+                        exam.save(update_fields=["metadata"])
+                        stored_subspeciality = selected_subspeciality
+                        current_subspeciality = selected_subspeciality
 
-                # TODO: send ORR to GERIS
-                return redirect(
-                    f'{reverse("protocoling-radiologist-review", args=[exam.id])}?saved=1'
-                )
+                    acknowledged_technologist = None
+                    protocol_changed = False
+                    method_changed = False
+                    note_changed = False
+                    comment_added = bool(comment_text)
+                    notify_technologist_after_save = False
 
-    timeline_events = _build_assignment_timeline(assignment)
+                    if assignment:
+                        now = change_timestamp
+                        change_descriptions = []
+                        acknowledged_technologist = assignment.acknowledged_by
+                        was_acknowledged = bool(assignment.acknowledged_at)
+                        protocol_changed = assignment.protocol_id != protocol.id
+                        method_changed = assignment.assignment_method != method
+                        note_changed = (assignment.radiologist_note or "").strip() != radiologist_note
+                        reopens_workflow = protocol_changed or method_changed or note_changed or comment_added
+
+                        if protocol_changed:
+                            change_descriptions.append(
+                                f"Protocol changed from {assignment.protocol.code} to {protocol.code}."
+                            )
+                        if method_changed:
+                            change_descriptions.append(
+                                f"Assignment method changed from {assignment.assignment_method} to {method}."
+                            )
+                        if note_changed:
+                            change_descriptions.append("Radiologist handoff note updated.")
+                        if subspeciality_change_note:
+                            change_descriptions.append(subspeciality_change_note)
+
+                        assignment.protocol = protocol
+                        assignment.assigned_by = request.user
+                        assignment.assignment_method = method
+                        assignment.radiologist_note = radiologist_note
+                        if reopens_workflow:
+                            assignment.status = AssignmentStatus.PENDING
+                        if protocol_changed or method_changed:
+                            assignment.assigned_at = now
+
+                        update_fields = [
+                            "protocol",
+                            "assigned_by",
+                            "assignment_method",
+                            "radiologist_note",
+                        ]
+                        if reopens_workflow:
+                            update_fields.append("status")
+                        if protocol_changed or method_changed:
+                            update_fields.append("assigned_at")
+
+                        if was_acknowledged and (protocol_changed or method_changed or note_changed or comment_added):
+                            assignment.acknowledged_by = None
+                            assignment.acknowledged_at = None
+                            change_descriptions.append("Technologist confirmation cleared; re-review required.")
+                            update_fields.extend([
+                                "acknowledged_by",
+                                "acknowledged_at",
+                            ])
+
+                        if change_descriptions:
+                            modifications = dict(assignment.modifications or {})
+                            history = list(modifications.get("history") or [])
+                            auto_update_comment = " ".join(change_descriptions)
+                            history.append({
+                                "at": now.isoformat(),
+                                "by": _display_name(request.user) or "System",
+                                "summary": auto_update_comment,
+                            })
+                            modifications["history"] = history
+                            modifications["changes"] = change_descriptions
+                            modifications["last_updated_at"] = now.isoformat()
+                            modifications["last_updated_by"] = _display_name(request.user) or "System"
+
+                            assignment.is_modified = True
+                            assignment.modifications = modifications
+                            assignment.modification_notes = auto_update_comment
+                            update_fields.extend([
+                                "is_modified",
+                                "modifications",
+                                "modification_notes",
+                            ])
+
+                        assignment.save(update_fields=update_fields)
+
+                        notify_technologist_after_save = (
+                            acknowledged_technologist
+                            and was_acknowledged
+                            and (protocol_changed or method_changed or note_changed or comment_added)
+                        )
+                    else:
+                        assignment = ProtocolAssignment.objects.create(
+                            exam=exam,
+                            protocol=protocol,
+                            assigned_by=request.user,
+                            assignment_method=method,
+                            status=AssignmentStatus.PENDING,
+                            radiologist_note=radiologist_note,
+                        )
+
+                    if subspeciality_change_note and not assignment.modification_notes:
+                        ProtocolComment.objects.create(
+                            assignment=assignment,
+                            author=request.user,
+                            author_role=_role(request.user),
+                            message=f"Update: {subspeciality_change_note}",
+                        )
+
+                    if comment_text:
+                        ProtocolComment.objects.create(
+                            assignment=assignment,
+                            author=request.user,
+                            author_role=_role(request.user),
+                            message=comment_text,
+                        )
+
+                    if auto_update_comment:
+                        ProtocolComment.objects.create(
+                            assignment=assignment,
+                            author=request.user,
+                            author_role=_role(request.user),
+                            message=f"Update: {auto_update_comment}",
+                        )
+
+                    if message_recipient:
+                        notification = send_direct_user_message(
+                            sender=request.user,
+                            recipient=message_recipient,
+                            title=message_subject,
+                            message=message_body,
+                            target_url=_direct_message_target_url(message_recipient, exam.id),
+                        )
+                        if notification is None:
+                            direct_message_error = "Protocol was saved, but direct message could not be sent."
+                        else:
+                            recipient_name = _display_name(message_recipient) or message_recipient.username
+                            ProtocolComment.objects.create(
+                                assignment=assignment,
+                                author=request.user,
+                                author_role=_role(request.user),
+                                message=(
+                                    f"Direct message sent to {recipient_name}: "
+                                    f"{message_subject}"
+                                ),
+                            )
+
+                    if notify_technologist_after_save:
+                        notify_technologist_of_radiologist_revision(
+                            assignment=assignment,
+                            radiologist=request.user,
+                            technologist=acknowledged_technologist,
+                            protocol_changed=protocol_changed,
+                            note_changed=note_changed,
+                            method_changed=method_changed,
+                            comment_added=comment_added,
+                        )
+
+                    try:
+                        preference_learning_service.update_preference(
+                            radiologist=request.user,
+                            exam=exam,
+                            selected_protocol=protocol,
+                            was_suggested=method == AssignmentMethod.AI,
+                        )
+                    except Exception:
+                        pass
+
+                    # TODO: send ORR to GERIS
+                    if not direct_message_error:
+                        query_parts = ["saved=1"]
+                        if message_recipient:
+                            query_parts.append("message_sent=1")
+                        return redirect(
+                            f'{reverse("protocoling-radiologist-review", args=[exam.id])}?{"&".join(query_parts)}'
+                        )
+
+                    saved = True
+
+    timeline_events = _build_assignment_timeline(assignment, exam=exam)
 
     return render(request, "protocoling/radiologist_assign.html", {
         "exam": exam,
@@ -752,6 +992,12 @@ def radiologist_assign(request, exam_id):
         "message_body": message_body,
         "message_recipient_id": message_recipient_id,
         "saved": saved,
+        "protocol_preview_map": protocol_preview_map,
+        "initial_preview_protocol_id": initial_preview_protocol_id,
+        "exam_body_region": resolved_body_region,
+        "subspeciality_pool": SUBSPECIALITY_POOL,
+        "current_subspeciality": current_subspeciality,
+        "inferred_subspeciality": inferred_subspeciality,
         "technologist_view_url": reverse("protocoling-technologist-view", args=[exam.id]),
         "technologist_print_url": (
             reverse("protocoling-technologist-print", args=[exam.id])
@@ -775,6 +1021,8 @@ def technologist_view(request, exam_id):
 
     if not _can_access_technologist_review(request.user):
         return HttpResponseForbidden("Not allowed")
+    if not can_access_facility(request.user, exam.facility_id):
+        return HttpResponseForbidden("Not allowed for this facility")
 
     assignment = getattr(exam, "protocol_assignment", None)
     user_model = get_user_model()
@@ -797,7 +1045,7 @@ def technologist_view(request, exam_id):
                 "message_body": message_body,
                 "message_recipient_id": message_recipient_id,
                 "can_confirm_protocol": _can_confirm_protocol(request.user),
-                "timeline_events": [],
+                "timeline_events": _build_assignment_timeline(None, exam=exam),
                 "print_url": "",
             },
         )
@@ -913,7 +1161,7 @@ def technologist_view(request, exam_id):
                 f'{reverse("protocoling-technologist-view", args=[exam.id])}?confirmed=1'
             )
 
-    timeline_events = _build_assignment_timeline(assignment)
+    timeline_events = _build_assignment_timeline(assignment, exam=exam)
 
     return render(request, "protocoling/technologist_view.html", {
         "exam": exam,
@@ -945,6 +1193,8 @@ def technologist_print_protocol(request, exam_id):
 
     if not _can_access_technologist_review(request.user):
         return HttpResponseForbidden("Not allowed")
+    if not can_access_facility(request.user, exam.facility_id):
+        return HttpResponseForbidden("Not allowed for this facility")
 
     assignment = getattr(exam, "protocol_assignment", None)
 

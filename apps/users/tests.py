@@ -123,6 +123,69 @@ class UsersAuthTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response['Location'], reverse('home'))
 
+    def test_login_redirects_to_forced_password_change_when_required(self):
+        user = User.objects.create_user(
+            email='login-force-change@example.com',
+            password='password123',
+            username='loginforcechange',
+            first_name='Login',
+            last_name='Force',
+            must_change_password=True,
+        )
+
+        response = self.client.post(
+            reverse('login'),
+            {
+                'username': user.username,
+                'password': 'password123',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], reverse('user-force-password-change'))
+
+    def test_force_password_change_view_updates_flag_and_password(self):
+        user = User.objects.create_user(
+            email='force-change-user@example.com',
+            password='CurrentPass123',
+            username='forcechangeuser',
+            first_name='Force',
+            last_name='Change',
+            must_change_password=True,
+        )
+
+        self.client.force_login(user)
+        response = self.client.post(
+            reverse('user-force-password-change'),
+            {
+                'old_password': 'CurrentPass123',
+                'new_password1': 'NewSecurePass123',
+                'new_password2': 'NewSecurePass123',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], reverse('home'))
+        user.refresh_from_db()
+        self.assertFalse(user.must_change_password)
+        self.assertTrue(user.check_password('NewSecurePass123'))
+
+    def test_middleware_redirects_user_with_must_change_password(self):
+        user = User.objects.create_user(
+            email='force-middleware-user@example.com',
+            password='password123',
+            username='forcemiddlewareuser',
+            first_name='Force',
+            last_name='Middleware',
+            must_change_password=True,
+        )
+
+        self.client.force_login(user)
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], reverse('user-force-password-change'))
+
     def test_inbox_page_renders_notifications(self):
         user = User.objects.create_user(
             email='inbox@example.com',
@@ -238,6 +301,30 @@ class UsersAuthTests(TestCase):
 
 
 class SystemAdminUserFormTests(TestCase):
+    def setUp(self):
+        from apps.core.models import Facility, Modality
+
+        self.facility = Facility.objects.create(
+            code="USR",
+            name="User Form Facility",
+            is_active=True,
+        )
+        self.secondary_facility = Facility.objects.create(
+            code="USR2",
+            name="User Form Facility 2",
+            is_active=True,
+        )
+        self.modality_ct = Modality.objects.create(
+            code="CT",
+            name="Computed Tomography",
+            is_active=True,
+        )
+        self.modality_xr = Modality.objects.create(
+            code="XR",
+            name="X-Ray",
+            is_active=True,
+        )
+
     def _base_data(self, **overrides):
         data = {
             "email": "form-user@example.com",
@@ -250,6 +337,8 @@ class SystemAdminUserFormTests(TestCase):
             "professional_id": "",
             "specialty": "",
             "department": "",
+            "facilities": [str(self.facility.id)],
+            "qc_modalities": [],
             "is_active": "on",
             "is_staff": "",
             "is_superuser": "",
@@ -334,6 +423,7 @@ class SystemAdminUserFormTests(TestCase):
             last_name="User",
             role=UserRole.VIEWER,
         )
+        original_hash = user.password
 
         form = SystemAdminUserForm(
             instance=user,
@@ -343,16 +433,17 @@ class SystemAdminUserFormTests(TestCase):
                 first_name=user.first_name,
                 last_name=user.last_name,
                 reset_password="on",
-                password="NewSecurePass123",
-                password_confirm="NewSecurePass123",
             ),
         )
 
         self.assertTrue(form.is_valid(), form.errors.as_json())
         saved_user = form.save()
-        self.assertTrue(saved_user.check_password("NewSecurePass123"))
+        self.assertTrue(saved_user.must_change_password)
+        self.assertNotEqual(saved_user.password, original_hash)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [user.email])
 
-    def test_update_with_mismatched_reset_password_rejected(self):
+    def test_update_with_reset_ignores_manual_password_inputs(self):
         user = User.objects.create_user(
             email="mismatch-user@example.com",
             password="CurrentPass123",
@@ -375,8 +466,9 @@ class SystemAdminUserFormTests(TestCase):
             ),
         )
 
-        self.assertFalse(form.is_valid())
-        self.assertIn("password_confirm", form.errors)
+        self.assertTrue(form.is_valid(), form.errors.as_json())
+        saved_user = form.save()
+        self.assertTrue(saved_user.must_change_password)
 
     def test_update_can_upsert_user_preference(self):
         user = User.objects.create_user(
@@ -437,3 +529,164 @@ class SystemAdminUserFormTests(TestCase):
         user.refresh_from_db()
         self.assertTrue(user.has_perm("users.qc_view"))
         self.assertTrue(user.has_perm("users.protocol_view"))
+
+    def test_update_can_set_default_subspecialty(self):
+        user = User.objects.create_user(
+            email="bodypart-user@example.com",
+            password="CurrentPass123",
+            username="bodypartuser",
+            first_name="Body",
+            last_name="Part",
+            role=UserRole.VIEWER,
+        )
+
+        form = SystemAdminUserForm(
+            instance=user,
+            data=self._base_data(
+                email=user.email,
+                username=user.username,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                specialty="Neuro",
+            ),
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_json())
+        form.save()
+        user.refresh_from_db()
+        self.assertEqual(user.specialty, "Neuro")
+
+    def test_update_requires_at_least_one_facility(self):
+        user = User.objects.create_user(
+            email="nofacility-user@example.com",
+            password="CurrentPass123",
+            username="nofacilityuser",
+            first_name="No",
+            last_name="Facility",
+            role=UserRole.VIEWER,
+        )
+
+        form = SystemAdminUserForm(
+            instance=user,
+            data=self._base_data(
+                email=user.email,
+                username=user.username,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                facilities=[],
+            ),
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("facilities", form.errors)
+
+    def test_primary_facility_is_added_to_facility_scope_on_save(self):
+        user = User.objects.create_user(
+            email="primaryscope-user@example.com",
+            password="CurrentPass123",
+            username="primaryscopeuser",
+            first_name="Primary",
+            last_name="Scope",
+            role=UserRole.VIEWER,
+        )
+
+        form = SystemAdminUserForm(
+            instance=user,
+            data=self._base_data(
+                email=user.email,
+                username=user.username,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                primary_facility=str(self.secondary_facility.id),
+                facilities=[str(self.facility.id)],
+            ),
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_json())
+        saved_user = form.save()
+        self.assertEqual(saved_user.primary_facility_id, self.secondary_facility.id)
+        self.assertCountEqual(
+            list(saved_user.facilities.values_list("id", flat=True)),
+            [self.facility.id, self.secondary_facility.id],
+        )
+
+    def test_update_can_save_qc_modalities_checkbox_scope(self):
+        user = User.objects.create_user(
+            email="modalityscope-user@example.com",
+            password="CurrentPass123",
+            username="modalityscopeuser",
+            first_name="Modality",
+            last_name="Scope",
+            role=UserRole.SUPERVISOR,
+        )
+
+        form = SystemAdminUserForm(
+            instance=user,
+            data=self._base_data(
+                email=user.email,
+                username=user.username,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                role=UserRole.SUPERVISOR,
+                qc_modalities=["CT", "XR"],
+            ),
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_json())
+        form.save()
+        user.refresh_from_db()
+        self.assertEqual(user.preferences.get("qc_modalities"), ["CT", "XR"])
+
+    def test_update_prefills_qc_modalities_from_existing_preferences(self):
+        user = User.objects.create_user(
+            email="modalityprefill-user@example.com",
+            password="CurrentPass123",
+            username="modalityprefilluser",
+            first_name="Modality",
+            last_name="Prefill",
+            role=UserRole.SUPERVISOR,
+            preferences={"qc_modalities": ["CT"]},
+        )
+
+        form = SystemAdminUserForm(instance=user)
+
+        self.assertIn("CT", form.initial.get("qc_modalities", []))
+
+    def test_update_can_save_notification_preferences_from_checkboxes(self):
+        user = User.objects.create_user(
+            email="prefcheckbox-user@example.com",
+            password="CurrentPass123",
+            username="prefcheckboxuser",
+            first_name="Pref",
+            last_name="Checkbox",
+            role=UserRole.SUPERVISOR,
+        )
+
+        form = SystemAdminUserForm(
+            instance=user,
+            data=self._base_data(
+                email=user.email,
+                username=user.username,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                role=UserRole.SUPERVISOR,
+                preference_notify_qc="on",
+                preference_notify_protocol="",
+                preference_notify_contrast="on",
+                preference_notify_email="",
+            ),
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_json())
+        form.save()
+        user.refresh_from_db()
+        notification_preferences = dict(user.preferences.get("notification") or {})
+        self.assertEqual(
+            notification_preferences,
+            {
+                "qc": True,
+                "protocol": False,
+                "contrast": True,
+                "email": False,
+            },
+        )

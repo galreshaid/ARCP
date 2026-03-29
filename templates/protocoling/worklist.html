@@ -127,6 +127,7 @@ body{
     box-shadow:var(--shadow);
     padding:12px;
     width:100%;
+    min-width:0;
 }
 
 .stats{
@@ -179,13 +180,62 @@ body{
 
 .toolbar{
     display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns:repeat(12, minmax(0, 1fr));
     gap:12px;
-    align-items:end;
+    align-items:start;
+}
+
+.toolbar .field{
+    min-width:0;
+}
+
+.toolbar .field.modality,
+.toolbar .field.body-part,
+.toolbar .field.subspeciality,
+.toolbar .field.patient-class,
+.toolbar .field.workflow-status,
+.toolbar .field.exam-status{
+    grid-column:span 2;
+}
+
+.toolbar .field.search-query{
+    grid-column:span 3;
+}
+
+.toolbar .field.search-date,
+.toolbar .field.schedule-date,
+.toolbar .field.sort-by{
+    grid-column:span 2;
+}
+
+.toolbar .field.field-actions{
+    grid-column:span 3;
+}
+
+.field-actions{
+    align-content:end;
+}
+
+.field-actions .field-action-buttons{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:8px;
+    align-items:stretch;
 }
 
 .field-actions .btn{
     width:100%;
+    min-height:40px;
+}
+
+.filter-save-state{
+    min-height:16px;
+    font-size:11px;
+    color:var(--muted);
+}
+
+.filter-save-state.error{
+    color:#b91c1c;
 }
 
 .field{
@@ -212,6 +262,111 @@ body{
     font:inherit;
     font-size:14px;
     color:var(--ink);
+}
+
+.date-filter-control{
+    display:grid;
+    gap:6px;
+}
+
+.date-filter-single{
+    display:none;
+}
+
+.date-filter-range{
+    display:none;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+}
+
+.multi-dropdown{
+    position:relative;
+}
+
+.multi-trigger{
+    width:100%;
+    min-height:40px;
+    padding:0 12px;
+    border-radius:12px;
+    border:1px solid var(--line-strong);
+    background:#fbfdff;
+    color:var(--ink);
+    font:inherit;
+    font-size:14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    cursor:pointer;
+}
+
+.multi-trigger::after{
+    content:"";
+    width:8px;
+    height:8px;
+    border-right:2px solid #5f7488;
+    border-bottom:2px solid #5f7488;
+    transform:rotate(45deg) translateY(-2px);
+    flex:0 0 auto;
+}
+
+.multi-dropdown.open .multi-trigger{
+    border-color:#8eb6d3;
+    box-shadow:0 0 0 3px rgba(20,93,141,.08);
+}
+
+.multi-trigger-text{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.multi-menu{
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0;
+    right:0;
+    z-index:30;
+    display:none;
+    max-height:230px;
+    overflow:auto;
+    padding:8px;
+    border:1px solid var(--line-strong);
+    border-radius:12px;
+    background:#fff;
+    box-shadow:0 12px 28px rgba(15,49,77,.16);
+}
+
+.multi-dropdown.open .multi-menu{
+    display:block;
+}
+
+.multi-option{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-height:30px;
+    padding:4px 6px;
+    border-radius:8px;
+    font-size:13px;
+    color:var(--ink);
+    cursor:pointer;
+}
+
+.multi-option:hover{
+    background:#f4f8fb;
+}
+
+.multi-option input[type="checkbox"]{
+    width:14px;
+    height:14px;
+    accent-color:#145d8d;
+}
+
+.field-hint{
+    font-size:11px;
+    color:var(--muted);
+    line-height:1.3;
 }
 
 .field input:focus,
@@ -266,6 +421,7 @@ body{
     border-radius:18px;
     background:linear-gradient(180deg, #fff, var(--panel-tint));
     box-shadow:inset 0 1px 0 rgba(255,255,255,.65);
+    min-width:0;
 }
 
 table{
@@ -497,16 +653,18 @@ td{
 
 .action-group{
     display:grid;
-    gap:3px;
-    width:104px;
+    gap:6px;
+    width:120px;
     margin-left:auto;
 }
 
 .action-group .btn{
     width:100%;
-    min-height:var(--action-btn-height);
-    padding:0 6px;
-    font-size:var(--action-btn-font-size);
+    min-height:30px;
+    height:30px;
+    padding:0 8px;
+    font-size:11px;
+    line-height:1;
     justify-content:center;
 }
 
@@ -525,7 +683,8 @@ td{
 }
 
 .action-cell{
-    width:148px;
+    width:150px;
+    min-width:150px;
     text-align:right;
 }
 
@@ -533,6 +692,239 @@ td{
     text-align:center;
     padding:60px;
     color:var(--muted);
+}
+
+.pagination-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-top:10px;
+}
+
+.pagination-summary{
+    font-size:12px;
+    color:var(--muted);
+}
+
+.pagination-controls{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+}
+
+.pagination-controls label{
+    font-size:11px;
+    color:var(--muted);
+    font-weight:700;
+}
+
+.pagination-controls select{
+    min-height:32px;
+    padding:0 10px;
+    border-radius:10px;
+    border:1px solid var(--line-strong);
+    background:#fbfdff;
+    color:var(--ink);
+    font:inherit;
+    font-size:12px;
+}
+
+.pagination-btn{
+    min-height:32px;
+    padding:0 12px;
+    font-size:11px;
+}
+
+.pagination-info{
+    min-width:96px;
+    text-align:center;
+    font-size:12px;
+    color:var(--muted);
+    font-weight:700;
+}
+
+.subspeciality-dialog{
+    border:none;
+    border-radius:16px;
+    padding:0;
+    width:min(420px, calc(100vw - 24px));
+    box-shadow:var(--shadow);
+}
+
+.subspeciality-dialog::backdrop{
+    background:rgba(15, 49, 77, .35);
+}
+
+.subspeciality-dialog-form{
+    display:grid;
+    gap:10px;
+    padding:18px;
+}
+
+.subspeciality-dialog-form h3{
+    font-size:18px;
+    line-height:1.2;
+}
+
+.subspeciality-dialog-copy{
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.4;
+}
+
+.subspeciality-dialog-form label{
+    font-size:11px;
+    color:var(--muted);
+    font-weight:800;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+}
+
+.subspeciality-dialog-form select{
+    width:100%;
+    min-height:40px;
+    padding:0 12px;
+    border-radius:12px;
+    border:1px solid var(--line-strong);
+    background:#fbfdff;
+    font:inherit;
+    font-size:14px;
+    color:var(--ink);
+}
+
+.subspeciality-dialog-form select:focus{
+    outline:none;
+    border-color:#8eb6d3;
+    box-shadow:0 0 0 3px rgba(20,93,141,.08);
+}
+
+.subspeciality-dialog-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+}
+
+/* QC-style alignment overrides for Protocol Worklist */
+.page{
+    gap:16px;
+}
+
+.hero{
+    padding:20px;
+    display:flex;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+}
+
+.eyebrow{
+    background:var(--soft-blue);
+    color:var(--brand-dark);
+}
+
+.hero h1{
+    margin:0;
+    font-size:30px;
+    line-height:1.1;
+}
+
+.hero p{
+    margin-top:8px;
+    line-height:1.55;
+    font-size:14px;
+}
+
+.hero-actions{
+    align-items:flex-start;
+    gap:10px;
+}
+
+.container{
+    margin-top:0;
+    gap:16px;
+}
+
+.panel{
+    padding:14px;
+}
+
+.stats{
+    gap:12px;
+}
+
+.stat{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    padding:14px;
+}
+
+.stat::before{
+    display:none;
+}
+
+.stat-label{
+    font-size:11px;
+}
+
+.stat-value{
+    font-size:30px;
+}
+
+.stat-detail{
+    font-size:12px;
+}
+
+.queue-panel{
+    position:static;
+    top:auto;
+    z-index:auto;
+    padding-bottom:14px;
+    backdrop-filter:none;
+}
+
+.table-wrap{
+    background:#fff;
+    box-shadow:none;
+}
+
+th,
+td{
+    padding:11px;
+}
+
+.badge{
+    min-height:20px;
+    font-size:9px;
+}
+
+.modality-chip{
+    min-height:20px;
+    padding:0 8px;
+    font-size:9px;
+}
+
+.status-chip{
+    min-height:18px;
+    padding:0 7px;
+    font-size:8px;
+}
+
+.action-group{
+    gap:6px;
+    width:120px;
+}
+
+.action-group .btn{
+    min-height:30px;
+    height:30px;
+    padding:0 8px;
+    font-size:11px;
+    line-height:1;
 }
 
 @media (max-width:1100px){
@@ -545,6 +937,14 @@ td{
     }
 
     .toolbar{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+    }
+
+    .toolbar .field{
+        grid-column:span 1 !important;
+    }
+
+    .field-actions .field-action-buttons{
         grid-template-columns:1fr;
     }
 
@@ -559,6 +959,20 @@ td{
 
     .action-group{
         width:100%;
+    }
+}
+
+@media (max-width:720px){
+    .toolbar{
+        grid-template-columns:1fr;
+    }
+
+    .field-actions .field-action-buttons{
+        grid-template-columns:1fr;
+    }
+
+    .date-filter-range{
+        grid-template-columns:1fr;
     }
 }
 </style>
@@ -609,49 +1023,129 @@ td{
 
                 <section class="panel queue-panel">
             <div class="toolbar">
-                <div class="field">
-                    <label for="filter-modality">Modality</label>
-                    <select id="filter-modality">
-                        <option value="">All modalities</option>
-                        <option value="CT">CT</option>
-                        <option value="MR">MR</option>
-                        <option value="NM">NM</option>
-                        <option value="US">US</option>
-                        <option value="RF">RF</option>
-                    </select>
+                <div class="field modality">
+                    <label for="filter-modality-trigger">Modality</label>
+                    <div id="filter-modality-dropdown" class="multi-dropdown">
+                        <button id="filter-modality-trigger" class="multi-trigger" type="button">
+                            <span class="multi-trigger-text">All modalities</span>
+                        </button>
+                        <div id="filter-modality-menu" class="multi-menu">
+                            <label class="multi-option"><input type="checkbox" value="CT"><span>CT</span></label>
+                            <label class="multi-option"><input type="checkbox" value="MR"><span>MR</span></label>
+                            <label class="multi-option"><input type="checkbox" value="NM"><span>NM</span></label>
+                            <label class="multi-option"><input type="checkbox" value="US"><span>US</span></label>
+                            <label class="multi-option"><input type="checkbox" value="RF"><span>RF</span></label>
+                        </div>
+                    </div>
+                    <div class="field-hint">You can select more than one.</div>
                 </div>
-                <div class="field">
-                    <label for="filter-status">Workflow Status</label>
-                    <select id="filter-status">
-                        <option value="">All statuses</option>
-                        <option value="unassigned">Unassigned</option>
-                        <option value="closed">Closed</option>
-                        <option value="not_required">Not Required</option>
-                        <option value="pending">Pending</option>
-                        <option value="acknowledged">Acknowledged</option>
-                        <option value="done">Done</option>
-                    </select>
+                <div class="field body-part">
+                    <label for="filter-body-part-trigger">Body Part</label>
+                    <div id="filter-body-part-dropdown" class="multi-dropdown">
+                        <button id="filter-body-part-trigger" class="multi-trigger" type="button">
+                            <span class="multi-trigger-text">All body parts</span>
+                        </button>
+                        <div id="filter-body-part-menu" class="multi-menu"></div>
+                    </div>
+                    <div class="field-hint">You can select more than one.</div>
                 </div>
-                <div class="field">
-                    <label for="filter-exam-status">Exam Status</label>
-                    <select id="filter-exam-status">
-                        <option value="">All exam statuses</option>
-                        <option value="order">Order</option>
-                        <option value="scheduled">Scheduled</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Canceled</option>
-                    </select>
+                <div class="field subspeciality">
+                    <label for="filter-subspeciality-trigger">Subspeciality</label>
+                    <div id="filter-subspeciality-dropdown" class="multi-dropdown">
+                        <button id="filter-subspeciality-trigger" class="multi-trigger" type="button">
+                            <span class="multi-trigger-text">All subspecialities</span>
+                        </button>
+                        <div id="filter-subspeciality-menu" class="multi-menu"></div>
+                    </div>
+                    <div class="field-hint">You can select more than one.</div>
                 </div>
-                <div class="field">
+                <div class="field patient-class">
+                    <label for="filter-patient-class-trigger">Patient Class</label>
+                    <div id="filter-patient-class-dropdown" class="multi-dropdown">
+                        <button id="filter-patient-class-trigger" class="multi-trigger" type="button">
+                            <span class="multi-trigger-text">All patient classes</span>
+                        </button>
+                        <div id="filter-patient-class-menu" class="multi-menu"></div>
+                    </div>
+                </div>
+                <div class="field workflow-status">
+                    <label for="filter-status-trigger">Workflow Status</label>
+                    <div id="filter-status-dropdown" class="multi-dropdown">
+                        <button id="filter-status-trigger" class="multi-trigger" type="button">
+                            <span class="multi-trigger-text">All statuses</span>
+                        </button>
+                        <div id="filter-status-menu" class="multi-menu">
+                            <label class="multi-option"><input type="checkbox" value="unassigned"><span>Unassigned</span></label>
+                            <label class="multi-option"><input type="checkbox" value="closed"><span>Closed</span></label>
+                            <label class="multi-option"><input type="checkbox" value="not_required"><span>Not Required</span></label>
+                            <label class="multi-option"><input type="checkbox" value="pending"><span>Pending</span></label>
+                            <label class="multi-option"><input type="checkbox" value="acknowledged"><span>Acknowledged</span></label>
+                            <label class="multi-option"><input type="checkbox" value="done"><span>Done</span></label>
+                        </div>
+                    </div>
+                </div>
+                <div class="field exam-status">
+                    <label for="filter-exam-status-trigger">Exam Status</label>
+                    <div id="filter-exam-status-dropdown" class="multi-dropdown">
+                        <button id="filter-exam-status-trigger" class="multi-trigger" type="button">
+                            <span class="multi-trigger-text">All exam statuses</span>
+                        </button>
+                        <div id="filter-exam-status-menu" class="multi-menu">
+                            <label class="multi-option"><input type="checkbox" value="order"><span>Order</span></label>
+                            <label class="multi-option"><input type="checkbox" value="scheduled"><span>Scheduled</span></label>
+                            <label class="multi-option"><input type="checkbox" value="in_progress"><span>In Progress</span></label>
+                            <label class="multi-option"><input type="checkbox" value="completed"><span>Completed</span></label>
+                            <label class="multi-option"><input type="checkbox" value="cancelled"><span>Canceled</span></label>
+                        </div>
+                    </div>
+                </div>
+                <div class="field search-query">
                     <label for="search-input">Search</label>
                     <input id="search-input" placeholder="Acc#, Order#, MRN, patient, procedure, radiologist, technologist">
                 </div>
-                <div class="field">
-                    <label for="filter-date">Search Date</label>
-                    <input id="filter-date" type="date">
+                <div class="field search-date">
+                    <label for="filter-order-date-mode">Order Date</label>
+                    <div class="date-filter-control">
+                        <select id="filter-order-date-mode">
+                            <option value="">Any date</option>
+                            <option value="today">Today (t)</option>
+                            <option value="yesterday">Yesterday (-1)</option>
+                            <option value="last7">Last 7 days (-7)</option>
+                            <option value="exact">Specific date</option>
+                            <option value="range">From - To</option>
+                        </select>
+                        <div id="filter-order-date-single-wrap" class="date-filter-single">
+                            <input id="filter-order-date-single" type="date">
+                        </div>
+                        <div id="filter-order-date-range-wrap" class="date-filter-range">
+                            <input id="filter-order-date-from" type="date" placeholder="From">
+                            <input id="filter-order-date-to" type="date" placeholder="To">
+                        </div>
+                    </div>
+                    <div class="field-hint">Quick shortcuts are inside calendar options: <strong>t</strong>, <strong>-1</strong>, <strong>-7</strong>.</div>
                 </div>
-                <div class="field">
+                <div class="field schedule-date">
+                    <label for="filter-schedule-date-mode">Schedule Date</label>
+                    <div class="date-filter-control">
+                        <select id="filter-schedule-date-mode">
+                            <option value="">Any date</option>
+                            <option value="today">Today (t)</option>
+                            <option value="yesterday">Yesterday (-1)</option>
+                            <option value="last7">Last 7 days (-7)</option>
+                            <option value="exact">Specific date</option>
+                            <option value="range">From - To</option>
+                        </select>
+                        <div id="filter-schedule-date-single-wrap" class="date-filter-single">
+                            <input id="filter-schedule-date-single" type="date">
+                        </div>
+                        <div id="filter-schedule-date-range-wrap" class="date-filter-range">
+                            <input id="filter-schedule-date-from" type="date" placeholder="From">
+                            <input id="filter-schedule-date-to" type="date" placeholder="To">
+                        </div>
+                    </div>
+                    <div class="field-hint">Same calendar shortcuts and range options.</div>
+                </div>
+                <div class="field sort-by">
                     <label for="sort-by">Sort By</label>
                     <select id="sort-by">
                         <option value="exam-newest">Newest exam date</option>
@@ -664,7 +1158,12 @@ td{
                 </div>
                 <div class="field field-actions">
                     <label>&nbsp;</label>
-                    <button class="btn btn-secondary" type="button" onclick="clearFilters()">Clear Filters</button>
+                    <div class="field-action-buttons">
+                        <button class="btn btn-secondary" type="button" onclick="saveFilters()">Save Filters</button>
+                        <button class="btn btn-secondary" type="button" onclick="clearFilters()">Clear Filters</button>
+                        <button class="btn btn-secondary" type="button" onclick="resetFilters()">Reset Filters</button>
+                    </div>
+                    <div id="filter-save-state" class="filter-save-state" aria-live="polite"></div>
                 </div>
             </div>
                 </section>
@@ -683,28 +1182,28 @@ td{
 
                 <table id="table" style="display:none">
                     <colgroup>
-                        <col style="width:102px">
-                        <col style="width:142px">
-                        <col style="width:84px">
-                        <col style="width:62px">
-                        <col style="width:84px">
-                        <col style="width:112px">
-                        <col style="width:154px">
-                        <col style="width:102px">
-                        <col style="width:90px">
-                        <col style="width:102px">
-                        <col style="width:90px">
-                        <col style="width:90px">
-                        <col style="width:124px">
+                        <col style="width:118px">
+                        <col style="width:150px">
+                        <col style="width:52px">
+                        <col style="width:74px">
+                        <col style="width:92px">
+                        <col style="width:96px">
+                        <col style="width:132px">
+                        <col style="width:88px">
+                        <col style="width:80px">
+                        <col style="width:88px">
+                        <col style="width:80px">
+                        <col style="width:80px">
+                        <col style="width:150px">
                     </colgroup>
                     <thead>
                         <tr>
                             <th>Acc# / Order#</th>
                             <th>Patient</th>
-                            <th>MRN</th>
                             <th>Modality</th>
                             <th>Exam Status</th>
                             <th>Procedure</th>
+                            <th>Subspeciality</th>
                             <th>Protocol</th>
                             <th>Radiologist</th>
                             <th>Assigned At</th>
@@ -721,15 +1220,47 @@ td{
                     No exams match the current filters.
                 </div>
             </div>
+            <div id="protocol-pagination" class="pagination-bar" hidden>
+                <div id="protocol-pagination-summary" class="pagination-summary"></div>
+                <div class="pagination-controls">
+                    <label for="protocol-page-size">Rows</label>
+                    <select id="protocol-page-size">
+                        <option value="10">10</option>
+                        <option value="25" selected>25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <button id="protocol-prev-page" class="btn btn-secondary pagination-btn" type="button">Previous</button>
+                    <span id="protocol-page-info" class="pagination-info">Page 1 / 1</span>
+                    <button id="protocol-next-page" class="btn btn-secondary pagination-btn" type="button">Next</button>
+                </div>
+            </div>
                 </section>
             </div>
         </div>
     </main>
 </div>
 
+<dialog id="subspeciality-dialog" class="subspeciality-dialog">
+    <form class="subspeciality-dialog-form" method="dialog">
+        <h3>Change Subspeciality</h3>
+        <p id="subspeciality-dialog-current" class="subspeciality-dialog-copy">Select the new subspeciality.</p>
+        <label for="subspeciality-dialog-select">Subspeciality</label>
+        <select id="subspeciality-dialog-select"></select>
+        <div class="subspeciality-dialog-actions">
+            <button class="btn btn-secondary" type="button" onclick="closeSubspecialityDialog()">Cancel</button>
+            <button class="btn btn-primary" type="button" onclick="submitSubspecialityDialog()">Save</button>
+        </div>
+    </form>
+</dialog>
+
 <script>
 let exams = [];
 let viewer = {};
+let pendingSubspecialityExamId = '';
+let currentPage = 1;
+let rowsPerPage = 25;
+const FILTER_PREFERENCES_API_URL = '/api/core/worklist-filters/protocol/';
 const PACS_EXAM_URL_TEMPLATE = 'https://192.168.101.67/ZFP?lights=off&mode=proxy#view&un=zfpuser&pw=hEHFlBFUFpMk0x2j7Sdc8DRqJZZVXlI6%2fegPQMaz7szyvaSxcNo7Gy8avdZZv%2bbt&ris_exam_id={exam_id}&authority=RKFMRN';
 const PACS_PATIENT_URL_TEMPLATE = 'https://192.168.101.67/ZFP?lights=off&mode=proxy#view&un=zfpuser&pw=hEHFlBFUFpMk0x2j7Sdc8DRqJZZVXlI6%2fegPQMaz7szyvaSxcNo7Gy8avdZZv%2bbt&ris_pat_id={patient_id}&authority=RKFMRN';
 
@@ -804,6 +1335,65 @@ function formatDateParts(value){
     };
 }
 
+function parseDateParts(value){
+    const raw = String(value || '').trim();
+    if (!raw) {
+        return null;
+    }
+
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+        return {
+            year: Number(match[1]),
+            month: Number(match[2]),
+            day: Number(match[3]),
+        };
+    }
+
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+
+    return {
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+        day: date.getDate(),
+    };
+}
+
+function formatPatientDob(value){
+    const parts = parseDateParts(value);
+    if (!parts) {
+        return '-';
+    }
+
+    const month = String(parts.month).padStart(2, '0');
+    const day = String(parts.day).padStart(2, '0');
+    return `${parts.year}-${month}-${day}`;
+}
+
+function formatPatientAge(value){
+    const parts = parseDateParts(value);
+    if (!parts) {
+        return '';
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - parts.year;
+    const monthDelta = (today.getMonth() + 1) - parts.month;
+    const dayDelta = today.getDate() - parts.day;
+    if (monthDelta < 0 || (monthDelta === 0 && dayDelta < 0)) {
+        age -= 1;
+    }
+
+    if (age < 0 || age > 130) {
+        return '';
+    }
+
+    return `${age}y`;
+}
+
 function dateOnlyValue(value){
     if (!value) {
         return '';
@@ -820,17 +1410,507 @@ function dateOnlyValue(value){
     return `${year}-${month}-${day}`;
 }
 
-function matchesDateFilter(exam, selectedDate){
-    if (!selectedDate) {
+function localTodayDateOnly(offsetDays = 0){
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    today.setDate(today.getDate() + offsetDays);
+    const year = String(today.getFullYear());
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function parseDateToken(rawToken){
+    const token = String(rawToken || '').trim().toLowerCase();
+    if (!token) {
+        return null;
+    }
+
+    if (token === 't' || token === 'today') {
+        return localTodayDateOnly();
+    }
+    if (token === '-1' || token === 'y' || token === 'yesterday') {
+        return localTodayDateOnly(-1);
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(token)) {
+        return token;
+    }
+
+    return null;
+}
+
+function parseDateQuery(rawQuery){
+    const query = String(rawQuery || '').trim();
+    if (!query) {
+        return { mode: 'any' };
+    }
+
+    const normalized = query.toLowerCase();
+
+    if (/^-\d+$/.test(normalized)) {
+        const dayCount = Number(normalized);
+        if (dayCount === -1) {
+            const yesterday = localTodayDateOnly(-1);
+            return { mode: 'exact', date: yesterday };
+        }
+        if (dayCount < -1) {
+            const daysBack = Math.abs(dayCount);
+            const start = localTodayDateOnly(-(daysBack - 1));
+            const end = localTodayDateOnly();
+            return { mode: 'range', start, end };
+        }
+    }
+
+    const rangeMatch = normalized.match(/^(?:from\s+)?(.+?)\s+to\s+(.+)$/i);
+    if (rangeMatch) {
+        const start = parseDateToken(rangeMatch[1]);
+        const end = parseDateToken(rangeMatch[2]);
+        if (start && end) {
+            return { mode: 'range', start, end };
+        }
+    }
+
+    const exact = parseDateToken(normalized);
+    if (exact) {
+        return { mode: 'exact', date: exact };
+    }
+
+    return { mode: 'invalid' };
+}
+
+function getDateFilterNodes(prefix){
+    return {
+        mode: document.getElementById(`filter-${prefix}-date-mode`),
+        singleWrap: document.getElementById(`filter-${prefix}-date-single-wrap`),
+        single: document.getElementById(`filter-${prefix}-date-single`),
+        rangeWrap: document.getElementById(`filter-${prefix}-date-range-wrap`),
+        from: document.getElementById(`filter-${prefix}-date-from`),
+        to: document.getElementById(`filter-${prefix}-date-to`),
+    };
+}
+
+function syncDateFilterControls(prefix){
+    const nodes = getDateFilterNodes(prefix);
+    if (!nodes.mode) {
+        return;
+    }
+
+    const mode = normalizeText(nodes.mode.value);
+    const showSingle = mode === 'exact';
+    const showRange = mode === 'range';
+
+    if (nodes.singleWrap) {
+        nodes.singleWrap.style.display = showSingle ? 'block' : 'none';
+    }
+    if (nodes.rangeWrap) {
+        nodes.rangeWrap.style.display = showRange ? 'grid' : 'none';
+    }
+}
+
+function buildDateQuery(prefix){
+    const nodes = getDateFilterNodes(prefix);
+    if (!nodes.mode) {
+        return '';
+    }
+
+    const mode = normalizeText(nodes.mode.value);
+    if (!mode) {
+        return '';
+    }
+    if (mode === 'today') {
+        return 't';
+    }
+    if (mode === 'yesterday') {
+        return '-1';
+    }
+    if (mode === 'last7') {
+        return '-7';
+    }
+    if (mode === 'exact') {
+        return String(nodes.single && nodes.single.value || '').trim();
+    }
+    if (mode === 'range') {
+        const from = String(nodes.from && nodes.from.value || '').trim();
+        const to = String(nodes.to && nodes.to.value || '').trim();
+        if (from && to) {
+            return `${from} to ${to}`;
+        }
+        return '';
+    }
+    return '';
+}
+
+function applyDateQueryToControls(prefix, rawQuery){
+    const nodes = getDateFilterNodes(prefix);
+    if (!nodes.mode) {
+        return false;
+    }
+
+    const query = String(rawQuery || '').trim();
+    nodes.mode.value = '';
+    if (nodes.single) {
+        nodes.single.value = '';
+    }
+    if (nodes.from) {
+        nodes.from.value = '';
+    }
+    if (nodes.to) {
+        nodes.to.value = '';
+    }
+
+    if (!query) {
+        syncDateFilterControls(prefix);
+        return false;
+    }
+
+    const lower = query.toLowerCase();
+    if (lower === 't' || lower === 'today') {
+        nodes.mode.value = 'today';
+        syncDateFilterControls(prefix);
+        return true;
+    }
+    if (lower === '-1' || lower === 'yesterday' || lower === 'y') {
+        nodes.mode.value = 'yesterday';
+        syncDateFilterControls(prefix);
+        return true;
+    }
+    if (lower === '-7') {
+        nodes.mode.value = 'last7';
+        syncDateFilterControls(prefix);
+        return true;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(lower)) {
+        nodes.mode.value = 'exact';
+        if (nodes.single) {
+            nodes.single.value = lower;
+        }
+        syncDateFilterControls(prefix);
         return true;
     }
 
-    return [
-        exam.exam_datetime,
-        exam.assigned_at,
-        exam.acknowledged_at,
-        exam.protocol_not_required_at,
-    ].some((value) => dateOnlyValue(value) === selectedDate);
+    const rangeMatch = lower.match(/^(?:from\s+)?(.+?)\s+to\s+(.+)$/i);
+    if (rangeMatch) {
+        const start = parseDateToken(rangeMatch[1]);
+        const end = parseDateToken(rangeMatch[2]);
+        if (start && end) {
+            nodes.mode.value = 'range';
+            if (nodes.from) {
+                nodes.from.value = start;
+            }
+            if (nodes.to) {
+                nodes.to.value = end;
+            }
+            syncDateFilterControls(prefix);
+            return true;
+        }
+    }
+
+    syncDateFilterControls(prefix);
+    return false;
+}
+
+function matchesDateQuery(dateValue, rawQuery){
+    const parsedQuery = parseDateQuery(rawQuery);
+    if (parsedQuery.mode === 'any') {
+        return true;
+    }
+
+    const dateOnly = dateOnlyValue(dateValue);
+    if (!dateOnly) {
+        return false;
+    }
+
+    if (parsedQuery.mode === 'exact') {
+        return dateOnly === parsedQuery.date;
+    }
+
+    if (parsedQuery.mode === 'range') {
+        if (parsedQuery.start <= parsedQuery.end) {
+            return dateOnly >= parsedQuery.start && dateOnly <= parsedQuery.end;
+        }
+        return dateOnly >= parsedQuery.end && dateOnly <= parsedQuery.start;
+    }
+
+    return false;
+}
+
+function uniqueSortedValues(values){
+    return [...new Set(
+        values
+            .map((value) => String(value || '').trim())
+            .filter(Boolean)
+    )].sort((left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' }));
+}
+
+function populateSelectOptions(selectId, values, defaultLabel){
+    const select = document.getElementById(selectId);
+    const previousValue = select.value;
+    const options = uniqueSortedValues(values);
+
+    select.innerHTML = '';
+
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = defaultLabel;
+    select.appendChild(defaultOption);
+
+    options.forEach((value) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+    });
+
+    const restored = options.find((value) => normalizeText(value) === normalizeText(previousValue));
+    select.value = restored || '';
+}
+
+const MULTI_FILTER_DEFAULT_LABELS = {
+    'filter-modality': 'All modalities',
+    'filter-body-part': 'All body parts',
+    'filter-subspeciality': 'All subspecialities',
+    'filter-patient-class': 'All patient classes',
+    'filter-status': 'All statuses',
+    'filter-exam-status': 'All exam statuses',
+};
+const PATIENT_CLASS_LOOKUP = {
+    IP: 'Inpatient',
+    O: 'Outpatient',
+    E: 'Emergency',
+    A: 'Ambulatory',
+    P: 'Preadmit',
+    U: 'Unknown',
+    B: 'Obstetrics',
+    S: 'Psychiatric',
+    K: 'Newborn',
+};
+const MULTI_FILTER_IDS = [
+    'filter-modality',
+    'filter-body-part',
+    'filter-subspeciality',
+    'filter-patient-class',
+    'filter-status',
+    'filter-exam-status',
+];
+
+function patientClassDisplay(value){
+    const code = String(value || '').trim().toUpperCase();
+    if (!code) {
+        return '';
+    }
+    return PATIENT_CLASS_LOOKUP[code] || code;
+}
+
+function multiDropdownNodes(selectId){
+    return {
+        dropdown: document.getElementById(`${selectId}-dropdown`),
+        trigger: document.getElementById(`${selectId}-trigger`),
+        triggerText: document.querySelector(`#${selectId}-trigger .multi-trigger-text`),
+        menu: document.getElementById(`${selectId}-menu`),
+    };
+}
+
+function closeAllMultiDropdowns(exceptId){
+    MULTI_FILTER_IDS.forEach((id) => {
+        if (exceptId && id === exceptId) {
+            return;
+        }
+        const { dropdown } = multiDropdownNodes(id);
+        if (dropdown) {
+            dropdown.classList.remove('open');
+        }
+    });
+}
+
+function updateMultiSelectSummary(selectId){
+    const { triggerText } = multiDropdownNodes(selectId);
+    if (!triggerText) {
+        return;
+    }
+
+    const selected = selectedMultiValues(selectId);
+    const defaultLabel = MULTI_FILTER_DEFAULT_LABELS[selectId] || 'All';
+    if (!selected.length) {
+        triggerText.textContent = defaultLabel;
+        return;
+    }
+    if (selected.length === 1) {
+        if (selectId === 'filter-patient-class') {
+            triggerText.textContent = patientClassDisplay(selected[0]);
+            return;
+        }
+        triggerText.textContent = selected[0];
+        return;
+    }
+    triggerText.textContent = `${selected.length} selected`;
+}
+
+function initializeMultiDropdown(selectId){
+    const { dropdown, trigger, menu } = multiDropdownNodes(selectId);
+    if (!dropdown || !trigger || !menu || dropdown.dataset.bound === '1') {
+        return;
+    }
+
+    dropdown.dataset.bound = '1';
+
+    trigger.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const isOpen = dropdown.classList.contains('open');
+        closeAllMultiDropdowns(selectId);
+        if (!isOpen) {
+            dropdown.classList.add('open');
+        }
+    });
+
+    menu.addEventListener('click', (event) => {
+        event.stopPropagation();
+    });
+
+    menu.addEventListener('change', (event) => {
+        if (!event.target || event.target.type !== 'checkbox') {
+            return;
+        }
+        updateMultiSelectSummary(selectId);
+        resetPagination();
+        render();
+    });
+
+    updateMultiSelectSummary(selectId);
+}
+
+function initializeMultiDropdowns(){
+    MULTI_FILTER_IDS.forEach((id) => initializeMultiDropdown(id));
+}
+
+let multiDropdownGlobalEventsBound = false;
+function bindMultiDropdownGlobalEvents(){
+    if (multiDropdownGlobalEventsBound) {
+        return;
+    }
+    multiDropdownGlobalEventsBound = true;
+
+    document.addEventListener('click', () => {
+        closeAllMultiDropdowns();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeAllMultiDropdowns();
+        }
+    });
+}
+
+function selectedMultiValues(selectId){
+    const selectNode = document.getElementById(selectId);
+    if (selectNode && selectNode.tagName === 'SELECT') {
+        return Array.from(selectNode.selectedOptions || [])
+            .map((option) => String(option.value || '').trim())
+            .filter(Boolean);
+    }
+
+    const { menu } = multiDropdownNodes(selectId);
+    if (!menu) {
+        return [];
+    }
+
+    return Array.from(menu.querySelectorAll('input[type="checkbox"]:checked'))
+        .map((input) => String(input.value || '').trim())
+        .filter(Boolean);
+}
+
+function clearMultiSelect(selectId){
+    const selectNode = document.getElementById(selectId);
+    if (selectNode && selectNode.tagName === 'SELECT') {
+        Array.from(selectNode.options).forEach((option) => {
+            option.selected = false;
+        });
+        return;
+    }
+
+    const { menu } = multiDropdownNodes(selectId);
+    if (!menu) {
+        return;
+    }
+
+    Array.from(menu.querySelectorAll('input[type="checkbox"]')).forEach((input) => {
+        input.checked = false;
+    });
+    updateMultiSelectSummary(selectId);
+}
+
+function setMultiSelectValues(selectId, values){
+    const selectNode = document.getElementById(selectId);
+    if (selectNode && selectNode.tagName === 'SELECT') {
+        if (!Array.isArray(values)) {
+            return false;
+        }
+        const normalizedTargets = new Set(values.map((item) => normalizeText(item)).filter(Boolean));
+        if (!normalizedTargets.size) {
+            clearMultiSelect(selectId);
+            return false;
+        }
+
+        let matchedLegacy = false;
+        Array.from(selectNode.options).forEach((option) => {
+            const shouldSelect = normalizedTargets.has(normalizeText(option.value));
+            option.selected = shouldSelect;
+            matchedLegacy = matchedLegacy || shouldSelect;
+        });
+        return matchedLegacy;
+    }
+
+    const { menu } = multiDropdownNodes(selectId);
+    if (!menu || !Array.isArray(values)) {
+        return false;
+    }
+
+    const normalizedTargets = new Set(values.map((item) => normalizeText(item)).filter(Boolean));
+    if (!normalizedTargets.size) {
+        clearMultiSelect(selectId);
+        return false;
+    }
+
+    let matched = false;
+    Array.from(menu.querySelectorAll('input[type="checkbox"]')).forEach((input) => {
+        const shouldSelect = normalizedTargets.has(normalizeText(input.value));
+        input.checked = shouldSelect;
+        matched = matched || shouldSelect;
+    });
+    updateMultiSelectSummary(selectId);
+    return matched;
+}
+
+function populateMultiSelectOptions(selectId, values){
+    const { menu } = multiDropdownNodes(selectId);
+    if (!menu) {
+        return;
+    }
+
+    const previousValues = selectedMultiValues(selectId);
+    const options = uniqueSortedValues(values);
+    menu.innerHTML = '';
+
+    options.forEach((value) => {
+        const optionLabel = document.createElement('label');
+        optionLabel.className = 'multi-option';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = value;
+
+        const text = document.createElement('span');
+        if (selectId === 'filter-patient-class') {
+            text.textContent = patientClassDisplay(value);
+        } else {
+            text.textContent = value;
+        }
+
+        optionLabel.appendChild(checkbox);
+        optionLabel.appendChild(text);
+        menu.appendChild(optionLabel);
+    });
+
+    setMultiSelectValues(selectId, previousValues);
+    updateMultiSelectSummary(selectId);
 }
 
 function sortableTimestamp(value){
@@ -861,24 +1941,25 @@ function compareNullableNumbers(left, right, direction){
 }
 
 function filteredExams(){
-    const modality = normalizeText(document.getElementById('filter-modality').value);
-    const status = normalizeText(document.getElementById('filter-status').value);
-    const examStatusFilter = normalizeText(document.getElementById('filter-exam-status').value);
+    const modalities = selectedMultiValues('filter-modality').map(normalizeText);
+    const bodyParts = selectedMultiValues('filter-body-part').map(normalizeText);
+    const subspecialities = selectedMultiValues('filter-subspeciality').map(normalizeText);
+    const patientClasses = selectedMultiValues('filter-patient-class').map(normalizeText);
+    const statuses = selectedMultiValues('filter-status').map(normalizeText);
+    const examStatusFilters = selectedMultiValues('filter-exam-status').map(normalizeText);
     const query = normalizeText(document.getElementById('search-input').value);
-    const selectedDate = document.getElementById('filter-date').value;
+    const orderDateQuery = buildDateQuery('order');
+    const scheduleDateQuery = buildDateQuery('schedule');
 
     return exams.filter((exam) => {
         const examStatus = workflowStatus(exam).toLowerCase();
         const normalizedExamStatus = normalizeText(exam.exam_status);
-        const modalityMatch = !modality || normalizeText(exam.modality.code) === modality;
-        const examStatusMatch = !examStatusFilter || normalizedExamStatus === examStatusFilter;
-
-        let statusMatch = true;
-        if (status === 'unassigned') {
-            statusMatch = workflowStatus(exam) === 'UNASSIGNED';
-        } else if (status) {
-            statusMatch = examStatus === status;
-        }
+        const modalityMatch = !modalities.length || modalities.includes(normalizeText(exam.modality.code));
+        const bodyPartMatch = !bodyParts.length || bodyParts.includes(normalizeText(exam.body_part));
+        const subspecialityMatch = !subspecialities.length || subspecialities.includes(normalizeText(exam.subspeciality));
+        const patientClassMatch = !patientClasses.length || patientClasses.includes(normalizeText(exam.patient_class));
+        const examStatusMatch = !examStatusFilters.length || examStatusFilters.includes(normalizedExamStatus);
+        const statusMatch = !statuses.length || statuses.includes(examStatus);
 
         const radiologistName = exam.radiologist_name || exam.assigned_by;
         const technologistName = exam.technologist_name;
@@ -887,6 +1968,12 @@ function filteredExams(){
             exam.accession_number,
             exam.patient_name,
             exam.patient_class,
+            exam.patient_class_label,
+            formatPatientDob(exam.patient_dob),
+            formatPatientAge(exam.patient_dob),
+            exam.body_part,
+            exam.subspeciality,
+            exam.inferred_subspeciality,
             exam.mrn,
             exam.procedure_name,
             exam.exam_status,
@@ -900,18 +1987,33 @@ function filteredExams(){
             exam.assigned_protocol && exam.assigned_protocol.name,
             exam.facility && exam.facility.code,
             exam.protocol_not_required_at,
+            dateOnlyValue(exam.order_datetime),
             dateOnlyValue(exam.exam_datetime),
+            dateOnlyValue(exam.scheduled_datetime),
             dateOnlyValue(exam.assigned_at),
             dateOnlyValue(exam.acknowledged_at),
             formatDateTime(exam.protocol_not_required_at),
+            formatDateTime(exam.order_datetime),
             formatDateTime(exam.exam_datetime),
+            formatDateTime(exam.scheduled_datetime),
             formatDateTime(exam.assigned_at),
             formatDateTime(exam.acknowledged_at),
         ].map(normalizeText).join(' ');
         const queryMatch = !query || searchable.includes(query);
-        const dateMatch = matchesDateFilter(exam, selectedDate);
+        const orderDateMatch = matchesDateQuery(exam.order_datetime, orderDateQuery);
+        const scheduleDateMatch = matchesDateQuery(exam.scheduled_datetime, scheduleDateQuery);
 
-        return modalityMatch && statusMatch && examStatusMatch && queryMatch && dateMatch;
+        return (
+            modalityMatch
+            && bodyPartMatch
+            && subspecialityMatch
+            && patientClassMatch
+            && statusMatch
+            && examStatusMatch
+            && queryMatch
+            && orderDateMatch
+            && scheduleDateMatch
+        );
     });
 }
 
@@ -970,6 +2072,64 @@ function sortedExams(items){
     return sorted;
 }
 
+function resetPagination(){
+    currentPage = 1;
+}
+
+function paginationMeta(items){
+    const totalCount = items.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage));
+    currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+
+    if (!totalCount) {
+        return {
+            rows: [],
+            totalCount: 0,
+            totalPages: 1,
+            startIndex: 0,
+            endIndex: 0,
+        };
+    }
+
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = Math.min(startIndex + rowsPerPage, totalCount);
+
+    return {
+        rows: items.slice(startIndex, endIndex),
+        totalCount,
+        totalPages,
+        startIndex,
+        endIndex,
+    };
+}
+
+function updatePagination(meta){
+    const bar = document.getElementById('protocol-pagination');
+    const summary = document.getElementById('protocol-pagination-summary');
+    const pageInfo = document.getElementById('protocol-page-info');
+    const prevButton = document.getElementById('protocol-prev-page');
+    const nextButton = document.getElementById('protocol-next-page');
+
+    if (!bar || !summary || !pageInfo || !prevButton || !nextButton) {
+        return;
+    }
+
+    if (!meta.totalCount) {
+        bar.hidden = true;
+        summary.textContent = '';
+        pageInfo.textContent = 'Page 1 / 1';
+        prevButton.disabled = true;
+        nextButton.disabled = true;
+        return;
+    }
+
+    bar.hidden = false;
+    summary.textContent = `Showing ${meta.startIndex + 1}-${meta.endIndex} of ${meta.totalCount}`;
+    pageInfo.textContent = `Page ${currentPage} / ${meta.totalPages}`;
+    prevButton.disabled = currentPage <= 1;
+    nextButton.disabled = currentPage >= meta.totalPages;
+}
+
 function buildPacsExamUrl(exam){
     const examId = String(exam.accession_number || '').trim();
     if (!examId) {
@@ -1000,14 +2160,197 @@ function getCsrfToken(){
     return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
 }
 
+function setSelectValue(selectId, value){
+    const node = document.getElementById(selectId);
+    if (!node) {
+        return false;
+    }
+
+    const normalized = normalizeText(value);
+    const matching = Array.from(node.options).find(
+        (option) => normalizeText(option.value) === normalized
+    );
+    if (!matching) {
+        return false;
+    }
+
+    node.value = matching.value;
+    return true;
+}
+
+function setFilterSaveState(message, isError){
+    const stateNode = document.getElementById('filter-save-state');
+    if (!stateNode) {
+        return;
+    }
+    stateNode.textContent = message || '';
+    stateNode.classList.toggle('error', Boolean(isError));
+}
+
+function collectFilterState(){
+    return {
+        modality: selectedMultiValues('filter-modality'),
+        body_part: selectedMultiValues('filter-body-part'),
+        subspeciality: selectedMultiValues('filter-subspeciality'),
+        patient_class: selectedMultiValues('filter-patient-class'),
+        status: selectedMultiValues('filter-status'),
+        exam_status: selectedMultiValues('filter-exam-status'),
+        query: document.getElementById('search-input').value,
+        order_date_query: buildDateQuery('order'),
+        schedule_date_query: buildDateQuery('schedule'),
+        sort_by: document.getElementById('sort-by').value,
+    };
+}
+
+function applyFilterState(filters){
+    if (!filters || typeof filters !== 'object') {
+        return false;
+    }
+
+    let applied = false;
+    const modalityValues = Array.isArray(filters.modality)
+        ? filters.modality
+        : (filters.modality ? [filters.modality] : []);
+    const bodyPartValues = Array.isArray(filters.body_part)
+        ? filters.body_part
+        : (filters.body_part ? [filters.body_part] : []);
+    const subspecialityValues = Array.isArray(filters.subspeciality)
+        ? filters.subspeciality
+        : (filters.subspeciality ? [filters.subspeciality] : []);
+    const patientClassValues = Array.isArray(filters.patient_class)
+        ? filters.patient_class
+        : (filters.patient_class ? [filters.patient_class] : []);
+    const statusValues = Array.isArray(filters.status)
+        ? filters.status
+        : (filters.status ? [filters.status] : []);
+    const examStatusValues = Array.isArray(filters.exam_status)
+        ? filters.exam_status
+        : (filters.exam_status ? [filters.exam_status] : []);
+
+    applied = setMultiSelectValues('filter-modality', modalityValues) || applied;
+    applied = setMultiSelectValues('filter-body-part', bodyPartValues) || applied;
+    applied = setMultiSelectValues('filter-subspeciality', subspecialityValues) || applied;
+    applied = setMultiSelectValues('filter-patient-class', patientClassValues) || applied;
+    applied = setMultiSelectValues('filter-status', statusValues) || applied;
+    applied = setMultiSelectValues('filter-exam-status', examStatusValues) || applied;
+    if (typeof filters.sort_by === 'string' && filters.sort_by.trim()) {
+        applied = setSelectValue('sort-by', filters.sort_by) || applied;
+    }
+
+    if (typeof filters.query === 'string') {
+        document.getElementById('search-input').value = filters.query;
+        applied = applied || Boolean(filters.query.trim());
+    }
+    if (typeof filters.order_date_query === 'string') {
+        applied = applyDateQueryToControls('order', filters.order_date_query) || applied;
+    } else if (typeof filters.search_date === 'string') {
+        let legacyOrderQuery = String(filters.search_date || '').trim();
+        const legacyMode = String(filters.search_date_mode || '').trim().toLowerCase();
+        if (legacyMode === 'today') {
+            legacyOrderQuery = 't';
+        }
+        applied = applyDateQueryToControls('order', legacyOrderQuery) || applied;
+    } else {
+        applyDateQueryToControls('order', '');
+    }
+
+    if (typeof filters.schedule_date_query === 'string') {
+        applied = applyDateQueryToControls('schedule', filters.schedule_date_query) || applied;
+    } else if (typeof filters.schedule_date === 'string') {
+        let legacyScheduleQuery = String(filters.schedule_date || '').trim();
+        const legacyMode = String(filters.schedule_date_mode || '').trim().toLowerCase();
+        if (legacyMode === 'today') {
+            legacyScheduleQuery = 't';
+        }
+        applied = applyDateQueryToControls('schedule', legacyScheduleQuery) || applied;
+    } else {
+        applyDateQueryToControls('schedule', '');
+    }
+
+    return applied;
+}
+
+async function loadSavedFilters(){
+    try {
+        const response = await fetch(FILTER_PREFERENCES_API_URL, {
+            credentials: 'same-origin',
+        });
+        if (!response.ok) {
+            return {
+                hasSavedPreference: false,
+                hasAppliedFilters: false,
+            };
+        }
+
+        const payload = await response.json();
+        return {
+            hasSavedPreference: Boolean(payload && payload.has_saved),
+            hasAppliedFilters: applyFilterState(payload.filters || {}),
+        };
+    } catch (error) {
+        return {
+            hasSavedPreference: false,
+            hasAppliedFilters: false,
+        };
+    }
+}
+
+async function persistFilters(filters, successMessage){
+    setFilterSaveState('Saving filters…', false);
+    try {
+        const response = await fetch(FILTER_PREFERENCES_API_URL, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ filters: filters || {} }),
+        });
+
+        if (!response.ok) {
+            let payload = null;
+            try {
+                payload = await response.json();
+            } catch (error) {
+                payload = null;
+            }
+            const message = (payload && (payload.error || payload.detail)) || 'Unable to save filters.';
+            setFilterSaveState(message, true);
+            return false;
+        }
+
+        setFilterSaveState(successMessage || 'Filters saved.', false);
+        return true;
+    } catch (error) {
+        setFilterSaveState('Unable to save filters.', true);
+        return false;
+    }
+}
+
+async function saveFilters(){
+    await persistFilters(collectFilterState(), 'Filters saved.');
+}
+
 function clearFilters(){
-    document.getElementById('filter-modality').value = '';
-    document.getElementById('filter-status').value = '';
-    document.getElementById('filter-exam-status').value = '';
+    clearMultiSelect('filter-modality');
+    clearMultiSelect('filter-body-part');
+    clearMultiSelect('filter-subspeciality');
+    clearMultiSelect('filter-patient-class');
+    clearMultiSelect('filter-status');
+    clearMultiSelect('filter-exam-status');
     document.getElementById('search-input').value = '';
-    document.getElementById('filter-date').value = '';
+    applyDateQueryToControls('order', '');
+    applyDateQueryToControls('schedule', '');
     document.getElementById('sort-by').value = 'exam-newest';
+    setFilterSaveState('', false);
+    resetPagination();
     render();
+}
+
+async function resetFilters(){
+    clearFilters();
+    await persistFilters({}, 'Filters reset to default (no filters).');
 }
 
 async function load(){
@@ -1015,13 +2358,79 @@ async function load(){
     const payload = await response.json();
     exams = payload.results || [];
     viewer = payload.viewer || {};
+    const subspecialityDialog = document.getElementById('subspeciality-dialog');
+    if (subspecialityDialog) {
+        subspecialityDialog.addEventListener('close', () => {
+            pendingSubspecialityExamId = '';
+        });
+    }
 
-    document.getElementById('filter-modality').addEventListener('change', render);
-    document.getElementById('filter-status').addEventListener('change', render);
-    document.getElementById('filter-exam-status').addEventListener('change', render);
-    document.getElementById('search-input').addEventListener('input', render);
-    document.getElementById('filter-date').addEventListener('input', render);
-    document.getElementById('sort-by').addEventListener('change', render);
+    initializeMultiDropdowns();
+    bindMultiDropdownGlobalEvents();
+    populateMultiSelectOptions('filter-body-part', exams.map((exam) => exam.body_part));
+    populateMultiSelectOptions('filter-subspeciality', exams.map((exam) => exam.subspeciality));
+    populateMultiSelectOptions('filter-patient-class', exams.map((exam) => exam.patient_class));
+
+    const rerenderFromFilters = () => {
+        resetPagination();
+        render();
+    };
+    document.getElementById('search-input').addEventListener('input', rerenderFromFilters);
+    ['order', 'schedule'].forEach((prefix) => {
+        const nodes = getDateFilterNodes(prefix);
+        if (nodes.mode) {
+            nodes.mode.addEventListener('change', () => {
+                syncDateFilterControls(prefix);
+                rerenderFromFilters();
+            });
+        }
+        if (nodes.single) {
+            nodes.single.addEventListener('input', rerenderFromFilters);
+        }
+        if (nodes.from) {
+            nodes.from.addEventListener('input', rerenderFromFilters);
+        }
+        if (nodes.to) {
+            nodes.to.addEventListener('input', rerenderFromFilters);
+        }
+    });
+    document.getElementById('sort-by').addEventListener('change', rerenderFromFilters);
+
+    const pageSizeNode = document.getElementById('protocol-page-size');
+    if (pageSizeNode) {
+        rowsPerPage = Math.max(1, Number(pageSizeNode.value) || rowsPerPage);
+        pageSizeNode.addEventListener('change', () => {
+            rowsPerPage = Math.max(1, Number(pageSizeNode.value) || 25);
+            resetPagination();
+            render();
+        });
+    }
+
+    const prevPageNode = document.getElementById('protocol-prev-page');
+    const nextPageNode = document.getElementById('protocol-next-page');
+    if (prevPageNode) {
+        prevPageNode.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage -= 1;
+                render();
+            }
+        });
+    }
+    if (nextPageNode) {
+        nextPageNode.addEventListener('click', () => {
+            currentPage += 1;
+            render();
+        });
+    }
+
+    syncDateFilterControls('order');
+    syncDateFilterControls('schedule');
+    const savedFilterState = await loadSavedFilters();
+    const defaultSubspeciality = normalizeText(viewer.default_subspeciality);
+    const hasSavedFilters = Boolean(savedFilterState && savedFilterState.hasSavedPreference);
+    if (!hasSavedFilters && defaultSubspeciality) {
+        setMultiSelectValues('filter-subspeciality', [viewer.default_subspeciality]);
+    }
 
     render();
 }
@@ -1030,6 +2439,7 @@ function render(){
     document.getElementById('loading').style.display = 'none';
 
     const visibleExams = sortedExams(filteredExams());
+    const pageMeta = paginationMeta(visibleExams);
     const tbody = document.getElementById('tbody');
     tbody.innerHTML = '';
 
@@ -1041,7 +2451,7 @@ function render(){
         document.getElementById('table').style.display = 'table';
     }
 
-    visibleExams.forEach((exam) => {
+    pageMeta.rows.forEach((exam) => {
         const status = workflowStatus(exam);
         const historyPreview = (exam.clinical_history || '').trim();
         const protocolCode = exam.assigned_protocol && exam.assigned_protocol.code
@@ -1052,7 +2462,12 @@ function render(){
             : '';
         const assignedBy = exam.assigned_by || '-';
         const technologistName = exam.technologist_name || '-';
-        const patientClass = exam.patient_class || '-';
+        const patientClass = exam.patient_class_label || patientClassDisplay(exam.patient_class) || exam.patient_class || '-';
+        const patientDob = formatPatientDob(exam.patient_dob);
+        const patientAge = formatPatientAge(exam.patient_dob) || '-';
+        const orderAt = formatDateParts(exam.order_datetime);
+        const scheduledAt = formatDateParts(exam.scheduled_datetime);
+        const showScheduledDate = normalizeText(exam.exam_status) === 'scheduled';
         const assignedAt = formatDateParts(exam.assigned_at);
         const acknowledgedAt = formatDateParts(exam.acknowledged_at);
 
@@ -1062,6 +2477,8 @@ function render(){
                 <div class="id-cell">
                     <strong>Acc# ${exam.accession_number || '-'}</strong>
                     <span class="cell-subtle">Order# ${exam.order_id || '-'}</span>
+                    <span class="cell-subtle data-mono">Order Date ${orderAt.date}${orderAt.time ? ` ${orderAt.time}` : ''}</span>
+                    <span class="cell-subtle">MRN ${exam.mrn || '-'}</span>
                 </div>
             </td>
             <td>
@@ -1069,13 +2486,24 @@ function render(){
                     <div class="patient-name">${exam.patient_name || '-'}</div>
                     <div class="cell-subtle">${(exam.facility && exam.facility.name) || '-'}</div>
                     <div class="cell-subtle">Class ${patientClass}</div>
+                    <div class="cell-subtle">DOB ${patientDob} | Age ${patientAge}</div>
                     ${historyPreview ? `<div class="patient-history">${historyPreview}</div>` : ''}
                 </div>
             </td>
-            <td>${exam.mrn || '-'}</td>
             <td><span class="badge modality-chip ${String((exam.modality && exam.modality.code) || '').toLowerCase()}">${(exam.modality && exam.modality.code) || '-'}</span></td>
-            <td><span class="badge status-chip ${examStatusClass(exam.exam_status)}">${examStatusLabel(exam)}</span></td>
+            <td>
+                <div class="cell-stack">
+                    <span class="badge status-chip ${examStatusClass(exam.exam_status)}">${examStatusLabel(exam)}</span>
+                    ${showScheduledDate ? `<span class="data-meta data-mono">Schedule Date ${scheduledAt.date}</span>` : ''}
+                </div>
+            </td>
             <td>${exam.procedure_name || '-'}</td>
+            <td>
+                <div class="cell-stack">
+                    <span class="data-primary">${exam.subspeciality || '-'}</span>
+                    <span class="data-meta">${exam.body_part || '-'}</span>
+                </div>
+            </td>
             <td>
                 <div class="cell-stack protocol-cell">
                     <span class="data-primary">${protocolCode}</span>
@@ -1108,6 +2536,7 @@ function render(){
             <td class="action-cell">${renderActions(exam)}</td>
         </tr>`;
     });
+    updatePagination(pageMeta);
 
     const pendingCount = visibleExams.filter((exam) => workflowStatus(exam) === 'UNASSIGNED').length;
     const assignedCount = visibleExams.filter((exam) => exam.has_protocol && workflowStatus(exam) === 'PENDING').length;
@@ -1143,6 +2572,7 @@ function renderActions(exam){
         if (viewer.can_assign_protocol) {
             buttons.push(`<button class="btn btn-accent" type="button" onclick="assign('${exam.id}')">Assign</button>`);
             buttons.push(`<button class="btn btn-secondary" type="button" onclick="markNotRequired('${exam.id}')">Not Required</button>`);
+            buttons.push(`<button class="btn btn-secondary" type="button" onclick="changeSubspeciality('${exam.id}', '${String(exam.subspeciality || '').replace(/'/g, "\\'")}')">Subspeciality</button>`);
         } else {
             buttons.push('<button class="btn btn-disabled" type="button" disabled>Waiting</button>');
         }
@@ -1213,6 +2643,117 @@ async function markNotRequired(id){
         location.reload();
     } catch (error) {
         window.alert('Unable to mark this exam as not required.');
+    }
+}
+
+async function changeSubspeciality(id, currentValue){
+    const allowed = Array.isArray(viewer.subspeciality_pool) ? viewer.subspeciality_pool : [];
+    if (!allowed.length) {
+        window.alert('No subspeciality pool is configured.');
+        return;
+    }
+
+    const dialog = document.getElementById('subspeciality-dialog');
+    const select = document.getElementById('subspeciality-dialog-select');
+    const currentElement = document.getElementById('subspeciality-dialog-current');
+
+    if (!dialog || !select || !currentElement) {
+        window.alert('Subspeciality picker is not available.');
+        return;
+    }
+
+    pendingSubspecialityExamId = id;
+    select.innerHTML = '';
+
+    allowed.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = item;
+        option.textContent = item;
+        select.appendChild(option);
+    });
+
+    const normalizedCurrent = normalizeText(currentValue);
+    const initialValue = allowed.find((item) => normalizeText(item) === normalizedCurrent) || allowed[0];
+    select.value = initialValue;
+    currentElement.textContent = currentValue
+        ? `Current: ${currentValue}`
+        : 'Current: Not set';
+
+    if (typeof dialog.showModal === 'function') {
+        dialog.showModal();
+        return;
+    }
+
+    const selectedValue = window.prompt(`Set subspeciality (${allowed.join(', ')}):`, initialValue || '');
+    if (selectedValue === null) {
+        pendingSubspecialityExamId = '';
+        return;
+    }
+    await persistSubspecialityUpdate(id, selectedValue);
+}
+
+function closeSubspecialityDialog(){
+    const dialog = document.getElementById('subspeciality-dialog');
+    pendingSubspecialityExamId = '';
+    if (dialog && typeof dialog.close === 'function') {
+        dialog.close();
+    }
+}
+
+async function submitSubspecialityDialog(){
+    const select = document.getElementById('subspeciality-dialog-select');
+    const examId = pendingSubspecialityExamId;
+
+    if (!examId || !select) {
+        closeSubspecialityDialog();
+        return;
+    }
+
+    const selectedValue = select.value;
+    closeSubspecialityDialog();
+    await persistSubspecialityUpdate(examId, selectedValue);
+}
+
+async function persistSubspecialityUpdate(id, requestedValue){
+    const allowed = Array.isArray(viewer.subspeciality_pool) ? viewer.subspeciality_pool : [];
+    const normalizedInput = normalizeText(requestedValue);
+    const selectedValue = allowed.find((item) => normalizeText(item) === normalizedInput);
+    if (!selectedValue) {
+        window.alert(`Invalid subspeciality. Choose one of: ${allowed.join(', ')}`);
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/core/exams/${id}/set-subspeciality/`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({ subspeciality: selectedValue }),
+        });
+
+        if (!response.ok) {
+            let payload = null;
+            try {
+                payload = await response.json();
+            } catch (error) {
+                payload = null;
+            }
+            const message = (payload && (payload.error || payload.detail)) || 'Unable to update subspeciality.';
+            window.alert(message);
+            return;
+        }
+
+        exams = exams.map((exam) => (
+            exam.id === id
+                ? { ...exam, subspeciality: selectedValue }
+                : exam
+        ));
+        render();
+    } catch (error) {
+        window.alert('Unable to update subspeciality.');
     }
 }
 

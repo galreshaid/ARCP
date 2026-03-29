@@ -28,7 +28,7 @@ class ORMParser:
             return []
 
         # Fallback for messages delivered as a single line.
-        pattern = r'(?=(?:MSH|PID|PV1|ORC|OBR|OBX|NTE)\|)'
+        pattern = r'(?=(?:MSH|PID|PV1|ORC|OBR|OBX|NTE|SCH|AIS)\|)'
         segments = re.split(pattern, cleaned)
         return [segment.strip() for segment in segments if segment.strip()]
     
@@ -54,6 +54,8 @@ class ORMParser:
                 'visit': self._parse_pv1(),
                 'order': self._parse_orc(),
                 'observation_request': self._parse_obr(),
+                'schedule': self._parse_sch(),
+                'appointment_service': self._parse_ais(),
             }
             
             return data
@@ -169,6 +171,46 @@ class ORMParser:
             ),
             'diagnosis_coding_system': self._get_component(diagnosis_parts, 2),
         }
+
+    def _parse_sch(self) -> Dict:
+        """Parse SCH (Schedule Activity Information) segment"""
+        if 'SCH' not in self.segment_dict:
+            return {}
+
+        sch = self.segment_dict['SCH'][0]
+        fields = sch.split('|')
+
+        appointment_status = ''
+        for value in reversed(fields):
+            normalized = str(value or '').strip()
+            if normalized:
+                appointment_status = normalized
+                break
+
+        return {
+            'placer_appointment_id': self._get_field(fields, 1),  # SCH-1
+            'filler_appointment_id': self._get_field(fields, 2),  # SCH-2
+            'schedule_id': self._get_field(fields, 5),  # SCH-5
+            'procedure_code': self._get_component(self._get_field(fields, 7).split('^'), 0),  # SCH-7
+            'start_datetime': self._parse_datetime(self._first_component(self._get_field(fields, 11))),  # SCH-11
+            'appointment_status': appointment_status,
+        }
+
+    def _parse_ais(self) -> Dict:
+        """Parse AIS (Appointment Information - Service) segment"""
+        if 'AIS' not in self.segment_dict:
+            return {}
+
+        ais = self.segment_dict['AIS'][0]
+        fields = ais.split('|')
+        service_parts = self._get_field(fields, 3).split('^')
+
+        return {
+            'procedure_code': self._get_component(service_parts, 0),  # AIS-3
+            'procedure_name': self._get_component(service_parts, 1),  # AIS-3
+            'start_datetime': self._parse_datetime(self._get_field(fields, 4)),  # AIS-4
+            'duration': self._get_field(fields, 7),  # AIS-7
+        }
     
     # Helper methods
     
@@ -185,6 +227,9 @@ class ORMParser:
             return components[index] if index < len(components) else ''
         except:
             return ''
+
+    def _first_component(self, value: str) -> str:
+        return (value or '').split('^', 1)[0].strip()
     
     def _extract_mrn(self, patient_id_field: str) -> str:
         """Extract MRN from PID-3"""

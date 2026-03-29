@@ -21,6 +21,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 from apps.core.constants import Permission, UserRole
 from apps.core.deeplinks.validator import DeepLinkValidationError, deeplink_validator
 from apps.core.models import Exam, ExamStatus
+from apps.core.services.facility_scope import apply_facility_scope, can_access_facility
 from apps.protocols.services.notifications import send_direct_user_message
 from apps.qc.models import (
     AnnotationTool,
@@ -105,6 +106,31 @@ def _default_items_for_modality(_modality_code: str) -> tuple[tuple[str, str], .
     return tuple(deduplicated.items())
 
 
+def _with_default_checklist_items(items: list[dict], modality) -> list[dict]:
+    """
+    Ensure every modality exposes the full shared default QC checklist.
+    Custom/admin checklist rows remain first; missing default items are appended.
+    """
+    existing_keys = {
+        _normalize_key(entry.get("key"))
+        for entry in items
+        if _normalize_key(entry.get("key"))
+    }
+    merged_items = list(items)
+    for key, label in _default_items_for_modality(getattr(modality, "code", "")):
+        if key in existing_keys:
+            continue
+        merged_items.append(
+            {
+                "key": key,
+                "label": label,
+                "required": True,
+                "help_text": "",
+            }
+        )
+    return merged_items
+
+
 def _resolve_checklist_items(modality) -> list[dict]:
     checklist_rows = list(
         QCChecklist.objects.filter(
@@ -113,7 +139,7 @@ def _resolve_checklist_items(modality) -> list[dict]:
         ).order_by("sort_order", "key")
     )
     if checklist_rows:
-        return [
+        configured_items = [
             {
                 "key": row.key,
                 "label": row.label,
@@ -122,6 +148,7 @@ def _resolve_checklist_items(modality) -> list[dict]:
             }
             for row in checklist_rows
         ]
+        return _with_default_checklist_items(configured_items, modality)
 
     template = modality.qc_checklist_template or {}
     items: list[dict] = []
@@ -172,20 +199,7 @@ def _resolve_checklist_items(modality) -> list[dict]:
         )
 
     if items:
-        modality_defaults = _default_items_for_modality(getattr(modality, "code", ""))
-        existing_keys = {entry["key"] for entry in items}
-        for key, label in modality_defaults:
-            if key in existing_keys:
-                continue
-            items.append(
-                {
-                    "key": key,
-                    "label": label,
-                    "required": True,
-                    "help_text": "",
-                }
-            )
-        return items
+        return _with_default_checklist_items(items, modality)
 
     default_items = _default_items_for_modality(getattr(modality, "code", ""))
     return [
@@ -230,21 +244,15 @@ def _build_pacs_patient_link(mrn: str) -> str:
     return PACS_PATIENT_URL_TEMPLATE.replace("{patient_id}", quote(patient_id))
 
 
-def _has_facility_restrictions(user) -> bool:
-    try:
-        return not user.is_superuser and user.facilities.exists()
-    except Exception:
-        return False
-
-
-def _role_scoped_exam_queryset(user):
+def _role_scoped_exam_queryset(user, *, only_completed: bool = False):
     queryset = Exam.objects.select_related("modality", "facility").filter(
         modality__requires_qc=True,
         modality__is_active=True,
     )
 
-    if _has_facility_restrictions(user):
-        queryset = queryset.filter(facility__in=user.facilities.all())
+    queryset = apply_facility_scope(queryset, user)
+    if only_completed:
+        queryset = queryset.filter(status=ExamStatus.COMPLETED)
 
     role = role_of(user)
     if user.is_superuser or role == UserRole.ADMIN:
@@ -284,6 +292,7 @@ def _effective_exam_status(exam: Exam) -> str:
             order_control=order_control,
             order_status=order_status,
             fallback=exam.status,
+            actionable_response_only=True,
         )
     except Exception:
         return exam.status
@@ -335,14 +344,14 @@ def _checklist_checked(value) -> bool:
 
 
 def _can_access_exam(user, exam) -> bool:
+    if not can_access_facility(user, exam.facility_id):
+        return False
+
     if user.is_superuser:
         return True
 
     if role_of(user) == UserRole.ADMIN:
         return True
-
-    if _has_facility_restrictions(user) and not user.facilities.filter(id=exam.facility_id).exists():
-        return False
 
     if role_of(user) == UserRole.SUPERVISOR:
         return exam.modality.code in supervisor_modality_scope(user)
@@ -391,7 +400,10 @@ def _latest_issue_owner_for_exam(exam):
         QCSession.objects.filter(
             exam=exam,
             reviewer__isnull=False,
-            reviewer__role=UserRole.RADIOLOGIST,
+        )
+        .filter(
+            models.Q(reviewer__role__in=[UserRole.RADIOLOGIST, UserRole.ADMIN])
+            | models.Q(reviewer__is_superuser=True),
         )
         .filter(
             models.Q(concern_raised=True)
@@ -520,11 +532,14 @@ def _persist_images(session: QCSession, payload_images: list, *, requested_by) -
 def qc_worklist(request):
     accession = str(request.GET.get("accession") or "").strip()
     if accession:
-        exam = Exam.objects.filter(accession_number__iexact=accession).first()
+        exam = _role_scoped_exam_queryset(
+            request.user,
+            only_completed=True,
+        ).filter(accession_number__iexact=accession).first()
         if exam is not None:
             return redirect("qc:review", exam_id=exam.id)
 
-    visible_exams = _role_scoped_exam_queryset(request.user)
+    visible_exams = _role_scoped_exam_queryset(request.user, only_completed=True)
     visible_exam_ids = list(visible_exams.values_list("id", flat=True))
     counts = _session_or_result_counts_for_exam_ids(visible_exam_ids)
     supervisor_scope = sorted(supervisor_modality_scope(request.user))
@@ -940,6 +955,21 @@ def qc_review(request, exam_id):
     is_qc_editor_user = request.user.is_superuser or user_role in {UserRole.RADIOLOGIST, UserRole.ADMIN}
     is_acknowledgement_user = is_supervisor_user or is_technologist_user
     issue_owner = _latest_issue_owner_for_exam(exam)
+    recipient_queryset = get_user_model().objects.filter(
+        is_active=True,
+    ).exclude(pk=request.user.pk)
+    if getattr(exam, "facility_id", None):
+        recipient_queryset = recipient_queryset.filter(
+            models.Q(facilities__id=exam.facility_id)
+            | models.Q(primary_facility_id=exam.facility_id)
+            | models.Q(is_superuser=True)
+            | models.Q(role=UserRole.ADMIN)
+        )
+    if issue_owner and issue_owner.pk != request.user.pk:
+        recipient_queryset = recipient_queryset | get_user_model().objects.filter(pk=issue_owner.pk)
+    user_message_recipients = list(
+        recipient_queryset.distinct().order_by("first_name", "last_name", "username")[:500]
+    )
     launch_base_url = request.build_absolute_uri(reverse("qc:launch"))
     pacs_exam_link = _build_pacs_exam_link(exam.accession_number)
     pacs_patient_link = _build_pacs_patient_link(exam.mrn)
@@ -959,6 +989,7 @@ def qc_review(request, exam_id):
         "is_acknowledgement_user": is_acknowledgement_user,
         "issue_owner": issue_owner,
         "issue_owner_id": str(issue_owner.id) if issue_owner else "",
+        "user_message_recipients": user_message_recipients,
         "pacs_study_link": pacs_exam_link or _build_pacs_link(exam.accession_number),
         "pacs_exam_link": pacs_exam_link,
         "pacs_patient_link": pacs_patient_link,
@@ -982,7 +1013,7 @@ def qc_exams_api(request):
     search_query = str(request.GET.get("q") or "").strip()
     modality_filter = str(request.GET.get("modality") or "").strip().upper()
 
-    exams_qs = _role_scoped_exam_queryset(request.user)
+    exams_qs = _role_scoped_exam_queryset(request.user, only_completed=True)
     if modality_filter:
         exams_qs = exams_qs.filter(modality__code=modality_filter)
 
@@ -995,7 +1026,7 @@ def qc_exams_api(request):
             | models.Q(procedure_name__icontains=search_query)
         )
 
-    exams = list(exams_qs.order_by("-exam_datetime", "-created_at")[:250])
+    exams = list(exams_qs.order_by("-exam_datetime", "-created_at")[:1000])
     exam_ids = [exam.id for exam in exams]
 
     latest_sessions: dict = {}
@@ -1146,15 +1177,18 @@ def qc_session_api(request, exam_id):
         source_session = (
             QCSession.objects.filter(
                 exam=exam,
-                reviewer__role=UserRole.RADIOLOGIST,
                 concern_raised=True,
+            )
+            .filter(
+                models.Q(reviewer__role__in=[UserRole.RADIOLOGIST, UserRole.ADMIN])
+                | models.Q(reviewer__is_superuser=True),
             )
             .order_by("-created_at")
             .first()
         )
         if source_session is None:
             return _json_error(
-                "No radiologist-raised QC concern is available for acknowledgement/escalation.",
+                "No QC concern is available for acknowledgement/escalation.",
                 status=409,
             )
 
@@ -1206,8 +1240,13 @@ def qc_session_api(request, exam_id):
         session.delete()
         return _json_error(str(exc), status=400)
 
-    concern_or_note = concern_raised or bool(notes)
-    if user_role == UserRole.RADIOLOGIST and concern_or_note:
+    should_notify_submission = bool(checklist_state) or bool(notes) or concern_raised
+    should_auto_notify = (
+        action == "save"
+        and should_notify_submission
+        and _can_save_session(request.user)
+    )
+    if should_auto_notify:
         notify_supervisors_of_qc_concern(
             session=session,
             raised_by=request.user,
@@ -1298,15 +1337,16 @@ def qc_launch(request):
     order_id = str(request.GET.get("order_id") or "").strip()
 
     exam = None
+    scoped_qs = _role_scoped_exam_queryset(request.user)
     if exam_id:
         try:
-            exam = Exam.objects.filter(id=exam_id).first()
+            exam = scoped_qs.filter(id=exam_id).first()
         except (ValueError, ValidationError):
             exam = None
     elif accession:
-        exam = Exam.objects.filter(accession_number__iexact=accession).first()
+        exam = scoped_qs.filter(accession_number__iexact=accession).first()
     elif order_id:
-        exam = Exam.objects.filter(order_id__iexact=order_id).order_by("-created_at").first()
+        exam = scoped_qs.filter(order_id__iexact=order_id).order_by("-created_at").first()
 
     if exam is not None:
         if not _can_access_exam(request.user, exam):

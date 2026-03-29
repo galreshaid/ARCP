@@ -1,3 +1,5 @@
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth import get_user_model
 from django.conf import settings
@@ -22,6 +24,8 @@ class UserLoginView(LoginView):
     redirect_authenticated_user = True
 
     def get_success_url(self):
+        if self.request.user.is_authenticated and getattr(self.request.user, "must_change_password", False):
+            return reverse_lazy('user-force-password-change')
         return self.get_redirect_url() or reverse_lazy('home')
 
     def get_context_data(self, **kwargs):
@@ -36,6 +40,27 @@ class UserLoginView(LoginView):
 
 class UserLogoutView(LogoutView):
     next_page = reverse_lazy('login')
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def force_password_change_view(request):
+    if not getattr(request.user, "must_change_password", False):
+        return redirect("home")
+
+    form = PasswordChangeForm(user=request.user, data=request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        request.user.must_change_password = False
+        request.user.save(update_fields=["must_change_password"])
+        update_session_auth_hash(request, request.user)
+        return redirect("home")
+
+    return render(
+        request,
+        "users/force_password_change.html",
+        {"form": form},
+    )
 
 
 def _notifications_available() -> bool:

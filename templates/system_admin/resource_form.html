@@ -518,31 +518,31 @@
                                 <h3>Identity & Contact</h3>
                                 <div class="user-grid">
                                     <div class="field">
-                                        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                                        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}{% if form.email.field.required %} *{% endif %}</label>
                                         {{ form.email }}
                                         {% if form.email.help_text %}<div class="help">{{ form.email.help_text }}</div>{% endif %}
                                         {% if form.email.errors %}<div class="error-note">{{ form.email.errors }}</div>{% endif %}
                                     </div>
                                     <div class="field">
-                                        <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                                        <label for="{{ form.username.id_for_label }}">{{ form.username.label }}{% if form.username.field.required %} *{% endif %}</label>
                                         {{ form.username }}
                                         {% if form.username.help_text %}<div class="help">{{ form.username.help_text }}</div>{% endif %}
                                         {% if form.username.errors %}<div class="error-note">{{ form.username.errors }}</div>{% endif %}
                                     </div>
                                     <div class="field">
-                                        <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+                                        <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}{% if form.first_name.field.required %} *{% endif %}</label>
                                         {{ form.first_name }}
                                         {% if form.first_name.help_text %}<div class="help">{{ form.first_name.help_text }}</div>{% endif %}
                                         {% if form.first_name.errors %}<div class="error-note">{{ form.first_name.errors }}</div>{% endif %}
                                     </div>
                                     <div class="field">
-                                        <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+                                        <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}{% if form.last_name.field.required %} *{% endif %}</label>
                                         {{ form.last_name }}
                                         {% if form.last_name.help_text %}<div class="help">{{ form.last_name.help_text }}</div>{% endif %}
                                         {% if form.last_name.errors %}<div class="error-note">{{ form.last_name.errors }}</div>{% endif %}
                                     </div>
                                     <div class="field">
-                                        <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+                                        <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}{% if form.phone.field.required %} *{% endif %}</label>
                                         {{ form.phone }}
                                         {% if form.phone.help_text %}<div class="help">{{ form.phone.help_text }}</div>{% endif %}
                                         {% if form.phone.errors %}<div class="error-note">{{ form.phone.errors }}</div>{% endif %}
@@ -554,46 +554,52 @@
                                 <h3>Organization & Role</h3>
                                 <div class="user-grid">
                                     <div class="field">
-                                        <label for="{{ form.role.id_for_label }}">{{ form.role.label }}</label>
+                                        <label for="{{ form.role.id_for_label }}">{{ form.role.label }}{% if form.role.field.required %} *{% endif %}</label>
                                         {{ form.role }}
                                         {% if form.role.help_text %}<div class="help">{{ form.role.help_text }}</div>{% endif %}
                                         {% if form.role.errors %}<div class="error-note">{{ form.role.errors }}</div>{% endif %}
                                     </div>
                                     <div class="field">
-                                        <label for="{{ form.primary_facility.id_for_label }}">{{ form.primary_facility.label }}</label>
+                                        <label for="{{ form.primary_facility.id_for_label }}">{{ form.primary_facility.label }}{% if form.primary_facility.field.required %} *{% endif %}</label>
                                         {{ form.primary_facility }}
                                         {% if form.primary_facility.help_text %}<div class="help">{{ form.primary_facility.help_text }}</div>{% endif %}
                                         {% if form.primary_facility.errors %}<div class="error-note">{{ form.primary_facility.errors }}</div>{% endif %}
                                     </div>
                                     <div class="field">
-                                        <label for="{{ form.professional_id.id_for_label }}">{{ form.professional_id.label }}</label>
+                                        <label for="{{ form.professional_id.id_for_label }}">{{ form.professional_id.label }}{% if form.professional_id.field.required %} *{% endif %}</label>
                                         {{ form.professional_id }}
                                         {% if form.professional_id.help_text %}<div class="help">{{ form.professional_id.help_text }}</div>{% endif %}
                                         {% if form.professional_id.errors %}<div class="error-note">{{ form.professional_id.errors }}</div>{% endif %}
                                     </div>
                                     <div class="field">
-                                        <label for="{{ form.nid.id_for_label }}">{{ form.nid.label }}</label>
+                                        <label for="{{ form.nid.id_for_label }}">{{ form.nid.label }}{% if form.nid.field.required %} *{% endif %}</label>
                                         {{ form.nid }}
                                         {% if form.nid.help_text %}<div class="help">{{ form.nid.help_text }}</div>{% endif %}
                                         {% if form.nid.errors %}<div class="error-note">{{ form.nid.errors }}</div>{% endif %}
                                     </div>
                                     <div class="field">
-                                        <label for="{{ form.specialty.id_for_label }}">{{ form.specialty.label }}</label>
+                                        <label for="{{ form.specialty.id_for_label }}">{{ form.specialty.label }}{% if form.specialty.field.required %} *{% endif %}</label>
                                         {{ form.specialty }}
                                         {% if form.specialty.help_text %}<div class="help">{{ form.specialty.help_text }}</div>{% endif %}
                                         {% if form.specialty.errors %}<div class="error-note">{{ form.specialty.errors }}</div>{% endif %}
                                     </div>
                                     <div class="field">
-                                        <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+                                        <label for="{{ form.department.id_for_label }}">{{ form.department.label }}{% if form.department.field.required %} *{% endif %}</label>
                                         {{ form.department }}
                                         {% if form.department.help_text %}<div class="help">{{ form.department.help_text }}</div>{% endif %}
                                         {% if form.department.errors %}<div class="error-note">{{ form.department.errors }}</div>{% endif %}
                                     </div>
                                     <div class="field field-wide">
-                                        <label for="{{ form.facilities.id_for_label }}">{{ form.facilities.label }}</label>
+                                        <label for="{{ form.facilities.id_for_label }}">{{ form.facilities.label }}{% if form.facilities.field.required %} *{% endif %}</label>
                                         {{ form.facilities }}
                                         {% if form.facilities.help_text %}<div class="help">{{ form.facilities.help_text }}</div>{% endif %}
                                         {% if form.facilities.errors %}<div class="error-note">{{ form.facilities.errors }}</div>{% endif %}
+                                    </div>
+                                    <div class="field field-wide">
+                                        <label for="{{ form.qc_modalities.id_for_label }}">{{ form.qc_modalities.label }}</label>
+                                        <div class="option-list">{{ form.qc_modalities }}</div>
+                                        {% if form.qc_modalities.help_text %}<div class="help">{{ form.qc_modalities.help_text }}</div>{% endif %}
+                                        {% if form.qc_modalities.errors %}<div class="error-note">{{ form.qc_modalities.errors }}</div>{% endif %}
                                     </div>
                                 </div>
                             </section>
@@ -620,28 +626,24 @@
                                 <h3>User Preferences</h3>
                                 <div class="user-grid">
                                     <div class="field">
-                                        <label for="{{ form.preference_type.id_for_label }}">{{ form.preference_type.label }}</label>
-                                        {{ form.preference_type }}
-                                        {% if form.preference_type.help_text %}<div class="help">{{ form.preference_type.help_text }}</div>{% endif %}
-                                        {% if form.preference_type.errors %}<div class="error-note">{{ form.preference_type.errors }}</div>{% endif %}
+                                        <label for="{{ form.preference_notify_qc.id_for_label }}">{{ form.preference_notify_qc.label }}</label>
+                                        <div class="checkbox-wrap">{{ form.preference_notify_qc }}</div>
+                                        {% if form.preference_notify_qc.errors %}<div class="error-note">{{ form.preference_notify_qc.errors }}</div>{% endif %}
                                     </div>
                                     <div class="field">
-                                        <label for="{{ form.preference_key.id_for_label }}">{{ form.preference_key.label }}</label>
-                                        {{ form.preference_key }}
-                                        {% if form.preference_key.help_text %}<div class="help">{{ form.preference_key.help_text }}</div>{% endif %}
-                                        {% if form.preference_key.errors %}<div class="error-note">{{ form.preference_key.errors }}</div>{% endif %}
+                                        <label for="{{ form.preference_notify_protocol.id_for_label }}">{{ form.preference_notify_protocol.label }}</label>
+                                        <div class="checkbox-wrap">{{ form.preference_notify_protocol }}</div>
+                                        {% if form.preference_notify_protocol.errors %}<div class="error-note">{{ form.preference_notify_protocol.errors }}</div>{% endif %}
                                     </div>
-                                    <div class="field field-wide">
-                                        <label for="{{ form.preference_value.id_for_label }}">{{ form.preference_value.label }}</label>
-                                        {{ form.preference_value }}
-                                        {% if form.preference_value.help_text %}<div class="help">{{ form.preference_value.help_text }}</div>{% endif %}
-                                        {% if form.preference_value.errors %}<div class="error-note">{{ form.preference_value.errors }}</div>{% endif %}
+                                    <div class="field">
+                                        <label for="{{ form.preference_notify_contrast.id_for_label }}">{{ form.preference_notify_contrast.label }}</label>
+                                        <div class="checkbox-wrap">{{ form.preference_notify_contrast }}</div>
+                                        {% if form.preference_notify_contrast.errors %}<div class="error-note">{{ form.preference_notify_contrast.errors }}</div>{% endif %}
                                     </div>
-                                    <div class="field field-wide">
-                                        <label for="{{ form.preferences.id_for_label }}">{{ form.preferences.label }}</label>
-                                        {{ form.preferences }}
-                                        {% if form.preferences.help_text %}<div class="help">{{ form.preferences.help_text }}</div>{% endif %}
-                                        {% if form.preferences.errors %}<div class="error-note">{{ form.preferences.errors }}</div>{% endif %}
+                                    <div class="field">
+                                        <label for="{{ form.preference_notify_email.id_for_label }}">{{ form.preference_notify_email.label }}</label>
+                                        <div class="checkbox-wrap">{{ form.preference_notify_email }}</div>
+                                        {% if form.preference_notify_email.errors %}<div class="error-note">{{ form.preference_notify_email.errors }}</div>{% endif %}
                                     </div>
                                 </div>
                             </section>
@@ -649,8 +651,8 @@
                             <section class="user-section">
                                 <h3>Security & Status</h3>
                                 <div class="security-note">
-                                    Password reset is protected with confirmation and minimum length checks.
-                                    Use role groups for baseline access, then add direct permissions only when needed.
+                                    Password reset now generates a temporary password and sends it by email.
+                                    The system forces the user to change password at first login after reset.
                                 </div>
                                 <div class="user-grid">
                                     <div class="field">
@@ -680,18 +682,20 @@
                                         {% if form.reset_password.help_text %}<div class="help">{{ form.reset_password.help_text }}</div>{% endif %}
                                         {% if form.reset_password.errors %}<div class="error-note">{{ form.reset_password.errors }}</div>{% endif %}
                                     </div>
-                                    <div class="field">
-                                        <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
-                                        {{ form.password }}
-                                        {% if form.password.help_text %}<div class="help">{{ form.password.help_text }}</div>{% endif %}
-                                        {% if form.password.errors %}<div class="error-note">{{ form.password.errors }}</div>{% endif %}
-                                    </div>
-                                    <div class="field">
-                                        <label for="{{ form.password_confirm.id_for_label }}">{{ form.password_confirm.label }}</label>
-                                        {{ form.password_confirm }}
-                                        {% if form.password_confirm.help_text %}<div class="help">{{ form.password_confirm.help_text }}</div>{% endif %}
-                                        {% if form.password_confirm.errors %}<div class="error-note">{{ form.password_confirm.errors }}</div>{% endif %}
-                                    </div>
+                                    {% if not form.instance.pk %}
+                                        <div class="field">
+                                            <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                                            {{ form.password }}
+                                            {% if form.password.help_text %}<div class="help">{{ form.password.help_text }}</div>{% endif %}
+                                            {% if form.password.errors %}<div class="error-note">{{ form.password.errors }}</div>{% endif %}
+                                        </div>
+                                        <div class="field">
+                                            <label for="{{ form.password_confirm.id_for_label }}">{{ form.password_confirm.label }}</label>
+                                            {{ form.password_confirm }}
+                                            {% if form.password_confirm.help_text %}<div class="help">{{ form.password_confirm.help_text }}</div>{% endif %}
+                                            {% if form.password_confirm.errors %}<div class="error-note">{{ form.password_confirm.errors }}</div>{% endif %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </section>
                         </div>

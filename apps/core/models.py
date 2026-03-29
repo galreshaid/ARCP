@@ -91,6 +91,11 @@ class Facility(BaseModel):
     address = models.TextField(_('Address'), blank=True)
     contact_email = models.EmailField(_('Contact Email'), blank=True)
     contact_phone = models.CharField(_('Contact Phone'), max_length=50, blank=True)
+    qc_service_desk_email = models.EmailField(
+        _('QC Service Desk Email'),
+        blank=True,
+        default='helpdesk@Aaml.com.sa',
+    )
 
     is_active = models.BooleanField(_('Is Active'), default=True)
 
@@ -279,8 +284,38 @@ class Exam(BaseModel, SoftDeleteModel):
             'ER': 'E',
             'ED': 'E',
             'EMERGENCY': 'E',
+            'A': 'A',
+            'AMBULATORY': 'A',
+            'P': 'P',
+            'PREADMIT': 'P',
+            'PRE-ADMIT': 'P',
+            'U': 'U',
+            'UNKNOWN': 'U',
+            'B': 'B',
+            'OB': 'B',
+            'OBSTETRICS': 'B',
+            'S': 'S',
+            'PSYCH': 'S',
+            'PSYCHIATRIC': 'S',
+            'K': 'K',
+            'NEWBORN': 'K',
         }
-        return mapping.get(normalized, normalized)
+        return mapping.get(normalized, 'U' if normalized in {'', 'UNK', 'UN'} else normalized)
+
+    @staticmethod
+    def _patient_class_label(code):
+        labels = {
+            'IP': 'Inpatient',
+            'O': 'Outpatient',
+            'E': 'Emergency',
+            'A': 'Ambulatory',
+            'P': 'Preadmit',
+            'U': 'Unknown',
+            'B': 'Obstetrics',
+            'S': 'Psychiatric',
+            'K': 'Newborn',
+        }
+        return labels.get(str(code or '').strip().upper(), '')
 
     @property
     def patient_class(self):
@@ -301,7 +336,7 @@ class Exam(BaseModel, SoftDeleteModel):
 
     @property
     def patient_class_display(self):
-        return self.patient_class or '—'
+        return self._patient_class_label(self.patient_class) or '—'
 
     @property
     def protocol_workflow_status(self):

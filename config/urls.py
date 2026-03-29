@@ -29,8 +29,11 @@ from apps.core.views import (
     system_admin_resource_create,
     system_admin_resource_update,
     system_admin_hl7_message_detail,
+    system_admin_hl7_issues,
     exams_api,
     mark_exam_protocol_not_required,
+    set_exam_subspeciality,
+    worklist_filter_preferences_api,
 )
 from apps.qc.views import qc_worklist
 from apps.protocols.views import (
@@ -144,6 +147,11 @@ urlpatterns = [
         system_admin_hl7_message_detail,
         name="system-admin-hl7-message-detail",
     ),
+    path(
+        "system-admin/hl7-messages/issues/",
+        system_admin_hl7_issues,
+        name="system-admin-hl7-issues",
+    ),
 
     # ======================================================
     # Admin
@@ -159,6 +167,16 @@ urlpatterns = [
         "api/core/exams/<uuid:exam_id>/mark-not-required/",
         mark_exam_protocol_not_required,
         name="exam-mark-not-required",
+    ),
+    path(
+        "api/core/exams/<uuid:exam_id>/set-subspeciality/",
+        set_exam_subspeciality,
+        name="exam-set-subspeciality",
+    ),
+    path(
+        "api/core/worklist-filters/<str:context_key>/",
+        worklist_filter_preferences_api,
+        name="worklist-filter-preferences-api",
     ),
     path("api/protocols/", include("apps.protocols.urls")),
 

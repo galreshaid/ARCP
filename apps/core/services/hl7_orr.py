@@ -13,6 +13,7 @@ from apps.core.services.hl7_orm import (
     _format_person_name,
     _format_provider,
     _map_exam_status_from_hl7,
+    _normalize_hl7_status_code,
     _parse_hl7_date,
     _parse_hl7_datetime,
     _resolve_modality_and_procedure,
@@ -20,6 +21,21 @@ from apps.core.services.hl7_orm import (
 
 
 DEFERRED_ORR_ERROR_PREFIX = 'Deferred ORR update waiting for ORM order '
+_ACTIONABLE_RESPONSE_CODES = {
+    'IP',
+    'INPROGRESS',
+    'INPROCESS',
+    'STARTED',
+    'CM',
+    'COMPLETE',
+    'COMPLETED',
+    'DONE',
+    'CA',
+    'CANCEL',
+    'CANCELLED',
+    'DC',
+    'DISCONTINUED',
+}
 
 
 def _deferred_orr_message(order_id: str) -> str:
@@ -163,6 +179,13 @@ def ingest_orr_message(
 
     order_control = (order.get('order_control') or '').strip().upper()
     order_status = (order.get('order_status') or '').strip().upper()
+    actionable_status_codes = {
+        _normalize_hl7_status_code(order_status),
+        _normalize_hl7_status_code(order_control),
+    }
+    has_actionable_status = bool(
+        actionable_status_codes.intersection(_ACTIONABLE_RESPONSE_CODES)
+    )
 
     facility_code = _first_component(message_info.get('receiving_facility') or message_info.get('sending_facility'))
     if not facility_code:
@@ -212,7 +235,13 @@ def ingest_orr_message(
         allow_accession_lookup=False,
         prefer_existing_accession=False,
     )
-    if exam is None:
+    mapped_exam_status = _map_exam_status_from_hl7(
+        order_control=order_control,
+        order_status=order_status,
+        fallback=ExamStatus.SCHEDULED,
+        actionable_response_only=True,
+    )
+    if exam is None and not has_actionable_status:
         error_message = f'No existing ORM exam found for order {order_id}. ORR only updates the accession number.'
         if allow_defer:
             _write_orr_log(
@@ -234,6 +263,14 @@ def ingest_orr_message(
             linked_message_log=linked_message_log,
         )
         raise ValueError(error_message)
+
+    created = False
+    if exam is None:
+        exam = Exam(
+            accession_number=accession_number,
+            order_id=order_id,
+        )
+        created = True
 
     existing_with_accession = Exam.objects.filter(accession_number=target_accession).exclude(pk=exam.pk).first()
     if existing_with_accession:
@@ -260,7 +297,6 @@ def ingest_orr_message(
         'hl7_status': 'RESPONSE_RECEIVED',
         'hl7_message_type': message_info.get('message_type') or 'ORM^O01',
         'hl7_order_control': order_control,
-        'hl7_order_status': order_status,
         'hl7_order_number': order_id,
         'hl7_accession_number': accession_number,
         'hl7_patient_class': (visit.get('patient_class') or '').strip(),
@@ -272,6 +308,9 @@ def ingest_orr_message(
         'hl7_response_payload': parsed,
         'hl7_last_response_raw_message': normalized_message,
     })
+    metadata['hl7_response_order_status_raw'] = order_status
+    if has_actionable_status:
+        metadata['hl7_order_status'] = order_status
 
     exam.accession_number = target_accession
     exam.order_id = order_id
@@ -302,7 +341,8 @@ def ingest_orr_message(
     mapped_exam_status = _map_exam_status_from_hl7(
         order_control=order_control,
         order_status=order_status,
-        fallback=exam.status or ExamStatus.SCHEDULED,
+        fallback=exam.status or mapped_exam_status or ExamStatus.SCHEDULED,
+        actionable_response_only=True,
     )
     exam.status = mapped_exam_status
     if mapped_exam_status == ExamStatus.COMPLETED:
@@ -335,4 +375,4 @@ def ingest_orr_message(
         linked_message_log=linked_message_log,
     )
 
-    return exam, False, parsed
+    return exam, created, parsed

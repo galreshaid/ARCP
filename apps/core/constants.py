@@ -69,6 +69,9 @@ class Permission:
     QC_APPROVE = 'qc.approve'
     QC_EVIDENCE_CAPTURE = 'qc.evidence_capture'
     QC_EVIDENCE_VIEW = 'qc.evidence_view'
+    QC_NOTIFY_MODALITY_SUPERVISOR = 'qc.notify_modality_supervisor'
+    QC_NOTIFY_MODALITY_QC_SUPERVISOR = 'qc.notify_modality_qc_supervisor'
+    QC_NOTIFY_OFFICER = 'qc.notify_officer'
     
     # Protocol Permissions
     PROTOCOL_VIEW = 'protocol.view'
@@ -119,6 +122,8 @@ ROLE_PERMISSIONS = {
         Permission.QC_APPROVE,
         Permission.QC_EVIDENCE_CAPTURE,
         Permission.QC_EVIDENCE_VIEW,
+        Permission.QC_NOTIFY_MODALITY_SUPERVISOR,
+        Permission.QC_NOTIFY_MODALITY_QC_SUPERVISOR,
         Permission.PROTOCOL_VIEW,
         Permission.CONTRAST_VIEW,
         Permission.CONTRAST_APPROVE,
@@ -151,6 +156,9 @@ ROLE_PERMISSIONS[UserRole.ADMIN] = [
     Permission.QC_APPROVE,
     Permission.QC_EVIDENCE_CAPTURE,
     Permission.QC_EVIDENCE_VIEW,
+    Permission.QC_NOTIFY_MODALITY_SUPERVISOR,
+    Permission.QC_NOTIFY_MODALITY_QC_SUPERVISOR,
+    Permission.QC_NOTIFY_OFFICER,
     Permission.PROTOCOL_VIEW,
     Permission.PROTOCOL_ASSIGN,
     Permission.PROTOCOL_EDIT,

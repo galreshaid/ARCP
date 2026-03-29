@@ -226,6 +226,7 @@ class ProtocolAssignmentService:
         self,
         radiologist,
         facility=None,
+        facility_ids=None,
         days: int = 30,
     ) -> List[ProtocolAssignment]:
 
@@ -236,6 +237,11 @@ class ProtocolAssignmentService:
 
         if facility:
             qs = qs.filter(exam__facility=facility)
+        if facility_ids is not None:
+            if facility_ids:
+                qs = qs.filter(exam__facility_id__in=list(facility_ids))
+            else:
+                qs = qs.none()
 
         return list(qs)
 
@@ -243,6 +249,7 @@ class ProtocolAssignmentService:
         self,
         radiologist=None,
         facility=None,
+        facility_ids=None,
         days: int = 30,
     ) -> Dict:
 
@@ -254,6 +261,11 @@ class ProtocolAssignmentService:
             qs = qs.filter(assigned_by=radiologist)
         if facility:
             qs = qs.filter(exam__facility=facility)
+        if facility_ids is not None:
+            if facility_ids:
+                qs = qs.filter(exam__facility_id__in=list(facility_ids))
+            else:
+                qs = qs.none()
 
         stats = qs.aggregate(
             total_assignments=models.Count("id"),

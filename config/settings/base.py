@@ -95,6 +95,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.users.middleware.ForcePasswordChangeMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     #'apps.audit.middleware.AuditMiddleware',  # Custom audit tracking
@@ -241,6 +242,10 @@ QC_EVIDENCE_ALLOWED_FORMATS = ['.png', '.jpg', '.jpeg', '.pdf']
 PACS_STUDY_URL_TEMPLATE = config(
     'PACS_STUDY_URL_TEMPLATE',
     default='pacs://study/{accession}',
+).strip()
+QC_SERVICE_DESK_EMAIL = config(
+    'QC_SERVICE_DESK_EMAIL',
+    default='helpdesk@Aaml.com.sa',
 ).strip()
 
 # Contrast Safety Settings

@@ -158,6 +158,26 @@
             gap:6px;
         }
 
+        .field-actions{
+            align-content:end;
+        }
+
+        .field-actions-row{
+            display:grid;
+            grid-template-columns:repeat(2, minmax(0, 1fr));
+            gap:8px;
+        }
+
+        .filter-save-state{
+            min-height:16px;
+            font-size:11px;
+            color:var(--muted);
+        }
+
+        .filter-save-state.error{
+            color:#b91c1c;
+        }
+
         .field label{
             font-size:11px;
             text-transform:uppercase;
@@ -271,6 +291,58 @@
             color:var(--muted);
         }
 
+        .pagination-bar{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            flex-wrap:wrap;
+            margin-top:10px;
+        }
+
+        .pagination-summary{
+            font-size:12px;
+            color:var(--muted);
+        }
+
+        .pagination-controls{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            flex-wrap:wrap;
+        }
+
+        .pagination-controls label{
+            font-size:11px;
+            color:var(--muted);
+            font-weight:700;
+        }
+
+        .pagination-controls select{
+            min-height:32px;
+            padding:0 10px;
+            border-radius:10px;
+            border:1px solid var(--line-strong);
+            background:#fbfdff;
+            color:var(--ink);
+            font:inherit;
+            font-size:12px;
+        }
+
+        .pagination-btn{
+            min-height:32px;
+            padding:0 12px;
+            font-size:11px;
+        }
+
+        .pagination-info{
+            min-width:96px;
+            text-align:center;
+            font-size:12px;
+            color:var(--muted);
+            font-weight:700;
+        }
+
         .scope-note{
             margin-top:10px;
             font-size:12px;
@@ -352,6 +424,14 @@
                         <label for="search-input">Search</label>
                         <input id="search-input" value="{{ initial_search_query }}" placeholder="Acc#, MRN, patient, study or reviewer">
                     </div>
+                    <div class="field field-actions">
+                        <label>&nbsp;</label>
+                        <div class="field-actions-row">
+                            <button class="btn btn-secondary" type="button" onclick="saveFilters()">Save Filters</button>
+                            <button class="btn btn-secondary" type="button" onclick="clearFilters()">Clear</button>
+                        </div>
+                        <div id="filter-save-state" class="filter-save-state" aria-live="polite"></div>
+                    </div>
                 </div>
             </section>
 
@@ -377,6 +457,21 @@
                     </table>
                     <div class="empty" id="qc-empty">Loading QC studies...</div>
                 </div>
+                <div id="qc-pagination" class="pagination-bar" hidden>
+                    <div id="qc-pagination-summary" class="pagination-summary"></div>
+                    <div class="pagination-controls">
+                        <label for="qc-page-size">Rows</label>
+                        <select id="qc-page-size">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <button id="qc-prev-page" class="btn btn-secondary pagination-btn" type="button">Previous</button>
+                        <span id="qc-page-info" class="pagination-info">Page 1 / 1</span>
+                        <button id="qc-next-page" class="btn btn-secondary pagination-btn" type="button">Next</button>
+                    </div>
+                </div>
             </section>
         </div>
     </main>
@@ -384,8 +479,11 @@
 
 <script>
 const WORKLIST_API_URL = "{{ worklist_api_url }}";
+const FILTER_PREFERENCES_API_URL = "/api/core/worklist-filters/qc/";
 const INITIAL_MODALITY_FILTER = "{{ initial_modality_filter }}";
 let allRows = [];
+let currentPage = 1;
+let rowsPerPage = 25;
 
 function normalizeText(value){
     return String(value || "").trim().toLowerCase();
@@ -411,6 +509,180 @@ function statusClass(value){
 function examStatusClass(value){
     const normalized = normalizeText(value).replace(/_/g, "-");
     return normalized || "unknown";
+}
+
+function qcStatusLabel(value){
+    const normalized = normalizeText(value).replace(/_/g, "-");
+    if (!normalized || normalized === "pending") {
+        return "New";
+    }
+    return String(value || "").replace(/_/g, " ");
+}
+
+function resetPagination(){
+    currentPage = 1;
+}
+
+function paginationMeta(items){
+    const totalCount = items.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage));
+    currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+
+    if (!totalCount) {
+        return {
+            rows: [],
+            totalCount: 0,
+            totalPages: 1,
+            startIndex: 0,
+            endIndex: 0,
+        };
+    }
+
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = Math.min(startIndex + rowsPerPage, totalCount);
+
+    return {
+        rows: items.slice(startIndex, endIndex),
+        totalCount,
+        totalPages,
+        startIndex,
+        endIndex,
+    };
+}
+
+function updatePagination(meta){
+    const bar = document.getElementById("qc-pagination");
+    const summary = document.getElementById("qc-pagination-summary");
+    const pageInfo = document.getElementById("qc-page-info");
+    const prevButton = document.getElementById("qc-prev-page");
+    const nextButton = document.getElementById("qc-next-page");
+
+    if (!bar || !summary || !pageInfo || !prevButton || !nextButton) {
+        return;
+    }
+
+    if (!meta.totalCount) {
+        bar.hidden = true;
+        summary.textContent = "";
+        pageInfo.textContent = "Page 1 / 1";
+        prevButton.disabled = true;
+        nextButton.disabled = true;
+        return;
+    }
+
+    bar.hidden = false;
+    summary.textContent = `Showing ${meta.startIndex + 1}-${meta.endIndex} of ${meta.totalCount}`;
+    pageInfo.textContent = `Page ${currentPage} / ${meta.totalPages}`;
+    prevButton.disabled = currentPage <= 1;
+    nextButton.disabled = currentPage >= meta.totalPages;
+}
+
+function getCsrfToken(){
+    const cookie = document.cookie
+        .split("; ")
+        .find((item) => item.startsWith("csrftoken="));
+    return cookie ? decodeURIComponent(cookie.split("=")[1]) : "";
+}
+
+function setFilterSaveState(message, isError){
+    const stateNode = document.getElementById("filter-save-state");
+    if (!stateNode) {
+        return;
+    }
+    stateNode.textContent = message || "";
+    stateNode.classList.toggle("error", Boolean(isError));
+}
+
+function setSelectValue(selectId, value){
+    const node = document.getElementById(selectId);
+    if (!node) {
+        return false;
+    }
+    const normalized = normalizeText(value);
+    const matching = Array.from(node.options).find(
+        (option) => normalizeText(option.value) === normalized
+    );
+    if (!matching) {
+        return false;
+    }
+    node.value = matching.value;
+    return true;
+}
+
+function collectFilterState(){
+    return {
+        modality: document.getElementById("filter-modality").value,
+        query: document.getElementById("search-input").value,
+    };
+}
+
+function applyFilterState(filters){
+    if (!filters || typeof filters !== "object") {
+        return;
+    }
+
+    if (typeof filters.modality === "string") {
+        setSelectValue("filter-modality", filters.modality);
+    }
+    if (typeof filters.query === "string") {
+        const searchNode = document.getElementById("search-input");
+        if (!searchNode.value.trim()) {
+            searchNode.value = filters.query;
+        }
+    }
+}
+
+async function loadSavedFilters(){
+    try {
+        const response = await fetch(FILTER_PREFERENCES_API_URL, {
+            credentials: "same-origin",
+        });
+        if (!response.ok) {
+            return;
+        }
+
+        const payload = await response.json();
+        applyFilterState(payload.filters || {});
+    } catch (error) {
+    }
+}
+
+async function saveFilters(){
+    setFilterSaveState("Saving filters...", false);
+    try {
+        const response = await fetch(FILTER_PREFERENCES_API_URL, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                "X-CSRFToken": getCsrfToken(),
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ filters: collectFilterState() }),
+        });
+        if (!response.ok) {
+            let payload = null;
+            try {
+                payload = await response.json();
+            } catch (error) {
+                payload = null;
+            }
+            const message = (payload && (payload.error || payload.detail)) || "Unable to save filters.";
+            setFilterSaveState(message, true);
+            return;
+        }
+
+        setFilterSaveState("Filters saved.", false);
+    } catch (error) {
+        setFilterSaveState("Unable to save filters.", true);
+    }
+}
+
+function clearFilters(){
+    document.getElementById("filter-modality").value = "";
+    document.getElementById("search-input").value = "";
+    setFilterSaveState("", false);
+    resetPagination();
+    render();
 }
 
 function filterRows(){
@@ -460,6 +732,7 @@ function renderPacsButtons(row){
 
 function render(){
     const filtered = filterRows();
+    const pageMeta = paginationMeta(filtered);
     const table = document.getElementById("qc-table");
     const body = document.getElementById("qc-body");
     const empty = document.getElementById("qc-empty");
@@ -470,10 +743,11 @@ function render(){
         table.style.display = "none";
         empty.style.display = "block";
         empty.innerText = "No QC studies match the current filters.";
+        updatePagination(pageMeta);
         return;
     }
 
-    filtered.forEach((row) => {
+    pageMeta.rows.forEach((row) => {
         body.innerHTML += `
             <tr>
                 <td>
@@ -488,7 +762,7 @@ function render(){
                 <td>${row.study || "-"}</td>
                 <td><span class="modality">${(row.modality && row.modality.code) || "-"}</span></td>
                 <td><span class="status exam-status ${examStatusClass(row.exam_status)}">${row.exam_status_label || "-"}</span></td>
-                <td><span class="status ${statusClass(row.status)}">${row.status || "PENDING"}</span></td>
+                <td><span class="status ${statusClass(row.status)}">${qcStatusLabel(row.status)}</span></td>
                 <td>${row.concern_raised ? "Yes" : "-"}</td>
                 <td>${row.reviewer || "-"}</td>
                 <td>${formatDate(row.updated_at)}</td>
@@ -504,15 +778,20 @@ function render(){
 
     empty.style.display = "none";
     table.style.display = "table";
+    updatePagination(pageMeta);
 }
 
 async function loadExams(){
     const empty = document.getElementById("qc-empty");
     const table = document.getElementById("qc-table");
+    const paginationBar = document.getElementById("qc-pagination");
 
     table.style.display = "none";
     empty.style.display = "block";
     empty.innerText = "Loading QC studies...";
+    if (paginationBar) {
+        paginationBar.hidden = true;
+    }
 
     try {
         const response = await fetch(WORKLIST_API_URL, {
@@ -525,20 +804,71 @@ async function loadExams(){
 
         const payload = await response.json();
         allRows = payload.results || [];
+        resetPagination();
         render();
     } catch (error) {
         allRows = [];
+        updatePagination({
+            rows: [],
+            totalCount: 0,
+            totalPages: 1,
+            startIndex: 0,
+            endIndex: 0,
+        });
         empty.innerText = "Unable to load QC studies right now.";
     }
 }
 
-document.getElementById("filter-modality").addEventListener("change", render);
-document.getElementById("search-input").addEventListener("input", render);
-if (INITIAL_MODALITY_FILTER) {
-    document.getElementById("filter-modality").value = INITIAL_MODALITY_FILTER;
+document.getElementById("filter-modality").addEventListener("change", () => {
+    resetPagination();
+    render();
+});
+document.getElementById("search-input").addEventListener("input", () => {
+    resetPagination();
+    render();
+});
+
+async function initializeWorklist(){
+    await loadSavedFilters();
+
+    const pageSizeNode = document.getElementById("qc-page-size");
+    if (pageSizeNode) {
+        rowsPerPage = Math.max(1, Number(pageSizeNode.value) || rowsPerPage);
+        pageSizeNode.addEventListener("change", () => {
+            rowsPerPage = Math.max(1, Number(pageSizeNode.value) || 25);
+            resetPagination();
+            render();
+        });
+    }
+
+    const prevPageNode = document.getElementById("qc-prev-page");
+    const nextPageNode = document.getElementById("qc-next-page");
+    if (prevPageNode) {
+        prevPageNode.addEventListener("click", () => {
+            if (currentPage > 1) {
+                currentPage -= 1;
+                render();
+            }
+        });
+    }
+    if (nextPageNode) {
+        nextPageNode.addEventListener("click", () => {
+            currentPage += 1;
+            render();
+        });
+    }
+
+    if (
+        INITIAL_MODALITY_FILTER
+        && !document.getElementById("filter-modality").value
+    ) {
+        setSelectValue("filter-modality", INITIAL_MODALITY_FILTER);
+    }
+
+    await loadExams();
 }
 
-loadExams();
+initializeWorklist();
 </script>
 </body>
 </html>
