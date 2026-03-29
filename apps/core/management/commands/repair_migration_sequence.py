@@ -15,7 +15,7 @@ class Command(BaseCommand):
             return
 
         with connection.cursor() as cursor:
-            cursor.execute("SELECT to_regclass('public.django_migrations')")
+            cursor.execute("SELECT to_regclass('django_migrations')")
             table_regclass = cursor.fetchone()[0]
             if not table_regclass:
                 self.stdout.write(
@@ -45,9 +45,10 @@ class Command(BaseCommand):
                 )
                 return
 
-            cursor.execute("SELECT setval(%s, %s, true)", [sequence_name, max_id])
+            # Use max(id)+1 with is_called=false so next nextval() returns exactly the first free id.
+            cursor.execute("SELECT setval(%s, %s, false)", [sequence_name, max_id + 1])
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Sequence {sequence_name} aligned to django_migrations max id {max_id}."
+                    f"Sequence {sequence_name} aligned to next django_migrations id {max_id + 1}."
                 )
             )
