@@ -44,6 +44,28 @@ class SoftDeleteManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(deleted_at__isnull=True)
 
+    def get_by_natural_key(self, *args):
+        # Use unfiltered manager for natural-key lookup so fixtures can resolve
+        # soft-deleted rows when needed.
+        if hasattr(self.model, "all_objects"):
+            return self.model.all_objects.get_by_natural_key(*args)
+        return super().get_by_natural_key(*args)
+
+
+class FacilityManager(models.Manager):
+    def get_by_natural_key(self, code):
+        return self.get(code=code)
+
+
+class ModalityManager(models.Manager):
+    def get_by_natural_key(self, code):
+        return self.get(code=code)
+
+
+class ExamAllManager(models.Manager):
+    def get_by_natural_key(self, accession_number):
+        return self.get(accession_number=accession_number)
+
 
 class SoftDeleteModel(models.Model):
     deleted_at = models.DateTimeField(_('Deleted At'), null=True, blank=True, db_index=True)
@@ -83,6 +105,8 @@ class SoftDeleteModel(models.Model):
 # ============================================================
 
 class Facility(BaseModel):
+    objects = FacilityManager()
+
     code = models.CharField(_('Facility Code'), max_length=50, unique=True)
     name = models.CharField(_('Facility Name'), max_length=200)
 
@@ -109,8 +133,13 @@ class Facility(BaseModel):
     def __str__(self):
         return f"{self.code} - {self.name}"
 
+    def natural_key(self):
+        return (self.code,)
+
 
 class Modality(BaseModel):
+    objects = ModalityManager()
+
     code = models.CharField(_('Modality Code'), max_length=10, unique=True)
     name = models.CharField(_('Modality Name'), max_length=100)
     description = models.TextField(_('Description'), blank=True)
@@ -128,6 +157,9 @@ class Modality(BaseModel):
 
     def __str__(self):
         return f"{self.code} - {self.name}"
+
+    def natural_key(self):
+        return (self.code,)
 
 
 # ============================================================
@@ -203,6 +235,8 @@ class ExamStatus(models.TextChoices):
 
 
 class Exam(BaseModel, SoftDeleteModel):
+    all_objects = ExamAllManager()
+
     accession_number = models.CharField(_('Accession Number'), max_length=100, unique=True, db_index=True)
     order_id = models.CharField(_('Order ID'), max_length=100, db_index=True)
     mrn = models.CharField(_('MRN'), max_length=100, db_index=True)
@@ -251,6 +285,11 @@ class Exam(BaseModel, SoftDeleteModel):
 
     def __str__(self):
         return f"{self.accession_number} - {self.procedure_name}"
+
+    def natural_key(self):
+        return (self.accession_number,)
+
+    natural_key.dependencies = ["core.facility", "core.modality"]
 
     @property
     def has_qc(self):
