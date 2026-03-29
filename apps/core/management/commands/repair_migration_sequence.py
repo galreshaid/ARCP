@@ -3,7 +3,7 @@ from django.db import connection
 
 
 class Command(BaseCommand):
-    help = "Repair django_migrations id sequence on PostgreSQL if it is out of sync."
+    help = "Repair PostgreSQL auto-ID sequences so they match current max IDs in each table."
 
     def handle(self, *args, **options):
         if connection.vendor != "postgresql":
@@ -15,40 +15,50 @@ class Command(BaseCommand):
             return
 
         with connection.cursor() as cursor:
-            cursor.execute("SELECT to_regclass('django_migrations')")
-            table_regclass = cursor.fetchone()[0]
-            if not table_regclass:
-                self.stdout.write(
-                    self.style.WARNING("Skipping sequence repair: django_migrations table not found.")
-                )
+            cursor.execute(
+                """
+                SELECT
+                    n.nspname AS schema_name,
+                    c.relname AS table_name,
+                    a.attname AS column_name,
+                    pg_get_serial_sequence(
+                        format('%I.%I', n.nspname, c.relname),
+                        a.attname
+                    ) AS sequence_name
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                JOIN pg_attribute a ON a.attrelid = c.oid
+                WHERE c.relkind = 'r'
+                  AND a.attnum > 0
+                  AND NOT a.attisdropped
+                  AND pg_get_serial_sequence(
+                        format('%I.%I', n.nspname, c.relname),
+                        a.attname
+                    ) IS NOT NULL
+                ORDER BY n.nspname, c.relname, a.attnum
+                """
+            )
+            sequence_rows = cursor.fetchall()
+            if not sequence_rows:
+                self.stdout.write(self.style.WARNING("No PostgreSQL serial/identity sequences found."))
                 return
 
-            cursor.execute("SELECT pg_get_serial_sequence('django_migrations', 'id')")
-            sequence_name = cursor.fetchone()[0]
-            if not sequence_name:
-                self.stdout.write(
-                    self.style.WARNING(
-                        "Skipping sequence repair: django_migrations.id has no serial sequence."
-                    )
-                )
-                return
+            repaired_count = 0
+            for schema_name, table_name, column_name, sequence_name in sequence_rows:
+                safe_schema = schema_name.replace('"', '""')
+                safe_table = table_name.replace('"', '""')
+                safe_column = column_name.replace('"', '""')
+                table_sql = f'"{safe_schema}"."{safe_table}"'
+                column_sql = f'"{safe_column}"'
 
-            cursor.execute("SELECT COUNT(*), COALESCE(MAX(id), 1) FROM django_migrations")
-            row_count, max_id = cursor.fetchone()
+                cursor.execute(f"SELECT COALESCE(MAX({column_sql}), 0) FROM {table_sql}")
+                max_id = int(cursor.fetchone()[0] or 0)
+                next_id = max_id + 1
+                cursor.execute("SELECT setval(%s, %s, false)", [sequence_name, next_id])
+                repaired_count += 1
 
-            if row_count == 0:
-                cursor.execute("SELECT setval(%s, 1, false)", [sequence_name])
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f"Sequence {sequence_name} reset for empty django_migrations table."
-                    )
-                )
-                return
-
-            # Use max(id)+1 with is_called=false so next nextval() returns exactly the first free id.
-            cursor.execute("SELECT setval(%s, %s, false)", [sequence_name, max_id + 1])
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Sequence {sequence_name} aligned to next django_migrations id {max_id + 1}."
+                    f"Aligned {repaired_count} PostgreSQL sequences to next available IDs."
                 )
             )
