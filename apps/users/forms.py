@@ -152,11 +152,15 @@ class SystemAdminUserForm(forms.ModelForm):
             'is_staff',
             'is_superuser',
             'email_verified',
-            'password',
         )
+
+    def _is_create_mode(self) -> bool:
+        return bool(getattr(self.instance._state, 'adding', False))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.is_create_mode = self._is_create_mode()
+        is_existing_user = not self.is_create_mode
         self.fields['facilities'].required = True
         self.fields['groups'].required = False
         self.fields['professional_id'].label = 'Employee ID'
@@ -210,7 +214,7 @@ class SystemAdminUserForm(forms.ModelForm):
             for domain_permission in DOMAIN_PERMISSION_TO_DJANGO_PERMISSION.keys()
         ]
 
-        if self.instance.pk:
+        if is_existing_user:
             assigned_codenames = set(
                 self.instance.user_permissions.filter(content_type__app_label='users')
                 .values_list('codename', flat=True)
@@ -247,8 +251,8 @@ class SystemAdminUserForm(forms.ModelForm):
                 self.initial["preference_notify_contrast"] = bool(notification_preferences.get("contrast", True))
                 self.initial["preference_notify_email"] = bool(notification_preferences.get("email", True))
 
-        if not self.instance.pk:
-            self.fields['reset_password'].initial = True
+        if self.is_create_mode:
+            self.fields['reset_password'].initial = False
             self.fields['password'].required = True
             self.fields['password_confirm'].required = True
             self.fields['professional_id'].required = True
@@ -276,7 +280,8 @@ class SystemAdminUserForm(forms.ModelForm):
         password = str(cleaned_data.get('password') or '')
         password_confirm = str(cleaned_data.get('password_confirm') or '')
         reset_password = bool(cleaned_data.get('reset_password'))
-        must_set_password = not self.instance.pk
+        is_existing_user = not getattr(self, 'is_create_mode', self._is_create_mode())
+        must_set_password = not is_existing_user
         preference_type = str(cleaned_data.get('preference_type') or '').strip()
         preference_key = str(cleaned_data.get('preference_key') or '').strip()
         raw_preference_value = str(cleaned_data.get('preference_value') or '').strip()
@@ -285,14 +290,14 @@ class SystemAdminUserForm(forms.ModelForm):
             self.add_error('password', 'Enter a new password.')
         if must_set_password and not password_confirm:
             self.add_error('password_confirm', 'Confirm the new password.')
-        if password and len(password) < 8 and not (reset_password and self.instance.pk):
+        if password and len(password) < 8 and not (reset_password and is_existing_user):
             self.add_error('password', 'Password must be at least 8 characters.')
-        if password and password_confirm and password != password_confirm and not (reset_password and self.instance.pk):
+        if password and password_confirm and password != password_confirm and not (reset_password and is_existing_user):
             self.add_error('password_confirm', 'Passwords do not match.')
 
         if password_confirm and not password and not must_set_password:
             self.add_error('password', 'Enter a new password before confirming.')
-        if reset_password and self.instance.pk:
+        if reset_password and is_existing_user:
             cleaned_data['password'] = ''
             cleaned_data['password_confirm'] = ''
 
@@ -355,14 +360,16 @@ class SystemAdminUserForm(forms.ModelForm):
         password = str(self.cleaned_data.get('password') or '')
         reset_password = bool(self.cleaned_data.get('reset_password'))
         generated_temporary_password = ""
+        is_create_mode = getattr(self, 'is_create_mode', self._is_create_mode())
+        is_existing_user = not is_create_mode
 
-        if reset_password and self.instance.pk:
+        if reset_password and is_existing_user:
             generated_temporary_password = _generate_temporary_password()
             user.set_password(generated_temporary_password)
             user.must_change_password = True
         elif password:
             user.set_password(password)
-            if not self.instance.pk:
+            if is_create_mode:
                 user.must_change_password = False
 
         if commit:

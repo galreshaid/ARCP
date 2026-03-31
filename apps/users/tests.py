@@ -387,6 +387,8 @@ class SystemAdminUserFormTests(TestCase):
         saved_user = form.save()
         self.assertEqual(saved_user.professional_id, "PRO-1001")
         self.assertEqual(saved_user.nid, "NID-1001")
+        self.assertTrue(saved_user.check_password("NewSecurePass123"))
+        self.assertFalse(saved_user.must_change_password)
 
     def test_update_without_reset_keeps_password(self):
         user = User.objects.create_user(

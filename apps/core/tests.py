@@ -106,6 +106,18 @@ class SystemAdminPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'User accounts, access, and role configuration.')
 
+    def test_admin_user_create_page_shows_password_fields_for_new_user(self):
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(
+            reverse('system-admin-resource-create', args=['users'])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="password"')
+        self.assertContains(response, 'name="password_confirm"')
+        self.assertNotContains(response, 'name="reset_password"')
+
     def test_admin_user_can_access_hl7_message_logs(self):
         self.client.force_login(self.staff_user)
         HL7Message.objects.create(

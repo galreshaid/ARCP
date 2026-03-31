@@ -650,10 +650,16 @@
 
                             <section class="user-section">
                                 <h3>Security & Status</h3>
-                                <div class="security-note">
-                                    Password reset now generates a temporary password and sends it by email.
-                                    The system forces the user to change password at first login after reset.
-                                </div>
+                                {% if form.is_create_mode %}
+                                    <div class="security-note">
+                                        Set the initial password for the new account here.
+                                    </div>
+                                {% else %}
+                                    <div class="security-note">
+                                        Password reset now generates a temporary password and sends it by email.
+                                        The system forces the user to change password at first login after reset.
+                                    </div>
+                                {% endif %}
                                 <div class="user-grid">
                                     <div class="field">
                                         <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
@@ -676,21 +682,23 @@
                                         <div class="checkbox-wrap">{{ form.email_verified }}</div>
                                         {% if form.email_verified.errors %}<div class="error-note">{{ form.email_verified.errors }}</div>{% endif %}
                                     </div>
-                                    <div class="field">
-                                        <label for="{{ form.reset_password.id_for_label }}">{{ form.reset_password.label }}</label>
-                                        <div class="checkbox-wrap">{{ form.reset_password }}</div>
-                                        {% if form.reset_password.help_text %}<div class="help">{{ form.reset_password.help_text }}</div>{% endif %}
-                                        {% if form.reset_password.errors %}<div class="error-note">{{ form.reset_password.errors }}</div>{% endif %}
-                                    </div>
-                                    {% if not form.instance.pk %}
+                                    {% if not form.is_create_mode %}
                                         <div class="field">
-                                            <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                                            <label for="{{ form.reset_password.id_for_label }}">{{ form.reset_password.label }}</label>
+                                            <div class="checkbox-wrap">{{ form.reset_password }}</div>
+                                            {% if form.reset_password.help_text %}<div class="help">{{ form.reset_password.help_text }}</div>{% endif %}
+                                            {% if form.reset_password.errors %}<div class="error-note">{{ form.reset_password.errors }}</div>{% endif %}
+                                        </div>
+                                    {% endif %}
+                                    {% if form.is_create_mode %}
+                                        <div class="field">
+                                            <label for="{{ form.password.id_for_label }}">{{ form.password.label }}{% if form.password.field.required %} *{% endif %}</label>
                                             {{ form.password }}
                                             {% if form.password.help_text %}<div class="help">{{ form.password.help_text }}</div>{% endif %}
                                             {% if form.password.errors %}<div class="error-note">{{ form.password.errors }}</div>{% endif %}
                                         </div>
                                         <div class="field">
-                                            <label for="{{ form.password_confirm.id_for_label }}">{{ form.password_confirm.label }}</label>
+                                            <label for="{{ form.password_confirm.id_for_label }}">{{ form.password_confirm.label }}{% if form.password_confirm.field.required %} *{% endif %}</label>
                                             {{ form.password_confirm }}
                                             {% if form.password_confirm.help_text %}<div class="help">{{ form.password_confirm.help_text }}</div>{% endif %}
                                             {% if form.password_confirm.errors %}<div class="error-note">{{ form.password_confirm.errors }}</div>{% endif %}
